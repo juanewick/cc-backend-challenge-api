@@ -28,6 +28,19 @@ Ejemplos:
 
 Hay una colección de ejemplo en postman/brokerage.postman_collection.json.
 
+Para saber si el proceso y la base responden:
+
+  curl -s http://localhost:8080/actuator/health
+  curl -s http://localhost:8080/actuator/info
+
+Health devuelve {"status":"UP"} y nada más. Info identifica la aplicación como brokerage-api. El resto de Actuator no está publicado.
+
+El contrato de la API lo genera la aplicación. No hay una copia en specs:
+
+  http://localhost:8080/v3/api-docs
+  http://localhost:8080/v3/api-docs.yaml
+  http://localhost:8080/swagger-ui.html
+
 Para bajarla:
 
   docker compose down
@@ -49,6 +62,8 @@ La ruta base es /api/brokerage-api. Cada controller versiona con /v1, para poder
   POST /api/brokerage-api/v1/accounts/{accountNumber}/orders
   POST /api/brokerage-api/v1/accounts/{accountNumber}/orders/{orderId}/cancellation
 Las rutas sin esa base, o con la base pero sin /v1, no se atienden.
+Actuator publica solo health e info, en /actuator. Health no muestra componentes. Info repite el nombre brokerage-api.
+El contrato OpenAPI lo genera springdoc-openapi 3.2.0 (springdoc-openapi-starter-webmvc-ui). Esa línea está construida sobre Spring Boot 4.1.2. La 3.0.x es Boot 4.0 y la 2.x es Boot 3. No se guarda una copia del contrato en specs: se lee en /v3/api-docs, /v3/api-docs.yaml y /swagger-ui.html.
 
 Decisiones de la especificación
 ================================

@@ -14,11 +14,11 @@ Una cuenta de inversión en pesos se consulta, se buscan activos por ticker o no
 
 **Language/Version**: Java 25 (LTS)
 
-**Primary Dependencies**: Spring Boot 4.1.2 (`spring-boot-starter-webmvc`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`). Test: `spring-boot-starter-test` (JUnit Jupiter 6.0.3, Mockito 5.23.0), `spring-boot-starter-webmvc-test`, Testcontainers PostgreSQL y LocalStack.
+**Primary Dependencies**: Spring Boot 4.1.2 (`spring-boot-starter-webmvc`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `spring-boot-starter-actuator`). Contrato generado con springdoc-openapi 3.2.0 (`springdoc-openapi-starter-webmvc-ui`), la línea 3.2.x construida sobre Spring Boot 4.1.2. Test: `spring-boot-starter-test` (JUnit Jupiter 6.0.3, Mockito 5.23.0), `spring-boot-starter-webmvc-test`, Testcontainers PostgreSQL y LocalStack.
 
 **Storage**: PostgreSQL 18.6, imagen oficial fijada (18.7 todavía no estaba en Docker Hub). El esquema y los datos salen del SQL entregado, sin que Hibernate lo genere.
 
-**Testing**: JUnit Jupiter y Mockito para `*Test.java` de dominio y servicios. `*IT.java` con Testcontainers para el camino feliz y los errores. Maven Surefire corre las unitarias y Failsafe las de integración, ambas desde `mvn verify`.
+**Testing**: JUnit Jupiter y Mockito para `*Test.java` de dominio y servicios. `*IT.java` con Testcontainers para el camino feliz y los errores. `ActuatorIT` tiene `@Order(1)` y corre antes que el resto de las clases de integración: comprueba health, info y que ningún otro endpoint de Actuator esté publicado. Maven Surefire corre las unitarias y Failsafe las de integración, ambas desde `mvn verify`.
 
 **Target Platform**: Linux en contenedor. El host solo necesita Docker para el arranque standalone. El puerto público es 8080.
 
@@ -38,7 +38,7 @@ Una cuenta de inversión en pesos se consulta, se buscan activos por ticker o no
 
 Las restricciones que sí obligan son las del pedido y las de [research.md](research.md): Java 25, Spring Boot 4.1.2, hexagonal, PostgreSQL en Docker, TDD, tests de servicio con Mockito, integración `*IT.java` con Testcontainers y LocalStack, sin autenticación, y arranque standalone con Docker.
 
-Revisión posterior al diseño: el contrato, el modelo y el quickstart cumplen esas restricciones. La única complejidad extra es LocalStack, justificada abajo. El gate sigue en pasa.
+Revisión posterior al diseño: el modelo y el quickstart cumplen esas restricciones. El contrato HTTP no se guarda en el repositorio: lo genera springdoc al arrancar. La única complejidad extra es LocalStack, justificada abajo. El gate sigue en pasa.
 
 ## Project Structure
 
@@ -50,8 +50,6 @@ specs/001-brokerage-trading-api/
 ├── research.md
 ├── data-model.md
 ├── quickstart.md
-├── contracts/
-│   └── http-api.yaml
 └── tasks.md              # lo crea /speckit-tasks, no este comando
 ```
 

@@ -159,6 +159,23 @@ Quien arranca o invoca el servicio lo reconoce como `brokerage-api` y usa una so
 
 ---
 
+### User Story 8 - Saber si la API está activa (Priority: P8)
+
+Quien va a operar, o quien acaba de cambiar la configuración, consulta dos rutas fijas. Health dice si el proceso y la base están sanos. Info dice que el proceso es `brokerage-api`. El contrato de las operaciones de negocio se lee del OpenAPI que la propia aplicación genera al arrancar. No hay un contrato escrito a mano.
+
+**Why this priority**: No cambia el cálculo del portfolio. Permite detectar, antes de confiar en el resto de las operaciones, que Actuator quedó expuesto de más o de menos y que la aplicación responde.
+
+**Independent Test**: `GET /actuator/health` devuelve `UP` sin componentes. `GET /actuator/info` devuelve el nombre `brokerage-api`. `GET /actuator/env` no se atiende. `GET /v3/api-docs` devuelve un OpenAPI que incluye el portfolio.
+
+**Acceptance Scenarios**:
+
+1. **Given** la aplicación en marcha y la base disponible, **When** se consulta `/actuator/health`, **Then** la respuesta es correcta y el estado es `UP`, sin el detalle de componentes.
+2. **Given** la aplicación en marcha, **When** se consulta `/actuator/info`, **Then** la respuesta es correcta e identifica la aplicación como `brokerage-api`.
+3. **Given** la aplicación en marcha, **When** se consulta otro endpoint de Actuator, como `/actuator/env`, **Then** no se atiende.
+4. **Given** la aplicación en marcha, **When** se pide `/v3/api-docs`, **Then** el documento es OpenAPI generado por la aplicación e incluye las operaciones de portfolio, búsqueda y órdenes bajo `/api/brokerage-api/v1`. La misma descripción está en `/v3/api-docs.yaml` y se puede leer en `/swagger-ui.html`.
+
+---
+
 ### Edge Cases
 
 - Una posición cuya cantidad neta es cero no se muestra. La posición corta de `BMA` en la cuenta de referencia sí se muestra, con cantidad y valor de mercado negativos.
@@ -173,6 +190,8 @@ Quien arranca o invoca el servicio lo reconoce como `brokerage-api` y usa una so
 - Los importes se informan con dos decimales y los porcentajes con dos decimales, redondeo half-up.
 - Quien conozca el número de cuenta puede consultarla y operarla. No hay sesiones ni permisos.
 - Un intento de registrar un ingreso o un egreso de pesos nuevo no graba una orden y no cambia el efectivo.
+- Health e info viven en `/actuator`, fuera de `/api/brokerage-api`. El OpenAPI generado vive en `/v3/api-docs`. Esas rutas no son operaciones de portfolio, búsqueda ni órdenes.
+- Un endpoint de Actuator distinto de health e info, incluido uno agregado por una versión nueva de la plataforma, no queda publicado. No se usa una lista que exponga todos y después excluya algunos.
 
 ## Requirements *(mandatory)*
 
@@ -210,7 +229,9 @@ Quien arranca o invoca el servicio lo reconoce como `brokerage-api` y usa una so
 - **FR-030**: Una solicitud con datos inválidos, o un ingreso o egreso de pesos nuevo, MUST NOT grabar una orden. El rechazo de negocio de FR-022 sí MUST grabarse.
 - **FR-031**: La aplicación MUST poder ponerse en marcha con Docker, junto con su base y los datos de referencia, y MUST atender portfolio, búsqueda y órdenes sin instalar la plataforma ni la base por separado.
 - **FR-032**: Al arrancar, la aplicación MUST identificarse como `brokerage-api`.
-- **FR-033**: Todas las operaciones HTTP MUST atenderse bajo la ruta base `/api/brokerage-api` y la versión `/v1` de cada operación. Las mismas operaciones sin esa base o sin esa versión MUST NOT atenderse.
+- **FR-033**: Todas las operaciones de portfolio, búsqueda y órdenes MUST atenderse bajo la ruta base `/api/brokerage-api` y la versión `/v1` de cada operación. Las mismas operaciones sin esa base o sin esa versión MUST NOT atenderse.
+- **FR-034**: El sistema MUST exponer por HTTP solo dos endpoints de Actuator: `GET /actuator/health` y `GET /actuator/info`. Health MUST informar `UP` cuando la aplicación y su base responden, y MUST NOT publicar el detalle de componentes. Info MUST identificar la aplicación como `brokerage-api`. Cualquier otro endpoint de Actuator MUST NOT quedar expuesto.
+- **FR-035**: El contrato de la API de negocio MUST ser el OpenAPI que springdoc-openapi 3.2.0 genera al arrancar. MUST servirse en `/v3/api-docs` y `/v3/api-docs.yaml`, y MUST poder leerse en `/swagger-ui.html`. El repositorio MUST NOT guardar una copia escrita a mano de ese contrato.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -231,6 +252,7 @@ Quien arranca o invoca el servicio lo reconoce como `brokerage-api` y usa una so
 - **SC-006**: Con el conjunto de referencia, una persona completa en un primer intento las tres tareas centrales: leer el portfolio de `10001`, encontrar `PAMP` por nombre o ticker y dejar registrada una orden de compra o de venta con el estado que corresponde.
 - **SC-007**: Con Docker disponible, un único arranque deja la aplicación y sus datos de referencia listos, sin instalar la plataforma ni la base por separado, y la consulta de la cuenta `10001` coincide con la historia 1.
 - **SC-008**: El 100% de las operaciones de portfolio, búsqueda y órdenes se invocan bajo la ruta base `/api/brokerage-api` y la versión `/v1`, y al arrancar el servicio se reconoce el nombre `brokerage-api`.
+- **SC-009**: Con la base disponible, `/actuator/health` informa `UP` sin componentes y `/actuator/info` informa `brokerage-api`. Ningún otro endpoint de Actuator responde. `/v3/api-docs` describe las operaciones de las historias 1 a 6.
 
 ## Assumptions
 
@@ -243,3 +265,5 @@ Quien arranca o invoca el servicio lo reconoce como `brokerage-api` y usa una so
 - Un catálogo de ejemplos para invocar cada operación es deseable y no es necesario para dar por cumplido el comportamiento.
 - Las restricciones de construcción que acompañaron el pedido original no cambian este comportamiento. La planificación debe aplicarlas tal como fueron pedidas, y las decisiones de diseño que esta especificación no fija deben quedar escritas para quien revise la solución.
 - La aplicación se arranca sola con Docker, junto con la base y los datos de referencia. El código Java vive en esta misma carpeta del proyecto.
+- springdoc-openapi 3.2.0 es la versión de esa biblioteca para Spring Boot 4.1.x. Está construida sobre Spring Boot 4.1.2. La línea 3.0.x corresponde a Spring Boot 4.0 y la 2.x a Spring Boot 3, así que no aplican a este servicio. El artefacto es `springdoc-openapi-starter-webmvc-ui`, el de Spring MVC con la interfaz de lectura.
+- Health no publica componentes ni la base a la que se conecta. Sin autenticación, ese detalle quedaría abierto. Alcanza con `UP` o `DOWN`.

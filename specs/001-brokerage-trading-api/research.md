@@ -48,6 +48,14 @@
 
 **Alternatives considered**: Omitir LocalStack. Guardar órdenes en S3 solo para tener algo que testear contra LocalStack.
 
+## Contrato generado y Actuator
+
+**Decision**: springdoc-openapi 3.2.0, artefacto `springdoc-openapi-starter-webmvc-ui`. El OpenAPI se sirve en `/v3/api-docs` y `/v3/api-docs.yaml`, con la interfaz en `/swagger-ui.html`. No queda una copia en `specs`. Actuator expone solo `health` e `info` (`management.endpoints.web.exposure.include=health,info`). Info publica `info.app.name` con el nombre de la aplicación. Health no muestra componentes.
+
+**Rationale**: La matriz de springdoc asigna 3.2.x a Spring Boot 4.1.x. 3.2.0 está construida sobre Spring Boot 4.1.2, la misma versión de este servicio. 3.0.x es Spring Boot 4.0 y 2.x es Spring Boot 3. El documento generado es el que describe los controladores que realmente atienden. Un YAML escrito a mano se desfasa. Health e info alcanzan para saber si el proceso y la base responden y si el proceso es `brokerage-api`. El resto de Actuator (`env`, `beans`, `mappings`, `heapdump`) queda cerrado porque no hay autenticación.
+
+**Alternatives considered**: Conservar `specs/001-brokerage-trading-api/contracts/http-api.yaml` como fuente y generarlo en el build. Duplica el contrato. Exponer todos los endpoints de Actuator con `include: "*"`. Publica configuración y volcados de memoria en una API sin autenticación.
+
 ## Identidad y contrato HTTP
 
 **Decision**: La cuenta se identifica por `accountNumber` en la ruta. El activo, por `ticker`. La orden guardada, por su id. No hay autenticación ni Spring Security.
