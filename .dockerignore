@@ -1,0 +1,14 @@
+.git
+.specify
+specs
+target
+.idea
+*.iml
+.DS_Store
+.vscode
+*.log
+.env
+.env.*
+postman
+README.txt
+**/.DS_Store

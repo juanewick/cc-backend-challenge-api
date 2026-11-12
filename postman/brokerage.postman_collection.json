@@ -1,0 +1,100 @@
+{
+  "info": {
+    "name": "Brokerage",
+    "description": "Portfolio, búsqueda y órdenes de la cuenta 10001. Arrancar antes con `docker compose up --build`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/brokerage-api"
+    },
+    {
+      "key": "accountNumber",
+      "value": "10001"
+    }
+  ],
+  "item": [
+    {
+      "name": "Consultar portfolio",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/v1/accounts/{{accountNumber}}/portfolio",
+        "description": "Cuenta 10001: availableCash 627500.00, totalValue 889756.00, posiciones BMA METR PAMP."
+      }
+    },
+    {
+      "name": "Buscar activos",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/v1/instruments?q=banco",
+        "description": "q=banco devuelve BBAR, BHIP, BMA y BPAT."
+      }
+    },
+    {
+      "name": "Orden de mercado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ticker\": \"GGAL\",\n  \"side\": \"BUY\",\n  \"type\": \"MARKET\",\n  \"size\": 1\n}"
+        },
+        "url": "{{baseUrl}}/v1/accounts/{{accountNumber}}/orders",
+        "description": "Compra 1 GGAL a mercado. Queda FILLED al cierre 885.80."
+      }
+    },
+    {
+      "name": "Orden límite",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ticker\": \"GGAL\",\n  \"side\": \"BUY\",\n  \"type\": \"LIMIT\",\n  \"size\": 10,\n  \"price\": \"800.00\"\n}"
+        },
+        "url": "{{baseUrl}}/v1/accounts/{{accountNumber}}/orders",
+        "description": "Compra 10 GGAL a 800.00. Queda NEW y reserva 8000.00."
+      }
+    },
+    {
+      "name": "Rechazo por fondos insuficientes",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ticker\": \"GGAL\",\n  \"side\": \"BUY\",\n  \"type\": \"MARKET\",\n  \"size\": 1000000\n}"
+        },
+        "url": "{{baseUrl}}/v1/accounts/{{accountNumber}}/orders",
+        "description": "Compra que no entra. Responde 201 con status REJECTED y no cambia el portfolio."
+      }
+    },
+    {
+      "name": "Cancelar orden abierta",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": "{{baseUrl}}/v1/accounts/{{accountNumber}}/orders/5/cancellation",
+        "description": "En una base recién cargada, la compra límite NEW de 50 LOMA a 710.00 tiene id 5."
+      }
+    }
+  ]
+}

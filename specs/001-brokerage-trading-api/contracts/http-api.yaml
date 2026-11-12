@@ -1,0 +1,257 @@
+openapi: 3.0.3
+info:
+  title: Portfolio, búsqueda y órdenes
+  version: 1.0.0
+  description: |
+    Contrato HTTP de la cuenta de inversión. Los importes y porcentajes viajan
+    como texto con dos decimales para conservar la escala. No hay autenticación.
+servers:
+  - url: http://localhost:8080/api/brokerage-api
+paths:
+  /v1/accounts/{accountNumber}/portfolio:
+    get:
+      operationId: getPortfolio
+      summary: Consultar el portfolio de una cuenta
+      parameters:
+        - $ref: "#/components/parameters/AccountNumber"
+      responses:
+        "200":
+          description: Portfolio calculado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Portfolio"
+              example:
+                accountNumber: "10001"
+                totalValue: "889756.00"
+                availableCash: "627500.00"
+                positions:
+                  - ticker: BMA
+                    name: Banco Macro S.A.
+                    quantity: -10
+                    marketValue: "-15028.00"
+                    totalReturnPercent: "0.48"
+                    dailyReturnPercent: "-1.15"
+                  - ticker: METR
+                    name: MetroGAS S.A.
+                    quantity: 500
+                    marketValue: "114750.00"
+                    totalReturnPercent: "-8.20"
+                    dailyReturnPercent: "-1.08"
+                  - ticker: PAMP
+                    name: Pampa Holding S.A.
+                    quantity: 40
+                    marketValue: "37034.00"
+                    totalReturnPercent: "-0.18"
+                    dailyReturnPercent: "0.44"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/instruments:
+    get:
+      operationId: searchInstruments
+      summary: Buscar activos por ticker o nombre
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: Texto contenido en el ticker o en el nombre
+      responses:
+        "200":
+          description: Coincidencias ordenadas por ticker, sin duplicados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InstrumentQuote"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /v1/accounts/{accountNumber}/orders:
+    post:
+      operationId: placeOrder
+      summary: Enviar una orden de compra o de venta
+      parameters:
+        - $ref: "#/components/parameters/AccountNumber"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaceOrder"
+      responses:
+        "201":
+          description: |
+            Orden guardada. El estado puede ser FILLED, NEW o REJECTED.
+            REJECTED también se guarda y no cambia la cuenta.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "400":
+          description: Solicitud inválida. No se guarda una orden.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /v1/accounts/{accountNumber}/orders/{orderId}/cancellation:
+    post:
+      operationId: cancelOrder
+      summary: Cancelar una orden abierta del titular
+      parameters:
+        - $ref: "#/components/parameters/AccountNumber"
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: Orden cancelada y reserva liberada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: La orden no está NEW, o no pertenece a la cuenta
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  parameters:
+    AccountNumber:
+      name: accountNumber
+      in: path
+      required: true
+      schema:
+        type: string
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+  responses:
+    BadRequest:
+      description: La solicitud no se puede interpretar
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: La cuenta, el activo o la orden no existen
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    Portfolio:
+      type: object
+      required: [accountNumber, totalValue, availableCash, positions]
+      properties:
+        accountNumber:
+          type: string
+        totalValue:
+          type: string
+          example: "889756.00"
+        availableCash:
+          type: string
+          example: "627500.00"
+        positions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Position"
+    Position:
+      type: object
+      required: [ticker, name, quantity]
+      properties:
+        ticker:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
+        marketValue:
+          type: string
+          nullable: true
+        totalReturnPercent:
+          type: string
+          nullable: true
+        dailyReturnPercent:
+          type: string
+          nullable: true
+    InstrumentQuote:
+      type: object
+      required: [ticker, name, type]
+      properties:
+        ticker:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        lastPrice:
+          type: string
+          nullable: true
+        dailyReturnPercent:
+          type: string
+          nullable: true
+    PlaceOrder:
+      type: object
+      required: [ticker, side, type]
+      properties:
+        ticker:
+          type: string
+        side:
+          type: string
+          enum: [BUY, SELL]
+        type:
+          type: string
+          enum: [MARKET, LIMIT]
+        size:
+          type: integer
+          minimum: 1
+          description: Cantidad exacta de acciones. Excluyente con amount.
+        amount:
+          type: string
+          description: Monto en pesos. Excluyente con size. Se convierte con floor.
+        price:
+          type: string
+          description: Obligatorio y mayor que cero si type es LIMIT. Se ignora si type es MARKET.
+    Order:
+      type: object
+      required: [id, accountNumber, ticker, side, type, size, price, status, datetime]
+      properties:
+        id:
+          type: integer
+          format: int64
+        accountNumber:
+          type: string
+        ticker:
+          type: string
+        side:
+          type: string
+          enum: [BUY, SELL, CASH_IN, CASH_OUT]
+        type:
+          type: string
+          enum: [MARKET, LIMIT]
+        size:
+          type: integer
+        price:
+          type: string
+        status:
+          type: string
+          enum: [NEW, FILLED, REJECTED, CANCELLED]
+        datetime:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
