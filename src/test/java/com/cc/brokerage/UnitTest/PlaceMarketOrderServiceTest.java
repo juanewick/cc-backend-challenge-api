@@ -1,5 +1,6 @@
-package com.cc.brokerage.application;
+package com.cc.brokerage.UnitTest;
 
+import com.cc.brokerage.application.PlaceOrderService;
 import com.cc.brokerage.domain.AccountNotFoundException;
 import com.cc.brokerage.domain.InstrumentNotFoundException;
 import com.cc.brokerage.domain.InvalidRequestException;

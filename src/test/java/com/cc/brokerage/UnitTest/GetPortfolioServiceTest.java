@@ -1,5 +1,6 @@
-package com.cc.brokerage.application;
+package com.cc.brokerage.UnitTest;
 
+import com.cc.brokerage.application.GetPortfolioService;
 import com.cc.brokerage.domain.AccountNotFoundException;
 import com.cc.brokerage.domain.model.Portfolio;
 import com.cc.brokerage.domain.model.User;

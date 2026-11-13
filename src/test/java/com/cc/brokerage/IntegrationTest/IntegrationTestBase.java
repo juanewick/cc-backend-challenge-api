@@ -1,4 +1,4 @@
-package com.cc.brokerage;
+package com.cc.brokerage.IntegrationTest;
 
 import com.cc.brokerage.adapter.in.web.ApiBase;
 import org.junit.jupiter.api.BeforeEach;

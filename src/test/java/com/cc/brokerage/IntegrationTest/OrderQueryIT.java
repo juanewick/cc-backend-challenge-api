@@ -1,6 +1,5 @@
-package com.cc.brokerage.adapter.in.web;
+package com.cc.brokerage.IntegrationTest;
 
-import com.cc.brokerage.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MvcResult;
 

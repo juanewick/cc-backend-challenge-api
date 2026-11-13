@@ -1,5 +1,6 @@
-package com.cc.brokerage.application;
+package com.cc.brokerage.UnitTest;
 
+import com.cc.brokerage.application.PlaceOrderService;
 import com.cc.brokerage.domain.InvalidRequestException;
 import com.cc.brokerage.domain.model.Order;
 import com.cc.brokerage.domain.model.OrderSide;

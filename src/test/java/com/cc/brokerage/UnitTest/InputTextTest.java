@@ -1,5 +1,6 @@
-package com.cc.brokerage.domain.model;
+package com.cc.brokerage.UnitTest;
 
+import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.InvalidRequestException;
 import org.junit.jupiter.api.Test;
 

@@ -1,5 +1,6 @@
-package com.cc.brokerage.domain.service;
+package com.cc.brokerage.UnitTest;
 
+import com.cc.brokerage.domain.service.PortfolioCalculator;
 import com.cc.brokerage.domain.model.Portfolio;
 import com.cc.brokerage.domain.model.Position;
 import com.cc.brokerage.support.Account10001Fixture;
