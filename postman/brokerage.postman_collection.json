@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Brokerage",
-    "description": "Portfolio, búsqueda y órdenes de la cuenta 10001. Arrancar antes con `docker compose up --build`.",
+    "description": "Portfolio, instrument search and orders of account 10001. Start the stack first with `docker compose up --build`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -16,25 +16,25 @@
   ],
   "item": [
     {
-      "name": "Consultar portfolio",
+      "name": "Get portfolio",
       "request": {
         "method": "GET",
         "header": [],
         "url": "{{baseUrl}}/v1/accounts/{{accountNumber}}/portfolio",
-        "description": "Cuenta 10001: availableCash 627500.00, totalValue 889756.00, posiciones BMA METR PAMP."
+        "description": "Account 10001: availableCash 627500.00, totalValue 889756.00, positions BMA METR PAMP."
       }
     },
     {
-      "name": "Buscar activos",
+      "name": "Search instruments",
       "request": {
         "method": "GET",
         "header": [],
         "url": "{{baseUrl}}/v1/instruments?q=banco",
-        "description": "q=banco devuelve BBAR, BHIP, BMA y BPAT."
+        "description": "q=banco returns BBAR, BHIP, BMA and BPAT."
       }
     },
     {
-      "name": "Orden de mercado",
+      "name": "Market order",
       "request": {
         "method": "POST",
         "header": [
@@ -48,11 +48,11 @@
           "raw": "{\n  \"ticker\": \"GGAL\",\n  \"side\": \"BUY\",\n  \"type\": \"MARKET\",\n  \"size\": 1\n}"
         },
         "url": "{{baseUrl}}/v1/accounts/{{accountNumber}}/orders",
-        "description": "Compra 1 GGAL a mercado. Queda FILLED al cierre 885.80."
+        "description": "Buys 1 GGAL at market. It is FILLED at the 885.80 close."
       }
     },
     {
-      "name": "Orden de mercado por monto",
+      "name": "Market order by amount",
       "request": {
         "method": "POST",
         "header": [
@@ -66,11 +66,11 @@
           "raw": "{\n  \"ticker\": \"GGAL\",\n  \"side\": \"BUY\",\n  \"type\": \"MARKET\",\n  \"amount\": \"2000.00\"\n}"
         },
         "url": "{{baseUrl}}/v1/accounts/{{accountNumber}}/orders",
-        "description": "Invierte hasta 2000 pesos en GGAL: compra 2 acciones al cierre 885.80. amount y price se envían como texto; también se aceptan como número JSON."
+        "description": "Invests up to 2000 pesos in GGAL: buys 2 shares at the 885.80 close. amount and price are sent as text; JSON numbers are accepted too. A MARKET order must not carry a price."
       }
     },
     {
-      "name": "Orden límite",
+      "name": "Limit order",
       "request": {
         "method": "POST",
         "header": [
@@ -84,11 +84,11 @@
           "raw": "{\n  \"ticker\": \"GGAL\",\n  \"side\": \"BUY\",\n  \"type\": \"LIMIT\",\n  \"size\": 10,\n  \"price\": \"800.00\"\n}"
         },
         "url": "{{baseUrl}}/v1/accounts/{{accountNumber}}/orders",
-        "description": "Compra 10 GGAL a 800.00. Queda NEW y reserva 8000.00."
+        "description": "Buys 10 GGAL at 800.00. It stays NEW and reserves 8000.00."
       }
     },
     {
-      "name": "Rechazo por fondos insuficientes",
+      "name": "Rejected for insufficient cash",
       "request": {
         "method": "POST",
         "header": [
@@ -102,25 +102,25 @@
           "raw": "{\n  \"ticker\": \"GGAL\",\n  \"side\": \"BUY\",\n  \"type\": \"MARKET\",\n  \"size\": 1000000\n}"
         },
         "url": "{{baseUrl}}/v1/accounts/{{accountNumber}}/orders",
-        "description": "Compra que no entra. Responde 201 con status REJECTED y no cambia el portfolio."
+        "description": "A buy the account cannot afford. Answers 201 with status REJECTED and leaves the portfolio unchanged."
       }
     },
     {
-      "name": "Cancelar orden abierta",
+      "name": "Cancel open order",
       "request": {
         "method": "POST",
         "header": [],
         "url": "{{baseUrl}}/v1/accounts/{{accountNumber}}/orders/5/cancellation",
-        "description": "En una base recién cargada, la compra límite NEW de 50 LOMA a 710.00 tiene id 5."
+        "description": "On a freshly loaded database, the NEW limit buy of 50 LOMA at 710.00 has id 5."
       }
     },
     {
-      "name": "Listar órdenes abiertas",
+      "name": "List open orders",
       "request": {
         "method": "GET",
         "header": [],
         "url": "{{baseUrl}}/v1/accounts/{{accountNumber}}/orders?status=NEW&page=0&pageSize=20",
-        "description": "Órdenes de la cuenta de la más antigua a la más nueva, por páginas. status es opcional (NEW, FILLED, REJECTED, CANCELLED); page empieza en 0 y pageSize va de 1 a 100 (por defecto 20). La respuesta trae content, page, pageSize, totalElements y totalPages."
+        "description": "Orders of the account, oldest first, by page. status is optional (NEW, FILLED, REJECTED, CANCELLED); page starts at 0 and pageSize goes from 1 to 100 (default 20). The response carries content, page, pageSize, totalElements and totalPages."
       }
     }
   ]

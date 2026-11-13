@@ -14,9 +14,9 @@ public record PlaceOrderRequest(
         String ticker,
         @Schema(allowableValues = {"BUY", "SELL"}) OrderSide side,
         @Schema(allowableValues = {"MARKET", "LIMIT"}) OrderType type,
-        @Schema(description = "Cantidad de acciones. Se envía esto o amount.") Integer size,
-        @Schema(type = "string", example = "2500.00", description = "Monto en pesos, como texto. Se envía esto o size.") BigDecimal amount,
-        @Schema(type = "string", example = "800.00", description = "Precio límite, como texto. Obligatorio en LIMIT. En MARKET no se envía: la orden se rechaza con BRK-027.") BigDecimal price
+        @Schema(description = "Number of shares. Send this or amount.") Integer size,
+        @Schema(type = "string", example = "2500.00", description = "Amount in pesos, as text. Send this or size.") BigDecimal amount,
+        @Schema(type = "string", example = "800.00", description = "Limit price, as text. Required for LIMIT. Not sent for MARKET: the order is rejected with BRK-027.") BigDecimal price
 ) {
     public PlaceOrderCommand toCommand(String accountNumber) {
         return new PlaceOrderCommand(accountNumber, ticker, side, type, size, amount, price);

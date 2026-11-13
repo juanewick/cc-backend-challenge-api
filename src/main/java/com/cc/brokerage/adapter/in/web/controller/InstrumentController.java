@@ -34,7 +34,7 @@ public class InstrumentController {
     }
 
     @GetMapping
-    @Operation(summary = "Busca activos por ticker o nombre, ordenados por ticker. Devuelve hasta 50. No devuelve la moneda.")
+    @Operation(summary = "Searches instruments by ticker or name, sorted by ticker. Returns up to 50. Never returns the currency.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", content = @Content(array = @ArraySchema(schema = @Schema(implementation = InstrumentQuoteResponse.class)))),
             @ApiResponse(responseCode = "400", content = @Content(mediaType = "application/problem+json", schema = @Schema(oneOf = {ApiProblemModels.InvalidParameters.class, ApiProblemModels.BadRequest.class})))
@@ -44,7 +44,7 @@ public class InstrumentController {
     }
 
     @GetMapping("/{ticker}")
-    @Operation(summary = "Cotización de un ticker. El rendimiento 0.48 es 0,48 %.")
+    @Operation(summary = "Quote of one ticker. A return of 0.48 means 0.48 %.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = InstrumentQuoteResponse.class))),
             @ApiResponse(responseCode = "400", content = @Content(mediaType = "application/problem+json", schema = @Schema(oneOf = {ApiProblemModels.InvalidParameters.class, ApiProblemModels.BadRequest.class}))),

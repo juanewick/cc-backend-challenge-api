@@ -27,7 +27,7 @@ public class PortfolioController {
     }
 
     @GetMapping
-    @Operation(summary = "Portfolio de la cuenta. El efectivo liquidado y el reservado se calculan y no se guardan.")
+    @Operation(summary = "Portfolio of the account. Settled and reserved cash are computed, not stored.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = PortfolioResponse.class))),
             @ApiResponse(responseCode = "400", content = @Content(mediaType = "application/problem+json", schema = @Schema(oneOf = {ApiProblemModels.InvalidParameters.class, ApiProblemModels.BadRequest.class}))),

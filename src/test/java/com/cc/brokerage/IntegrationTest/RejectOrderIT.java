@@ -148,7 +148,7 @@ class RejectOrderIT extends IntegrationTestBase {
 
     @Test
     void instrumentTypeUnknownToTheServiceDoesNotBreakReads() throws Exception {
-        jdbc.update("INSERT INTO instruments (ticker, name, type) VALUES ('ZZBOND', 'Bono de prueba', 'BONOS')");
+        jdbc.update("INSERT INTO instruments (ticker, name, type) VALUES ('ZZBOND', 'Test bond', 'BONOS')");
         try {
             mockMvc.perform(get(apiV1() + "/instruments").param("q", "ZZBOND"))
                     .andExpect(status().isOk())

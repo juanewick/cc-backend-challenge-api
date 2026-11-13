@@ -7,8 +7,8 @@ public record InstrumentQuoteResponse(
         String ticker,
         String name,
         String type,
-        @Schema(description = "Último precio a dos decimales, como texto.") String lastPrice,
-        @Schema(description = "Rendimiento diario a dos decimales. 0.48 es 0,48 %, no 48 %.") String dailyReturnPercent
+        @Schema(description = "Latest price with two decimals, as text.") String lastPrice,
+        @Schema(description = "Daily return with two decimals. 0.48 means 0.48 %, not 48 %.") String dailyReturnPercent
 ) {
     public static InstrumentQuoteResponse from(InstrumentQuote quote, MoneyFormatter money) {
         return new InstrumentQuoteResponse(

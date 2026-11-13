@@ -4,12 +4,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
 
-@Schema(description = "Una página de órdenes, de la más antigua a la más nueva.")
+@Schema(description = "One page of orders, oldest first.")
 public record OrderPageResponse(
         List<OrderResponse> content,
-        @Schema(description = "Número de página, desde 0.") int page,
-        @Schema(description = "Órdenes por página.") int pageSize,
-        @Schema(description = "Órdenes que cumplen el filtro, en todas las páginas.") long totalElements,
+        @Schema(description = "Page number, from 0.") int page,
+        @Schema(description = "Orders per page.") int pageSize,
+        @Schema(description = "Orders matching the filter, across all pages.") long totalElements,
         int totalPages
 ) {
 }

@@ -56,7 +56,7 @@ public class OrderController {
     }
 
     @GetMapping
-    @Operation(summary = "Lista las órdenes de la cuenta por páginas, de la más antigua a la más nueva")
+    @Operation(summary = "Lists the orders of the account by page, oldest first")
     @ApiResponses({
             @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = OrderPageResponse.class))),
             @ApiResponse(responseCode = "400", content = @Content(mediaType = "application/problem+json", schema = @Schema(oneOf = {ApiProblemModels.InvalidParameters.class, ApiProblemModels.BadRequest.class}))),
@@ -64,11 +64,11 @@ public class OrderController {
     })
     public OrderPageResponse list(
             @PathVariable String accountNumber,
-            @Parameter(description = "Solo las órdenes en este estado: NEW, FILLED, REJECTED o CANCELLED.")
+            @Parameter(description = "Only the orders in this status: NEW, FILLED, REJECTED or CANCELLED.")
             @RequestParam(required = false) String status,
-            @Parameter(description = "Número de página, desde 0. Por defecto 0.")
+            @Parameter(description = "Page number, from 0. Defaults to 0.")
             @RequestParam(required = false) String page,
-            @Parameter(description = "Órdenes por página, de 1 a 100. Por defecto 20.")
+            @Parameter(description = "Orders per page, from 1 to 100. Defaults to 20.")
             @RequestParam(required = false) String pageSize
     ) {
         PageResult<ListedOrder> found = listOrders.list(accountNumber, InputText.orderStatus(status), InputText.page(page, pageSize));
@@ -82,7 +82,7 @@ public class OrderController {
     }
 
     @GetMapping("/{orderId}")
-    @Operation(summary = "Consulta una orden de la cuenta")
+    @Operation(summary = "Gets one order of the account")
     @ApiResponses({
             @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = OrderResponse.class))),
             @ApiResponse(responseCode = "400", content = @Content(mediaType = "application/problem+json", schema = @Schema(oneOf = {ApiProblemModels.InvalidParameters.class, ApiProblemModels.BadRequest.class}))),
@@ -93,7 +93,7 @@ public class OrderController {
     }
 
     @PostMapping
-    @Operation(summary = "Crea una orden. Repetir el pedido crea otra orden. Location indica cómo consultarla.")
+    @Operation(summary = "Places an order. Repeating the request places another order. Location tells how to get it.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", content = @Content(schema = @Schema(implementation = OrderResponse.class))),
             @ApiResponse(responseCode = "400", content = @Content(mediaType = "application/problem+json", schema = @Schema(oneOf = {ApiProblemModels.InvalidParameters.class, ApiProblemModels.BadRequest.class}))),
@@ -112,7 +112,7 @@ public class OrderController {
     }
 
     @PostMapping("/{orderId}/cancellation")
-    @Operation(summary = "Cancela una orden abierta de la cuenta")
+    @Operation(summary = "Cancels an open order of the account")
     @ApiResponses({
             @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = OrderResponse.class))),
             @ApiResponse(responseCode = "400", content = @Content(mediaType = "application/problem+json", schema = @Schema(oneOf = {ApiProblemModels.InvalidParameters.class, ApiProblemModels.BadRequest.class}))),

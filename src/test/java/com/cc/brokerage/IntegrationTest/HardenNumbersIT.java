@@ -76,7 +76,7 @@ class HardenNumbersIT extends IntegrationTestBase {
     @Test
     void nonNumericAmountIsRejectedWithoutSaving() throws Exception {
         rejectOrder("""
-                {"ticker":"GGAL","side":"BUY","type":"MARKET","amount":"no-es-monto"}
+                {"ticker":"GGAL","side":"BUY","type":"MARKET","amount":"not-an-amount"}
                 """, "BRK-020", "amount");
     }
 
@@ -104,7 +104,7 @@ class HardenNumbersIT extends IntegrationTestBase {
     @Test
     void nonNumericPriceIsRejectedWithoutSaving() throws Exception {
         rejectOrder("""
-                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"price":"no-es-precio"}
+                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"price":"not-a-price"}
                 """, "BRK-023", "price");
     }
 
@@ -163,7 +163,7 @@ class HardenNumbersIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.invalid_params[0].field").value(field))
                 .andReturn();
 
-        assertThat(result.getResponse().getContentAsString()).doesNotContain("no-es-");
+        assertThat(result.getResponse().getContentAsString()).doesNotContain("not-a");
         assertThat(orderCount()).isEqualTo(before);
     }
 

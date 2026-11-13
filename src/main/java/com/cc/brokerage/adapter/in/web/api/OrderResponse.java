@@ -18,14 +18,14 @@ public record OrderResponse(
         OrderSide side,
         OrderType type,
         int size,
-        @Schema(description = "Precio a dos decimales, como texto.") String price,
+        @Schema(description = "Price with two decimals, as text.") String price,
         OrderStatus status,
         String datetime,
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        @Schema(description = "Importe calculado, cantidad por precio, a dos decimales. Solo en el alta. No se guarda.")
+        @Schema(description = "Computed amount, size times price, with two decimals. Only when placing the order. Not stored.")
         String amount,
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        @Schema(description = "Motivo del rechazo. Solo en el alta cuando el estado es REJECTED. No se guarda.")
+        @Schema(description = "Rejection reason. Only when placing the order and the status is REJECTED. Not stored.")
         RejectionReason rejectionReason
 ) {
     public static OrderResponse from(Order order, String accountNumber, String ticker, MoneyFormatter money) {

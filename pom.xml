@@ -15,7 +15,7 @@
     <artifactId>brokerage</artifactId>
     <version>1.0.0</version>
     <name>brokerage</name>
-    <description>Portfolio, búsqueda y órdenes</description>
+    <description>Portfolio, instrument search and orders</description>
 
     <properties>
         <java.version>25</java.version>

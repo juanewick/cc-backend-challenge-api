@@ -7,12 +7,12 @@ import java.util.List;
 
 public record PortfolioResponse(
         String accountNumber,
-        @Schema(description = "Valor total a dos decimales, como texto.") String totalValue,
-        @Schema(description = "Pesos disponibles a dos decimales, como texto.") String availableCash,
-        @Schema(description = "Efectivo liquidado calculado, a dos decimales. No se guarda.") String settledCash,
-        @Schema(description = "Efectivo reservado por compras abiertas, a dos decimales. No se guarda.") String reservedCash,
+        @Schema(description = "Total value with two decimals, as text.") String totalValue,
+        @Schema(description = "Available pesos with two decimals, as text.") String availableCash,
+        @Schema(description = "Computed settled cash, with two decimals. Not stored.") String settledCash,
+        @Schema(description = "Cash reserved by open buys, with two decimals. Not stored.") String reservedCash,
         List<PositionResponse> positions,
-        @Schema(description = "Tickers de las posiciones sin cierre. Se listan, pero no suman al valor total. Vacío si todas tienen precio.") List<String> unpricedTickers
+        @Schema(description = "Tickers of the positions without a close. They are listed but left out of the total value. Empty when every position has a price.") List<String> unpricedTickers
 ) {
     public static PortfolioResponse from(Portfolio portfolio, MoneyFormatter money) {
         return new PortfolioResponse(

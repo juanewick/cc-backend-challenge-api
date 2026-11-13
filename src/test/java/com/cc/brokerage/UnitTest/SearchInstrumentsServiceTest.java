@@ -84,7 +84,7 @@ class SearchInstrumentsServiceTest {
 
     @Test
     void missingCloseLeavesPriceUnavailable() {
-        Instrument instrument = new Instrument(99L, "XXXX", "Sin precio", InstrumentType.ACCIONES);
+        Instrument instrument = new Instrument(99L, "XXXX", "No price", InstrumentType.ACCIONES);
         stubSearch("xxxx", instrument);
         when(prices.findLatestByInstrumentIds(List.of(99L))).thenReturn(Map.of());
 

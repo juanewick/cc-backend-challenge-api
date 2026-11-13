@@ -26,7 +26,7 @@ class HardenDocumentIT extends IntegrationTestBase {
 
     @Test
     void unreadableBodyIsRejectedWithoutEchoingIt() throws Exception {
-        reject(MediaType.APPLICATION_JSON, "no-es-un-documento", UNREADABLE, "no-es-un-documento");
+        reject(MediaType.APPLICATION_JSON, "not-a-document", UNREADABLE, "not-a-document");
     }
 
     @Test
@@ -68,9 +68,9 @@ class HardenDocumentIT extends IntegrationTestBase {
     @Test
     void unknownFieldIsRejectedWithoutNamingIt() throws Exception {
         String body = """
-                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"price":"1.00","campoAjeno":1}
+                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"price":"1.00","foreignField":1}
                 """;
-        reject(MediaType.APPLICATION_JSON, body, "The request contains a field that is not allowed.", "campoAjeno");
+        reject(MediaType.APPLICATION_JSON, body, "The request contains a field that is not allowed.", "foreignField");
     }
 
     @Test
@@ -84,9 +84,9 @@ class HardenDocumentIT extends IntegrationTestBase {
     @Test
     void duplicateUnknownFieldIsRejectedWithoutNamingIt() throws Exception {
         String body = """
-                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"price":"1.00","campoAjeno":1,"campoAjeno":2}
+                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"price":"1.00","foreignField":1,"foreignField":2}
                 """;
-        reject(MediaType.APPLICATION_JSON, body, "The request contains a duplicated field.", "campoAjeno");
+        reject(MediaType.APPLICATION_JSON, body, "The request contains a duplicated field.", "foreignField");
     }
 
     @Test
@@ -108,9 +108,9 @@ class HardenDocumentIT extends IntegrationTestBase {
     @Test
     void textualSizeIsRejected() throws Exception {
         String body = """
-                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":"no-es-cantidad","price":"1.00"}
+                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":"not-a-size","price":"1.00"}
                 """;
-        reject(MediaType.APPLICATION_JSON, body, "The size field is not valid.", "no-es-cantidad");
+        reject(MediaType.APPLICATION_JSON, body, "The size field is not valid.", "not-a-size");
     }
 
     private static String validOrder() {
