@@ -25,9 +25,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -59,8 +56,7 @@ class PlaceMarketOrderServiceTest {
                 instruments,
                 prices,
                 orders,
-                new PortfolioCalculator(),
-                Clock.fixed(Instant.parse("2023-07-14T12:00:00Z"), ZoneOffset.UTC)
+                new PortfolioCalculator()
         );
     }
 

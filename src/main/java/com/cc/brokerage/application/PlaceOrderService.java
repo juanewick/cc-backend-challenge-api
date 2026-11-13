@@ -26,7 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -38,22 +37,19 @@ public class PlaceOrderService implements PlaceOrderUseCase {
     private final MarketPriceRepository prices;
     private final OrderRepository orders;
     private final PortfolioCalculator calculator;
-    private final Clock clock;
 
     public PlaceOrderService(
             UserRepository users,
             InstrumentRepository instruments,
             MarketPriceRepository prices,
             OrderRepository orders,
-            PortfolioCalculator calculator,
-            Clock clock
+            PortfolioCalculator calculator
     ) {
         this.users = users;
         this.instruments = instruments;
         this.prices = prices;
         this.orders = orders;
         this.calculator = calculator;
-        this.clock = clock;
     }
 
     @Override
@@ -83,7 +79,7 @@ public class PlaceOrderService implements PlaceOrderUseCase {
                 command.type(),
                 command.side(),
                 decision.status(),
-                LocalDateTime.now(clock)
+                LocalDateTime.now()
         );
         BigDecimal amount = price == null ? null : MoneyMath.notional(size, price);
         return new PlaceOrderOutcome(orders.save(order), amount, decision.reason());

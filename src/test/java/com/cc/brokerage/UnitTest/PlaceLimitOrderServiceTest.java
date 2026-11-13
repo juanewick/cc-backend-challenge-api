@@ -23,9 +23,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -60,8 +57,7 @@ class PlaceLimitOrderServiceTest {
                 instruments,
                 prices,
                 orders,
-                calculator,
-                Clock.fixed(Instant.parse("2023-07-14T12:00:00Z"), ZoneOffset.UTC)
+                calculator
         );
     }
 
