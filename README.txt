@@ -69,15 +69,8 @@ La integración usa Testcontainers contra PostgreSQL para los escenarios de nego
 Los *IT.java comparten un PostgreSQL y un LocalStack arrancados una sola vez. Un contenedor por clase cambiaba el puerto y el contexto cacheado de Spring seguía apuntando al anterior.
 El Dockerfile de compilación usa maven:3.9.11-eclipse-temurin-25 para no instalar Maven aparte en la etapa de build.
 Antes de cada escenario de integración se recrean las órdenes de referencia con TRUNCATE, para que un test no deje saldo a otro.
-El banner y el nombre de la aplicación son brokerage-api.
-La ruta base es brokerage.api.base-path en application.yml, hoy /api/brokerage-api. ApiConfig la aplica como prefijo de Spring MVC a los @RestController de la aplicación. Actuator y el contrato OpenAPI no lo reciben. Cada controller versiona con /v1, para poder agregar /v2 más adelante sin mover la base. Ejemplos:
-  GET  /api/brokerage-api/v1/accounts/{accountNumber}/portfolio
-  GET  /api/brokerage-api/v1/instruments
-  POST /api/brokerage-api/v1/accounts/{accountNumber}/orders
-  POST /api/brokerage-api/v1/accounts/{accountNumber}/orders/{orderId}/cancellation
-Las rutas sin esa base, o con la base pero sin /v1, no se atienden.
 Actuator publica solo health e info, en /actuator. Health no muestra componentes. Info repite el nombre brokerage-api.
-El contrato OpenAPI lo genera springdoc-openapi 3.2.0 (springdoc-openapi-starter-webmvc-ui). Esa línea está construida sobre Spring Boot 4.1.2. La 3.0.x es Boot 4.0 y la 2.x es Boot 3. No se guarda una copia del contrato en specs: se lee en /v3/api-docs, /v3/api-docs.yaml y /swagger-ui.html.
+El contrato OpenAPI lo genera springdoc-openapi 3.2.0 (springdoc-openapi-starter-webmvc-ui)
 
 Decisiones de la especificación
 ================================
