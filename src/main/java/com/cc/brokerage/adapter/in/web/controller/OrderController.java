@@ -97,7 +97,8 @@ public class OrderController {
     @ApiResponses({
             @ApiResponse(responseCode = "201", content = @Content(schema = @Schema(implementation = OrderResponse.class))),
             @ApiResponse(responseCode = "400", content = @Content(mediaType = "application/problem+json", schema = @Schema(oneOf = {ApiProblemModels.InvalidParameters.class, ApiProblemModels.BadRequest.class}))),
-            @ApiResponse(responseCode = "404", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ApiProblemModels.NotFound.class)))
+            @ApiResponse(responseCode = "404", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ApiProblemModels.NotFound.class))),
+            @ApiResponse(responseCode = "415", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ApiProblemModels.UnsupportedMediaType.class)))
     })
     public ResponseEntity<OrderResponse> place(@PathVariable String accountNumber, @RequestBody PlaceOrderRequest request) {
         PlaceOrderOutcome outcome = placeOrder.place(request.toCommand(accountNumber));

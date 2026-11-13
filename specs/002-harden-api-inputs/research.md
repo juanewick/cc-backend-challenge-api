@@ -19,9 +19,10 @@ Las coerciones no tienen propiedad. Un `JsonMapperBuilderCustomizer` (`org.sprin
 
 ## Texto estable, sin el valor enviado
 
-**Decision**: `ApiExceptionHandler` deja de devolver `exception.getMessage()` para los fallos de lectura, de tipo de contenido y de argumento mal formado. El cuerpo sigue siendo `ApiError`, con HTTP 400.
+**Decision**: `ApiExceptionHandler` deja de devolver `exception.getMessage()` para los fallos de lectura, de tipo de contenido y de argumento mal formado. El cuerpo sigue siendo `ApiError`, con HTTP 400, salvo el tipo de contenido no soportado, que responde 415 (revisado el 2026-11-13).
 
-- Pedido ilegible, vacío, que no es un objeto, con tokens de más, o con un tipo de contenido distinto: `El pedido no se puede leer`.
+- Pedido ilegible, vacío, que no es un objeto, o con tokens de más: `El pedido no se puede leer`.
+- Tipo de contenido distinto de `application/json`: 415, código `UNSUPPORTED_MEDIA_TYPE` y encabezado `Accept` con los tipos que la operación lee.
 - Campo que la operación no define: `El pedido tiene un campo que no corresponde`. No se nombra esa clave, porque el nombre lo elige quien llama y puede ser el propio texto hostil.
 - Campo nuestro repetido o de otro tipo: `El campo cantidad está repetido` o `El campo cantidad no es válido`, y lo mismo para ticker, lado, tipo, monto y precio. El nombre es el del modelo, no el valor.
 - Cuenta, activo u orden inexistentes: `La cuenta no existe`, `El activo no existe`, `La orden no existe`. Hoy esos textos concatenan el valor enviado.

@@ -111,7 +111,8 @@ Portfolio, búsqueda, cotización y orden de mercado toman el mismo último cier
 - Los tipos ya definidos para la cantidad de la orden y para su fecha no se cambian. No se agrega una fecha de cancelación.
 - No se crea ninguna tabla ni ninguna columna, y no se modifica ninguna columna existente. El motivo del rechazo, el efectivo liquidado, el reservado, el importe del alta y el problema de un error se calculan en la respuesta. No se guardan.
 - Una validación que nombra un campo conocido, como la cuenta, el ticker, el identificador de la orden, la búsqueda, el lado, el tipo, la cantidad, el monto o el precio, trae ese campo en `invalid_params`. Si faltan las dos formas de cantidad, o vienen las dos, la lista señala cantidad y monto.
-- Un pedido ilegible o con un tipo de contenido que no se puede leer es un problema `BadRequest` y no trae `invalid_params`.
+- Un pedido ilegible es un problema `BadRequest` y no trae `invalid_params`.
+- Un pedido con un tipo de contenido distinto de `application/json` es un problema `UnsupportedMediaType` (`415`), con encabezado `Accept`, y no trae `invalid_params`.
 
 ## Requirements *(mandatory)*
 

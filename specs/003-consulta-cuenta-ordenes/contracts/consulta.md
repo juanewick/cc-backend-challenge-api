@@ -96,6 +96,6 @@ El `detail` es el texto en inglés. El código no cambia si se ajusta esa redacc
 | Precio que no es un número | `BRK-023` | Price is not a valid number. |
 | Precio en una orden MARKET | `BRK-027` | A MARKET order does not take a price; it fills at the latest close. |
 
-Fuera de ese catálogo, el pedido ilegible usa `UNREADABLE` y "The request cannot be read.". Un campo de más usa `UNKNOWN_FIELD`. Un campo repetido usa `DUPLICATE_FIELD`. Un campo con otro tipo usa `INVALID_FIELD`. Esos detalles también están en inglés.
+Fuera de ese catálogo, el pedido ilegible usa `UNREADABLE` y "The request cannot be read.". Un tipo de contenido distinto de `application/json` responde `415` con `UNSUPPORTED_MEDIA_TYPE`, "The request body must be sent as application/json." y el encabezado `Accept`. Un campo de más usa `UNKNOWN_FIELD`. Un campo repetido usa `DUPLICATE_FIELD`. Un campo con otro tipo usa `INVALID_FIELD`. Esos detalles también están en inglés.
 
 El contrato generado en `/v3/api-docs` describe estas operaciones, esos errores, los importes a dos decimales y la unidad del porcentaje.

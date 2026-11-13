@@ -53,8 +53,18 @@ public final class ApiProblemModels {
             @Schema(example = ProblemTypes.CONFLICT) String type,
             @Schema(example = "Conflict") String title,
             @Schema(example = "409") int status,
-            @Schema(example = "The order does not belong to this account.") String detail,
+            @Schema(example = "Only open orders can be cancelled.") String detail,
             @Schema(example = "BRK-005") String code
+    ) {
+    }
+
+    @Schema(name = "UnsupportedMediaType", description = "The body is not sent as application/json. Does not include invalid_params.")
+    public record UnsupportedMediaType(
+            @Schema(example = ProblemTypes.UNSUPPORTED_MEDIA_TYPE) String type,
+            @Schema(example = "Unsupported media type") String title,
+            @Schema(example = "415") int status,
+            @Schema(example = "The request body must be sent as application/json.") String detail,
+            @Schema(example = "UNSUPPORTED_MEDIA_TYPE") String code
     ) {
     }
 }

@@ -15,7 +15,8 @@ Un dato inválido responde 400. Una cuenta, un activo o una orden que no existen
 
 | Caso | Mensaje |
 |---|---|
-| Cuerpo ilegible, vacío, que no es un objeto, con tokens de más, o con un tipo de contenido distinto | El pedido no se puede leer |
+| Cuerpo ilegible, vacío, que no es un objeto, o con tokens de más | El pedido no se puede leer |
+| Tipo de contenido distinto de `application/json` | 415, código `UNSUPPORTED_MEDIA_TYPE` y encabezado `Accept` |
 | Un campo que la operación no define | El pedido tiene un campo que no corresponde |
 | `ticker`, `side`, `type`, `size`, `amount` o `price` repetido | El campo ticker está repetido, y el equivalente para lado, tipo, cantidad, monto o precio |
 | Ese mismo campo con un tipo distinto, o un número que no entra en la cantidad | El campo ticker no es válido, y el equivalente para lado, tipo, cantidad, monto o precio |

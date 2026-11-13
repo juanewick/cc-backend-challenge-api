@@ -8,6 +8,8 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -38,8 +40,24 @@ class HardenDocumentIT extends IntegrationTestBase {
     }
 
     @Test
-    void unsupportedContentTypeIsRejectedAsUnreadable() throws Exception {
-        reject(MediaType.TEXT_PLAIN, validOrder(), UNREADABLE, "GGAL");
+    void unsupportedContentTypeIsA415() throws Exception {
+        Integer before = jdbcTemplate.queryForObject("select count(*) from orders", Integer.class);
+
+        MvcResult result = mockMvc.perform(post(orders())
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content(validOrder()))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(header().string("Accept", containsString("application/json")))
+                .andExpect(jsonPath("$.type").value("/v3/api-docs#/components/schemas/UnsupportedMediaType"))
+                .andExpect(jsonPath("$.title").value("Unsupported media type"))
+                .andExpect(jsonPath("$.status").value(415))
+                .andExpect(jsonPath("$.code").value("UNSUPPORTED_MEDIA_TYPE"))
+                .andExpect(jsonPath("$.detail").value("The request body must be sent as application/json."))
+                .andExpect(jsonPath("$.invalid_params").doesNotExist())
+                .andReturn();
+
+        assertThat(result.getResponse().getContentAsString()).doesNotContain("GGAL");
+        assertThat(jdbcTemplate.queryForObject("select count(*) from orders", Integer.class)).isEqualTo(before);
     }
 
     @Test

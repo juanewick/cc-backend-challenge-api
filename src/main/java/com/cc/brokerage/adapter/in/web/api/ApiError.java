@@ -66,6 +66,9 @@ public record ApiError(
         if (httpStatus == HttpStatus.CONFLICT) {
             return new Kind(ProblemTypes.CONFLICT, "Conflict");
         }
+        if (httpStatus == HttpStatus.UNSUPPORTED_MEDIA_TYPE) {
+            return new Kind(ProblemTypes.UNSUPPORTED_MEDIA_TYPE, "Unsupported media type");
+        }
         if (httpStatus.is5xxServerError()) {
             return new Kind(ProblemTypes.BLANK, httpStatus.getReasonPhrase());
         }

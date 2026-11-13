@@ -5,6 +5,7 @@ import com.cc.brokerage.domain.DomainException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +32,7 @@ public class ApiExceptionHandler {
 
     private static final String INTERNAL = "The request could not be processed.";
     private static final String UNREADABLE = "The request cannot be read.";
+    private static final String UNSUPPORTED_MEDIA_TYPE = "The request body must be sent as application/json.";
     private static final String UNKNOWN_FIELD = "The request contains a field that is not allowed.";
     private static final String DUPLICATE_UNKNOWN_FIELD = "The request contains a duplicated field.";
     private static final Set<String> FIELDS = Set.of("ticker", "side", "type", "size", "amount", "price");
@@ -94,7 +96,21 @@ public class ApiExceptionHandler {
         return problem(HttpStatus.BAD_REQUEST, "INVALID_FIELD", message, List.of(new ApiError.InvalidParam(field, message)));
     }
 
-    @ExceptionHandler({HttpMediaTypeNotSupportedException.class, MethodArgumentTypeMismatchException.class})
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    ResponseEntity<ApiError> unsupportedMediaType(HttpMediaTypeNotSupportedException exception) {
+        ResponseEntity<ApiError> problem = problem(
+                HttpStatus.UNSUPPORTED_MEDIA_TYPE, "UNSUPPORTED_MEDIA_TYPE", UNSUPPORTED_MEDIA_TYPE, List.of());
+        if (exception.getSupportedMediaTypes().isEmpty()) {
+            return problem;
+        }
+        // RFC 9110 15.5.16: tell the client which media types the operation reads.
+        return ResponseEntity.status(problem.getStatusCode())
+                .headers(problem.getHeaders())
+                .header(HttpHeaders.ACCEPT, MediaType.toString(exception.getSupportedMediaTypes()))
+                .body(problem.getBody());
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     ResponseEntity<ApiError> unreadableRequest() {
         return problem(HttpStatus.BAD_REQUEST, "UNREADABLE", UNREADABLE, List.of());
     }
