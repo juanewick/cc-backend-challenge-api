@@ -41,3 +41,11 @@ management:
 info:
   app:
     name: ${spring.application.name}
+
+brokerage:
+  money:
+    scale: ${BROKERAGE_MONEY_SCALE:2}
+    min-amount: ${BROKERAGE_MONEY_MIN_AMOUNT:0}
+    max-amount: ${BROKERAGE_MONEY_MAX_AMOUNT:99999999.99}
+    min-shares: ${BROKERAGE_MONEY_MIN_SHARES:1}
+    max-shares: ${BROKERAGE_MONEY_MAX_SHARES:2147483647}

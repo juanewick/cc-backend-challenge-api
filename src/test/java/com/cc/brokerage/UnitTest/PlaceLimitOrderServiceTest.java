@@ -6,7 +6,9 @@ import com.cc.brokerage.domain.model.Order;
 import com.cc.brokerage.domain.model.OrderSide;
 import com.cc.brokerage.domain.model.OrderStatus;
 import com.cc.brokerage.domain.model.OrderType;
+import com.cc.brokerage.domain.model.MoneyMath;
 import com.cc.brokerage.domain.model.PlaceOrderCommand;
+import com.cc.brokerage.support.MoneyBounds;
 import com.cc.brokerage.domain.port.out.InstrumentRepository;
 import com.cc.brokerage.domain.port.out.MarketPriceRepository;
 import com.cc.brokerage.domain.port.out.OrderRepository;
@@ -96,10 +98,10 @@ class PlaceLimitOrderServiceTest {
     @Test
     void nonPositiveLimitPriceDoesNotSave() {
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 10, null, BigDecimal.ZERO)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 10, null, MoneyMath.minAmount())))
                 .isInstanceOf(InvalidRequestException.class);
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 10, null, new BigDecimal("-1.00"))))
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 10, null, MoneyBounds.belowMinAmount())))
                 .isInstanceOf(InvalidRequestException.class);
         verify(orders, never()).save(any());
     }
@@ -141,25 +143,25 @@ class PlaceLimitOrderServiceTest {
     void limitAmountWhoseShareCountOverflowsDoesNotSave() {
         stubAccountAndGgalLenient();
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, new BigDecimal("2147483648"), BigDecimal.ONE)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, MoneyBounds.oneSharePastMax(), BigDecimal.ONE)))
                 .isInstanceOf(InvalidRequestException.class);
         verify(orders, never()).save(any());
     }
 
     @Test
-    void limitAmountThatRoundsPastEightIntegerDigitsDoesNotSave() {
+    void limitAmountThatRoundsPastTheMaximumDoesNotSave() {
         stubAccountAndGgalLenient();
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, new BigDecimal("99999999.995"), BigDecimal.ONE)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, MoneyBounds.justPastMax(), BigDecimal.ONE)))
                 .isInstanceOf(InvalidRequestException.class);
         verify(orders, never()).save(any());
     }
 
     @Test
-    void limitPriceThatRoundsPastEightIntegerDigitsDoesNotSave() {
+    void limitPriceThatRoundsPastTheMaximumDoesNotSave() {
         stubAccountAndGgalLenient();
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 1, null, new BigDecimal("99999999.995"))))
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 1, null, MoneyBounds.justPastMax())))
                 .isInstanceOf(InvalidRequestException.class);
         verify(orders, never()).save(any());
     }
@@ -167,10 +169,10 @@ class PlaceLimitOrderServiceTest {
     @Test
     void nonPositiveLimitAmountDoesNotSave() {
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, BigDecimal.ZERO, BigDecimal.ONE)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, MoneyMath.minAmount(), BigDecimal.ONE)))
                 .isInstanceOf(InvalidRequestException.class);
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, new BigDecimal("-1"), BigDecimal.ONE)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, MoneyBounds.belowMinAmount(), BigDecimal.ONE)))
                 .isInstanceOf(InvalidRequestException.class);
         verify(orders, never()).save(any());
     }

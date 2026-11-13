@@ -8,7 +8,9 @@ import com.cc.brokerage.domain.model.Order;
 import com.cc.brokerage.domain.model.OrderSide;
 import com.cc.brokerage.domain.model.OrderStatus;
 import com.cc.brokerage.domain.model.OrderType;
+import com.cc.brokerage.domain.model.MoneyMath;
 import com.cc.brokerage.domain.model.PlaceOrderCommand;
+import com.cc.brokerage.support.MoneyBounds;
 import com.cc.brokerage.domain.port.out.InstrumentRepository;
 import com.cc.brokerage.domain.port.out.MarketPriceRepository;
 import com.cc.brokerage.domain.port.out.OrderRepository;
@@ -145,17 +147,18 @@ class PlaceMarketOrderServiceTest {
     @Test
     void amountWhoseShareCountOverflowsDoesNotSave() {
         stubAccountAndGgalLenient();
+        BigDecimal close = Account10001Fixture.latestPrices().get(Account10001Fixture.GGAL.id()).close();
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, new BigDecimal("3000000000000"), null)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, close.multiply(MoneyBounds.oneSharePastMax()), null)))
                 .isInstanceOf(InvalidRequestException.class);
         verify(orders, never()).save(any());
     }
 
     @Test
-    void amountThatRoundsPastEightIntegerDigitsDoesNotSave() {
+    void amountThatRoundsPastTheMaximumDoesNotSave() {
         stubAccountAndGgalLenient();
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, new BigDecimal("99999999.995"), null)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, MoneyBounds.justPastMax(), null)))
                 .isInstanceOf(InvalidRequestException.class);
         verify(orders, never()).save(any());
     }
@@ -163,10 +166,10 @@ class PlaceMarketOrderServiceTest {
     @Test
     void nonPositiveAmountDoesNotSave() {
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, BigDecimal.ZERO, null)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, MoneyMath.minAmount(), null)))
                 .isInstanceOf(InvalidRequestException.class);
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, new BigDecimal("-1"), null)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, MoneyBounds.belowMinAmount(), null)))
                 .isInstanceOf(InvalidRequestException.class);
         verify(orders, never()).save(any());
     }

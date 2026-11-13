@@ -33,8 +33,6 @@ import java.util.Set;
 @Service
 public class PlaceOrderService implements PlaceOrderUseCase {
 
-    private static final BigDecimal MAX_MONEY = new BigDecimal("99999999.99");
-
     private final UserRepository users;
     private final InstrumentRepository instruments;
     private final MarketPriceRepository prices;
@@ -103,8 +101,8 @@ public class PlaceOrderService implements PlaceOrderUseCase {
         if (hasSize == hasAmount) {
             throw new InvalidRequestException("Debe indicarse exactamente una forma de cantidad: acciones o monto");
         }
-        if (hasSize && command.size() < 1) {
-            throw new InvalidRequestException("La cantidad debe ser un entero de 1 a 2147483647");
+        if (hasSize && (command.size() < MoneyMath.minShares() || command.size() > MoneyMath.maxShares())) {
+            throw new InvalidRequestException(MoneyMath.sharesRangeMessage());
         }
         if (hasAmount) {
             acceptMoney(command.amount(), "El monto debe ser mayor que cero", "El monto supera el máximo permitido");
@@ -119,16 +117,16 @@ public class PlaceOrderService implements PlaceOrderUseCase {
 
     private static void acceptMoney(BigDecimal value, String notPositive, String aboveMaximum) {
         BigDecimal rounded = rounded(value);
-        if (rounded.compareTo(BigDecimal.ZERO) <= 0) {
+        if (rounded.compareTo(MoneyMath.minAmount()) <= 0) {
             throw new InvalidRequestException(notPositive);
         }
-        if (rounded.compareTo(MAX_MONEY) > 0) {
+        if (rounded.compareTo(MoneyMath.maxAmount()) > 0) {
             throw new InvalidRequestException(aboveMaximum);
         }
     }
 
     private static BigDecimal rounded(BigDecimal value) {
-        return value.setScale(MoneyMath.SCALE, MoneyMath.ROUNDING);
+        return value.setScale(MoneyMath.scale(), MoneyMath.ROUNDING);
     }
 
     private BigDecimal resolvePrice(PlaceOrderCommand command, Instrument instrument) {

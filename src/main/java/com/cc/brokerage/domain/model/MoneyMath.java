@@ -7,27 +7,57 @@ import java.math.RoundingMode;
 
 public final class MoneyMath {
 
-    public static final int SCALE = 2;
     public static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
 
-    private static final BigDecimal MAX_MONEY = new BigDecimal("99999999.99");
-    private static final BigDecimal MAX_SHARES = BigDecimal.valueOf(Integer.MAX_VALUE);
     private static final String NOT_POSITIVE = "El importe debe ser mayor que cero";
     private static final String ABOVE_MAXIMUM = "El importe supera el máximo permitido";
-    private static final String SHARES_OUT_OF_RANGE = "La cantidad debe ser un entero de 1 a 2147483647";
+
+    private static volatile MoneyLimits limits = MoneyLimits.defaults();
 
     private MoneyMath() {
+    }
+
+    public static void configure(MoneyLimits next) {
+        if (next == null) {
+            throw new IllegalArgumentException("Los límites de importe son obligatorios");
+        }
+        limits = next;
+    }
+
+    public static int scale() {
+        return limits.scale();
+    }
+
+    public static BigDecimal minAmount() {
+        return limits.minAmount();
+    }
+
+    public static BigDecimal maxAmount() {
+        return limits.maxAmount();
+    }
+
+    public static long minShares() {
+        return limits.minShares();
+    }
+
+    public static long maxShares() {
+        return limits.maxShares();
+    }
+
+    public static String sharesRangeMessage() {
+        return limits.sharesRangeMessage();
     }
 
     public static BigDecimal scaled(BigDecimal value) {
         if (value == null) {
             return null;
         }
-        BigDecimal rounded = round(value);
-        if (rounded.compareTo(BigDecimal.ZERO) <= 0) {
+        MoneyLimits current = limits;
+        BigDecimal rounded = value.setScale(current.scale(), ROUNDING);
+        if (rounded.compareTo(current.minAmount()) <= 0) {
             throw new InvalidRequestException(NOT_POSITIVE);
         }
-        if (rounded.compareTo(MAX_MONEY) > 0) {
+        if (rounded.compareTo(current.maxAmount()) > 0) {
             throw new InvalidRequestException(ABOVE_MAXIMUM);
         }
         return rounded;
@@ -38,9 +68,10 @@ public final class MoneyMath {
     }
 
     public static int sharesFromAmount(BigDecimal amount, BigDecimal price) {
+        MoneyLimits current = limits;
         BigDecimal shares = amount.divideToIntegralValue(price);
-        if (shares.compareTo(MAX_SHARES) > 0) {
-            throw new InvalidRequestException(SHARES_OUT_OF_RANGE);
+        if (shares.compareTo(BigDecimal.valueOf(current.maxShares())) > 0) {
+            throw new InvalidRequestException(current.sharesRangeMessage());
         }
         return shares.intValueExact();
     }
@@ -49,10 +80,11 @@ public final class MoneyMath {
         if (denominator == null || denominator.compareTo(BigDecimal.ZERO) == 0) {
             return null;
         }
-        return numerator.multiply(BigDecimal.valueOf(100)).divide(denominator, SCALE, ROUNDING);
+        MoneyLimits current = limits;
+        return numerator.multiply(BigDecimal.valueOf(100)).divide(denominator, current.scale(), ROUNDING);
     }
 
     private static BigDecimal round(BigDecimal value) {
-        return value.setScale(SCALE, ROUNDING);
+        return value.setScale(limits.scale(), ROUNDING);
     }
 }

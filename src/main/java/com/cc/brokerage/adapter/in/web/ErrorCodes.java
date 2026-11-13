@@ -19,7 +19,6 @@ final class ErrorCodes {
             Map.entry("La búsqueda no es válida", "SEARCH_INVALID"),
             Map.entry("El lado debe ser BUY o SELL", "INVALID_SIDE"),
             Map.entry("El tipo de orden es obligatorio", "INVALID_TYPE"),
-            Map.entry("La cantidad debe ser un entero de 1 a 2147483647", "INVALID_SIZE"),
             Map.entry("El monto debe ser mayor que cero", "INVALID_AMOUNT"),
             Map.entry("El monto supera el máximo permitido", "INVALID_AMOUNT"),
             Map.entry("El monto no es un número válido", "INVALID_AMOUNT"),
@@ -32,12 +31,17 @@ final class ErrorCodes {
             Map.entry("No se registran ingresos ni egresos de pesos nuevos", "CASH_MOVEMENT")
     );
 
+    private static final String SHARES_RANGE = "La cantidad debe ser un entero de ";
+
     private ErrorCodes() {
     }
 
     static String ofMessage(String message) {
         if (message == null) {
             return "UNREADABLE";
+        }
+        if (message.startsWith(SHARES_RANGE)) {
+            return "INVALID_SIZE";
         }
         return BY_MESSAGE.getOrDefault(message, "INVALID_REQUEST");
     }

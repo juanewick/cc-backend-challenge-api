@@ -12,7 +12,6 @@ import com.cc.brokerage.domain.model.Position;
 import com.cc.brokerage.domain.model.User;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -22,8 +21,8 @@ import java.util.Map;
 public class PortfolioCalculator {
 
     public Holdings summarize(List<Order> orders) {
-        BigDecimal cash = BigDecimal.ZERO.setScale(MoneyMath.SCALE, RoundingMode.HALF_UP);
-        BigDecimal reservedCash = BigDecimal.ZERO.setScale(MoneyMath.SCALE, RoundingMode.HALF_UP);
+        BigDecimal cash = BigDecimal.ZERO.setScale(MoneyMath.scale(), MoneyMath.ROUNDING);
+        BigDecimal reservedCash = BigDecimal.ZERO.setScale(MoneyMath.scale(), MoneyMath.ROUNDING);
         Map<Long, MutablePosition> positions = new HashMap<>();
 
         for (Order order : orders) {
@@ -61,7 +60,7 @@ public class PortfolioCalculator {
     ) {
         Holdings holdings = summarize(orders);
         List<Position> positions = new ArrayList<>();
-        BigDecimal marketTotal = BigDecimal.ZERO.setScale(MoneyMath.SCALE, RoundingMode.HALF_UP);
+        BigDecimal marketTotal = BigDecimal.ZERO.setScale(MoneyMath.scale(), MoneyMath.ROUNDING);
 
         for (Map.Entry<Long, MutablePosition> entry : holdings.positions().entrySet()) {
             Instrument instrument = instruments.get(entry.getKey());
@@ -128,7 +127,7 @@ public class PortfolioCalculator {
     public static final class MutablePosition {
         private int netQuantity;
         private int reservedSellQuantity;
-        private BigDecimal netInvested = BigDecimal.ZERO.setScale(MoneyMath.SCALE, RoundingMode.HALF_UP);
+        private BigDecimal netInvested = BigDecimal.ZERO.setScale(MoneyMath.scale(), MoneyMath.ROUNDING);
 
         private void buy(int size, BigDecimal notional) {
             netQuantity += size;

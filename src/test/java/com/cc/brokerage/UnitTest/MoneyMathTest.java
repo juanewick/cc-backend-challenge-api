@@ -1,7 +1,8 @@
 package com.cc.brokerage.UnitTest;
 
-import com.cc.brokerage.domain.model.MoneyMath;
 import com.cc.brokerage.domain.InvalidRequestException;
+import com.cc.brokerage.domain.model.MoneyMath;
+import com.cc.brokerage.support.MoneyBounds;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -12,21 +13,21 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class MoneyMathTest {
 
     @Test
-    void eightIntegerDigitsStayAfterHalfUp() {
-        assertThat(MoneyMath.scaled(new BigDecimal("99999999.994"))).isEqualByComparingTo("99999999.99");
+    void amountAtTheMaximumStaysAfterHalfUp() {
+        assertThat(MoneyMath.scaled(MoneyBounds.justWithinMax())).isEqualByComparingTo(MoneyMath.maxAmount());
     }
 
     @Test
-    void roundingIntoANinthIntegerDigitIsRejected() {
-        assertThatThrownBy(() -> MoneyMath.scaled(new BigDecimal("99999999.995")))
+    void roundingPastTheMaximumIsRejected() {
+        assertThatThrownBy(() -> MoneyMath.scaled(MoneyBounds.justPastMax()))
                 .isInstanceOf(InvalidRequestException.class);
     }
 
     @Test
-    void shareCountAboveIntegerMaxIsNotTruncated() {
-        assertThatThrownBy(() -> MoneyMath.sharesFromAmount(new BigDecimal("2147483648"), BigDecimal.ONE))
+    void shareCountAboveTheMaximumIsNotTruncated() {
+        assertThatThrownBy(() -> MoneyMath.sharesFromAmount(MoneyBounds.oneSharePastMax(), BigDecimal.ONE))
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("La cantidad debe ser un entero de 1 a 2147483647");
+                .hasMessage(MoneyMath.sharesRangeMessage());
     }
 
     @Test
@@ -35,7 +36,8 @@ class MoneyMathTest {
     }
 
     @Test
-    void maxIntegerSharesAreAccepted() {
-        assertThat(MoneyMath.sharesFromAmount(new BigDecimal("2147483647"), BigDecimal.ONE)).isEqualTo(2147483647);
+    void maximumSharesAreAccepted() {
+        assertThat(MoneyMath.sharesFromAmount(BigDecimal.valueOf(MoneyMath.maxShares()), BigDecimal.ONE))
+                .isEqualTo(Math.toIntExact(MoneyMath.maxShares()));
     }
 }

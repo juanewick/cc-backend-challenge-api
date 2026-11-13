@@ -1,5 +1,7 @@
 package com.cc.brokerage.IntegrationTest;
 
+import com.cc.brokerage.domain.model.MoneyMath;
+import com.cc.brokerage.support.MoneyBounds;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -22,8 +24,8 @@ class HardenNumbersIT extends IntegrationTestBase {
     @Test
     void zeroSizeIsRejectedWithoutSaving() throws Exception {
         rejectOrder("""
-                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":0,"price":"1.00"}
-                """);
+                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":%d,"price":"1.00"}
+                """.formatted(MoneyMath.minShares() - 1));
     }
 
     @Test
@@ -34,21 +36,21 @@ class HardenNumbersIT extends IntegrationTestBase {
     }
 
     @Test
-    void sizeAboveIntegerMaxIsRejectedWithoutSaving() throws Exception {
+    void sizeAboveTheMaximumIsRejectedWithoutSaving() throws Exception {
         rejectOrder("""
-                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":2147483648,"price":"1.00"}
-                """);
+                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":%d,"price":"1.00"}
+                """.formatted(MoneyMath.maxShares() + 1));
     }
 
     @Test
-    void maxIntegerSizeIsNotRejectedForSize() throws Exception {
+    void maximumSizeIsNotRejectedForSize() throws Exception {
         Integer before = orderCount();
 
         mockMvc.perform(post(ORDERS)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":2147483647,"price":"0.01"}
-                                """))
+                                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":%d,"price":"0.01"}
+                                """.formatted(MoneyMath.maxShares())))
                 .andExpect(status().isCreated());
 
         assertThat(orderCount()).isEqualTo(before + 1);
@@ -57,8 +59,8 @@ class HardenNumbersIT extends IntegrationTestBase {
     @Test
     void negativeAmountIsRejectedWithoutSaving() throws Exception {
         rejectOrder("""
-                {"ticker":"GGAL","side":"BUY","type":"MARKET","amount":"-1"}
-                """);
+                {"ticker":"GGAL","side":"BUY","type":"MARKET","amount":"%s"}
+                """.formatted(MoneyBounds.belowMinAmount().toPlainString()));
     }
 
     @Test
@@ -69,17 +71,17 @@ class HardenNumbersIT extends IntegrationTestBase {
     }
 
     @Test
-    void amountThatRoundsPastEightIntegerDigitsIsRejectedWithoutSaving() throws Exception {
+    void amountThatRoundsPastTheMaximumIsRejectedWithoutSaving() throws Exception {
         rejectOrder("""
-                {"ticker":"GGAL","side":"BUY","type":"MARKET","amount":"99999999.995"}
-                """);
+                {"ticker":"GGAL","side":"BUY","type":"MARKET","amount":"%s"}
+                """.formatted(MoneyBounds.justPastMax().toPlainString()));
     }
 
     @Test
     void negativePriceIsRejectedWithoutSaving() throws Exception {
         rejectOrder("""
-                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"price":"-1"}
-                """);
+                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"price":"%s"}
+                """.formatted(MoneyBounds.belowMinAmount().toPlainString()));
     }
 
     @Test
@@ -90,10 +92,10 @@ class HardenNumbersIT extends IntegrationTestBase {
     }
 
     @Test
-    void priceThatRoundsPastEightIntegerDigitsIsRejectedWithoutSaving() throws Exception {
+    void priceThatRoundsPastTheMaximumIsRejectedWithoutSaving() throws Exception {
         rejectOrder("""
-                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"price":"99999999.995"}
-                """);
+                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"price":"%s"}
+                """.formatted(MoneyBounds.justPastMax().toPlainString()));
     }
 
     @Test
