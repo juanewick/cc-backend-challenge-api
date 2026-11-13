@@ -25,7 +25,8 @@ public enum DomainErrorCodes {
     PRICE_NOT_A_NUMBER("BRK-023", "INVALID_PRICE", ErrorCategory.INVALID_INPUT, "Price is not a valid number."),
     INVALID_STATUS("BRK-024", "INVALID_STATUS", ErrorCategory.INVALID_INPUT, "Status must be NEW, FILLED, REJECTED or CANCELLED."),
     INVALID_PAGE("BRK-025", "INVALID_PAGE", ErrorCategory.INVALID_INPUT, "Page must be an integer from 0 to %d."),
-    INVALID_PAGE_SIZE("BRK-026", "INVALID_PAGE_SIZE", ErrorCategory.INVALID_INPUT, "Page size must be an integer from 1 to %d.");
+    INVALID_PAGE_SIZE("BRK-026", "INVALID_PAGE_SIZE", ErrorCategory.INVALID_INPUT, "Page size must be an integer from 1 to %d."),
+    PRICE_NOT_ALLOWED("BRK-027", "INVALID_PRICE", ErrorCategory.INVALID_INPUT, "A MARKET order does not take a price; it fills at the latest close.");
 
     private final String code;
     private final String description;

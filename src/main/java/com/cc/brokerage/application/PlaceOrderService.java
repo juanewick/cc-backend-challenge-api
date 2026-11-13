@@ -106,6 +106,10 @@ public class PlaceOrderService implements PlaceOrderUseCase {
         if (hasAmount) {
             acceptMoney(command.amount(), DomainErrorCodes.AMOUNT_NOT_POSITIVE, DomainErrorCodes.AMOUNT_ABOVE_MAXIMUM);
         }
+        if (command.type() == OrderType.MARKET && command.price() != null) {
+            // A client sending a price on a MARKET order most likely expects a cap; filling at the close would surprise it.
+            throw new DomainException(DomainErrorCodes.PRICE_NOT_ALLOWED);
+        }
         if (command.type() == OrderType.LIMIT) {
             if (command.price() == null) {
                 throw new DomainException(DomainErrorCodes.PRICE_NOT_POSITIVE);

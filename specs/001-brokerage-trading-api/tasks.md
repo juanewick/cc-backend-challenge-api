@@ -112,7 +112,7 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [x] T028 [P] [US3] Crear `src/test/java/com/cc/brokerage/application/PlaceMarketOrderServiceTest.java` con Mockito: compra de 1 `GGAL` a `885.80`; monto `2000` que resulta en cantidad `2` y descuenta `1771.60`; venta de 1 `PAMP` a `925.85`; un precio enviado en `MARKET` se ignora; cantidad y monto juntos, o ninguno, no guardan orden; cantidad no entera positiva, monto no positivo, ticker inexistente o cuenta inexistente no guardan orden; `CASH_IN` y `CASH_OUT` no guardan orden
+- [x] T028 [P] [US3] Crear `src/test/java/com/cc/brokerage/application/PlaceMarketOrderServiceTest.java` con Mockito: compra de 1 `GGAL` a `885.80`; monto `2000` que resulta en cantidad `2` y descuenta `1771.60`; venta de 1 `PAMP` a `925.85`; un precio enviado en `MARKET` rechaza la orden sin guardarla; cantidad y monto juntos, o ninguno, no guardan orden; cantidad no entera positiva, monto no positivo, ticker inexistente o cuenta inexistente no guardan orden; `CASH_IN` y `CASH_OUT` no guardan orden
 - [x] T029 [P] [US3] Crear `src/test/java/com/cc/brokerage/adapter/in/web/PlaceMarketOrderIT.java` para `POST /api/accounts/{accountNumber}/orders` con los mismos casos. Una orden guardada responde 201. Una solicitud inválida responde 400 o 404 y no inserta fila
 
 ### Implementation for User Story 3

@@ -71,7 +71,7 @@ NEW + cancelación del titular  -> CANCELLED
 
 No hay otras transiciones. `FILLED`, `REJECTED` y `CANCELLED` no cambian. Una orden límite no pasa a `FILLED` por el paso del tiempo ni por el precio vigente.
 
-Una solicitud inválida no inserta fila: cuenta inexistente, ticker inexistente, lado `CASH_IN` o `CASH_OUT`, cantidad y monto juntos o ninguno, cantidad no entera positiva, monto no positivo, límite sin precio o con precio no positivo.
+Una solicitud inválida no inserta fila: cuenta inexistente, ticker inexistente, lado `CASH_IN` o `CASH_OUT`, cantidad y monto juntos o ninguno, cantidad no entera positiva, monto no positivo, límite sin precio o con precio no positivo, mercado con precio.
 
 ### Efecto sobre la cuenta
 

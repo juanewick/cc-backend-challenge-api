@@ -22,6 +22,7 @@ Se usó arquitectura hexagonal. El dominio no conoce HTTP ni JPA: los casos de u
 - Consultar el portfolio: valor total, pesos disponibles y posiciones (cantidad, valor de mercado, rendimiento total y diario).
 - Buscar activos cuyo ticker o nombre contienen un texto, sin distinguir mayúsculas.
 - Enviar órdenes `MARKET` (se ejecutan al cierre vigente) o `LIMIT` (quedan abiertas y reservan pesos o acciones).
+- Rechazar una orden `MARKET` que trae `price` (`BRK-027`, sin grabar la orden).
 - Guardar como `REJECTED` la orden que no entra por fondos o acciones insuficientes.
 - Cancelar una orden abierta `NEW` y devolver la reserva.
 - Listar las órdenes de una cuenta por páginas, opcionalmente filtradas por estado.
@@ -90,6 +91,7 @@ mvn verify
 
 - **Validación en un solo lugar.** El controller solo lee el JSON. Las reglas de una orden nueva (lado, tipo, cantidad o monto, rangos, precio de una LIMIT) están en `PlaceOrderService`. Se quitó `spring-boot-starter-validation`: los límites de montos son configurables y con anotaciones habría quedado una segunda copia de las mismas reglas.
 - **Montos como texto.** `amount` y `price` se leen como `BigDecimal`. Se envían como texto (`"800.00"`), igual que todos los montos que devuelve la API, y también se aceptan como número JSON. Un valor que no es número responde `BRK-020` o `BRK-023`.
+- **Precio en una orden `MARKET`.** Se rechaza con `400` y `BRK-027`, y la orden no se graba. Antes se ignoraba y la orden se ejecutaba al cierre. Quien manda un precio en una orden de mercado probablemente espera un tope, y la orden no lo respeta, así que es mejor avisarle que ejecutar a un precio que no pidió.
 - **Campos repetidos.** Un `RequestBodyAdvice` recorre los tokens del cuerpo y rechaza una propiedad repetida en el mismo objeto antes de leerlo. No depende del texto de los mensajes de Jackson.
 - **`MoneyMath` es un bean.** Se construye con los límites de `application.yml` y se inyecta. No hay estado estático.
 - **El portfolio se suma en la base.** Una consulta agrupa por instrumento las órdenes `FILLED` y `NEW` del usuario (cantidad neta, capital neto, compras y ventas ejecutadas para el costo promedio, reservas y movimientos de pesos). El servicio no carga el historial de órdenes, ni para el portfolio ni al validar una orden nueva con la cuenta bloqueada. La suma de cantidades es `BIGINT`, así que no desborda aunque cada orden sea `INT`.

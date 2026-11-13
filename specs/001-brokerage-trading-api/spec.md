@@ -81,7 +81,7 @@ Una persona compra o vende un activo al precio vigente. Indica una cantidad exac
 1. **Given** la cuenta `10001` y el último cierre de `GGAL` en `885.80`, **When** se envía una compra MARKET de 1 acción sin precio, **Then** la orden queda `FILLED`, con cantidad `1` y precio `885.80`, el efectivo liquidado pasa a `752114.20`, los pesos disponibles pasan a `626614.20` y aparece una posición `GGAL` de 1 acción con valor `885.80` y rendimiento total `0.00%`.
 2. **Given** la cuenta `10001`, **When** se envía una compra MARKET de `GGAL` por `2000` pesos, **Then** la cantidad es `2` (parte entera de `2000 / 885.80`), el precio guardado es `885.80`, el estado es `FILLED` y el efectivo baja `1771.60`, no `2000`.
 3. **Given** la cuenta `10001` con 40 acciones disponibles de `PAMP`, **When** se vende 1 acción MARKET, **Then** la orden queda `FILLED` al cierre `925.85`, la posición de `PAMP` queda en 39 acciones y el efectivo aumenta `925.85`.
-4. **Given** una orden MARKET, **When** la solicitud trae además un precio, **Then** ese precio se ignora y se usa el último cierre.
+4. **Given** una orden MARKET, **When** la solicitud trae además un precio, **Then** se rechaza con `400` y `BRK-027`, y no se graba la orden. Un precio en una orden de mercado se leería como un tope que la orden no respeta.
 5. **Given** una solicitud MARKET, **When** indica a la vez cantidad de acciones y monto en pesos, o no indica ninguno, **Then** no se graba ninguna orden y se informa que debe indicarse exactamente una de las dos formas.
 6. **Given** una solicitud, **When** la cantidad no es un entero positivo, el monto no es mayor que cero, el activo no existe o la cuenta no existe, **Then** no se graba ninguna orden y se informa el dato inválido.
 
@@ -217,7 +217,7 @@ Quien va a operar, o quien acaba de cambiar la configuración, consulta dos ruta
 - **FR-017**: Cada activo encontrado MUST informar ticker, nombre, tipo, último precio y rendimiento diario cuando existan.
 - **FR-018**: Una orden de compra o de venta MUST indicar la cuenta, el activo, el lado y exactamente una forma de cantidad: acciones enteras o monto en pesos.
 - **FR-019**: Cuando la orden indica un monto, la cantidad MUST ser la parte entera de `monto / precio aplicable`, nunca una fracción. El precio aplicable es el último cierre en una orden de mercado y el precio enviado en una orden límite.
-- **FR-020**: Una orden MARKET válida MUST guardarse `FILLED` de inmediato, con el último cierre como precio, aunque la solicitud no traiga precio.
+- **FR-020**: Una orden MARKET válida MUST guardarse `FILLED` de inmediato, con el último cierre como precio. La solicitud MUST NOT traer precio: si lo trae, se rechaza sin grabar.
 - **FR-021**: Una orden LIMIT válida MUST guardarse `NEW` con el precio enviado y MUST permanecer así: el sistema no simula el mercado ni la ejecuta después.
 - **FR-022**: Una compra cuyo importe supera los pesos disponibles, o una venta cuya cantidad supera las acciones disponibles, MUST guardarse `REJECTED`. Lo mismo MUST ocurrir cuando la cantidad resultante de un monto es cero o cuando una orden de mercado no tiene cierre.
 - **FR-023**: Una orden `REJECTED` o `CANCELLED` MUST dejar sin cambios la tenencia, el efectivo liquidado y las reservas.
@@ -260,7 +260,7 @@ Quien va a operar, o quien acaba de cambiar la configuración, consulta dos ruta
 - El número de cuenta es el identificador público. No hace falta una sesión.
 - La cantidad neta negativa se conserva: el conjunto de referencia deja a `BMA` en corto para la cuenta `10001` (20 acciones compradas y 30 vendidas, todas ejecutadas).
 - Si el monto alcanza para más acciones de las que el disponible puede cubrir, la orden se rechaza. No se reduce en silencio hasta el máximo cubierto. "Cantidad máxima" se interpreta solo como el máximo de acciones enteras que ese monto puede comprar o vender al precio aplicable.
-- En una orden de mercado se ignora un precio enviado por quien opera.
+- Una orden de mercado que trae precio se rechaza. No se ignora en silencio.
 - La definición completa entregada para los datos prevalece cuando el relato resumido difiere: el precio tiene fecha de calendario, y la orden tiene fecha y hora.
 - Quedan fuera de alcance la autenticación, la simulación del mercado, las ejecuciones parciales, las fracciones de acciones, otras monedas, el alta o la modificación de cuentas y activos, y el registro de ingresos o egresos de pesos nuevos.
 - Un catálogo de ejemplos para invocar cada operación es deseable y no es necesario para dar por cumplido el comportamiento.

@@ -91,18 +91,13 @@ class PlaceMarketOrderServiceTest {
     }
 
     @Test
-    void marketSellUsesCloseAndIgnoresSubmittedPrice() {
-        stubAccount();
-        when(instruments.findByTicker("PAMP")).thenReturn(Optional.of(Account10001Fixture.PAMP));
-        when(prices.findLatestByInstrumentIds(java.util.Set.of(47L))).thenReturn(java.util.Map.of(47L, Account10001Fixture.latestPrices().get(47L)));
-        when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Order placed = service.place(new PlaceOrderCommand(
-                "10001", "PAMP", OrderSide.SELL, OrderType.MARKET, 1, null, new BigDecimal("1.00"))).order();
-
-        assertThat(placed.status()).isEqualTo(OrderStatus.FILLED);
-        assertThat(placed.price()).isEqualByComparingTo("925.85");
-        assertThat(placed.size()).isEqualTo(1);
+    void marketOrderWithAPriceIsRejectedWithoutSaving() {
+        assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
+                "10001", "PAMP", OrderSide.SELL, OrderType.MARKET, 1, null, new BigDecimal("1.00"))))
+                .isInstanceOf(DomainException.class)
+                .extracting(ex -> ((DomainException) ex).error())
+                .isEqualTo(DomainErrorCodes.PRICE_NOT_ALLOWED);
+        verify(orders, never()).save(any());
     }
 
     @Test
