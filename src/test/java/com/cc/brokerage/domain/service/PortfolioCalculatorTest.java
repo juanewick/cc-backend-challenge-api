@@ -23,6 +23,8 @@ class PortfolioCalculatorTest {
                 Account10001Fixture.latestPrices()
         );
 
+        assertThat(portfolio.settledCash()).isEqualByComparingTo("753000.00");
+        assertThat(portfolio.reservedCash()).isEqualByComparingTo("125500.00");
         assertThat(portfolio.availableCash()).isEqualByComparingTo("627500.00");
         assertThat(portfolio.totalValue()).isEqualByComparingTo("889756.00");
         assertThat(portfolio.positions()).extracting(Position::ticker).containsExactly("BMA", "METR", "PAMP");

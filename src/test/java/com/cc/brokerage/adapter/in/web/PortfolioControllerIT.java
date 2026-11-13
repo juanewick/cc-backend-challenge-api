@@ -14,6 +14,8 @@ class PortfolioControllerIT extends IntegrationTestBase {
         mockMvc.perform(get(API_V1 + "/accounts/10001/portfolio"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accountNumber").value("10001"))
+                .andExpect(jsonPath("$.settledCash").value("753000.00"))
+                .andExpect(jsonPath("$.reservedCash").value("125500.00"))
                 .andExpect(jsonPath("$.availableCash").value("627500.00"))
                 .andExpect(jsonPath("$.totalValue").value("889756.00"))
                 .andExpect(jsonPath("$.positions[0].ticker").value("BMA"))
@@ -37,6 +39,8 @@ class PortfolioControllerIT extends IntegrationTestBase {
     void accountWithoutOrdersIsZero() throws Exception {
         mockMvc.perform(get(API_V1 + "/accounts/10002/portfolio"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.settledCash").value("0.00"))
+                .andExpect(jsonPath("$.reservedCash").value("0.00"))
                 .andExpect(jsonPath("$.availableCash").value("0.00"))
                 .andExpect(jsonPath("$.totalValue").value("0.00"))
                 .andExpect(jsonPath("$.positions").isEmpty());
@@ -46,6 +50,7 @@ class PortfolioControllerIT extends IntegrationTestBase {
     void unknownAccountIsNotFound() throws Exception {
         mockMvc.perform(get(API_V1 + "/accounts/99999/portfolio"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").exists());
+                .andExpect(jsonPath("$.code").value("ACCOUNT_NOT_FOUND"))
+                .andExpect(jsonPath("$.detail").value("La cuenta no existe"));
     }
 }

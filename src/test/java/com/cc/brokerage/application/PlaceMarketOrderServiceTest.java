@@ -69,7 +69,7 @@ class PlaceMarketOrderServiceTest {
             return order.withId(12L);
         });
 
-        Order placed = service.place(new PlaceOrderCommand("10001", "GGAL", OrderSide.BUY, OrderType.MARKET, 1, null, null));
+        Order placed = service.place(new PlaceOrderCommand("10001", "GGAL", OrderSide.BUY, OrderType.MARKET, 1, null, null)).order();
 
         assertThat(placed.status()).isEqualTo(OrderStatus.FILLED);
         assertThat(placed.size()).isEqualTo(1);
@@ -95,11 +95,11 @@ class PlaceMarketOrderServiceTest {
     void marketSellUsesCloseAndIgnoresSubmittedPrice() {
         stubAccount();
         when(instruments.findByTicker("PAMP")).thenReturn(Optional.of(Account10001Fixture.PAMP));
-        when(prices.findLatestByInstrumentId(47L)).thenReturn(Optional.of(Account10001Fixture.latestPrices().get(47L)));
+        when(prices.findByInstrumentIds(java.util.Set.of(47L))).thenReturn(java.util.List.of(Account10001Fixture.latestPrices().get(47L)));
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Order placed = service.place(new PlaceOrderCommand(
-                "10001", "PAMP", OrderSide.SELL, OrderType.MARKET, 1, null, new BigDecimal("1.00")));
+                "10001", "PAMP", OrderSide.SELL, OrderType.MARKET, 1, null, new BigDecimal("1.00"))).order();
 
         assertThat(placed.status()).isEqualTo(OrderStatus.FILLED);
         assertThat(placed.price()).isEqualByComparingTo("925.85");
@@ -174,11 +174,11 @@ class PlaceMarketOrderServiceTest {
     void amountThatBuysNoSharesIsSavedRejected() {
         when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
         when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
-        when(prices.findLatestByInstrumentId(34L)).thenReturn(Optional.of(Account10001Fixture.latestPrices().get(34L)));
+        when(prices.findByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.List.of(Account10001Fixture.latestPrices().get(34L)));
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Order placed = service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, BigDecimal.ONE, null));
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, BigDecimal.ONE, null)).order();
 
         assertThat(placed.status()).isEqualTo(OrderStatus.REJECTED);
         assertThat(placed.size()).isZero();
@@ -189,11 +189,11 @@ class PlaceMarketOrderServiceTest {
     void marketWithoutCloseIsSavedRejected() {
         when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
         when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
-        when(prices.findLatestByInstrumentId(34L)).thenReturn(Optional.empty());
+        when(prices.findByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.List.of());
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Order placed = service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, new BigDecimal("100"), null));
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, new BigDecimal("100"), null)).order();
 
         assertThat(placed.status()).isEqualTo(OrderStatus.REJECTED);
         verify(orders).save(any());
@@ -215,13 +215,13 @@ class PlaceMarketOrderServiceTest {
     private void stubAccountAndGgal() {
         stubAccount();
         when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
-        when(prices.findLatestByInstrumentId(34L)).thenReturn(Optional.of(Account10001Fixture.latestPrices().get(34L)));
+        when(prices.findByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.List.of(Account10001Fixture.latestPrices().get(34L)));
     }
 
     private void stubAccountAndGgalLenient() {
         lenient().when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
         lenient().when(orders.findByUserId(1L)).thenReturn(Account10001Fixture.orders());
         lenient().when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
-        lenient().when(prices.findLatestByInstrumentId(34L)).thenReturn(Optional.of(Account10001Fixture.latestPrices().get(34L)));
+        lenient().when(prices.findByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.List.of(Account10001Fixture.latestPrices().get(34L)));
     }
 }

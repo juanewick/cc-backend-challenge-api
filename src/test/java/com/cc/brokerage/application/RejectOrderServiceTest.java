@@ -64,7 +64,7 @@ class RejectOrderServiceTest {
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Order placed = service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, 1_000_000, null, null));
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, 1_000_000, null, null)).order();
 
         assertThat(placed.status()).isEqualTo(OrderStatus.REJECTED);
         assertUnchangedHoldings(placed);
@@ -74,11 +74,11 @@ class RejectOrderServiceTest {
     void oversizedMarketSellIsRejected() {
         stubAccount();
         when(instruments.findByTicker("PAMP")).thenReturn(Optional.of(Account10001Fixture.PAMP));
-        when(prices.findLatestByInstrumentId(47L)).thenReturn(Optional.of(Account10001Fixture.latestPrices().get(47L)));
+        when(prices.findByInstrumentIds(java.util.Set.of(47L))).thenReturn(java.util.List.of(Account10001Fixture.latestPrices().get(47L)));
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Order placed = service.place(new PlaceOrderCommand(
-                "10001", "PAMP", OrderSide.SELL, OrderType.MARKET, 100, null, null));
+                "10001", "PAMP", OrderSide.SELL, OrderType.MARKET, 100, null, null)).order();
 
         assertThat(placed.status()).isEqualTo(OrderStatus.REJECTED);
         assertUnchangedHoldings(placed);
@@ -90,7 +90,7 @@ class RejectOrderServiceTest {
     void amountThatYieldsZeroSharesIsSavedRejected() {
         when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
         when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
-        when(prices.findLatestByInstrumentId(34L)).thenReturn(Optional.of(Account10001Fixture.latestPrices().get(34L)));
+        when(prices.findByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.List.of(Account10001Fixture.latestPrices().get(34L)));
         ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -110,7 +110,7 @@ class RejectOrderServiceTest {
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Order placed = service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, 850, null, null));
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, 850, null, null)).order();
 
         assertThat(placed.status()).isEqualTo(OrderStatus.REJECTED);
         assertThat(placed.size()).isEqualTo(850);
@@ -124,13 +124,13 @@ class RejectOrderServiceTest {
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Order first = service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 400, null, new BigDecimal("800.00")));
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 400, null, new BigDecimal("800.00"))).order();
         assertThat(first.status()).isEqualTo(OrderStatus.NEW);
 
         when(orders.findByUserId(1L)).thenReturn(withSaved(first));
 
         Order second = service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 400, null, new BigDecimal("800.00")));
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 400, null, new BigDecimal("800.00"))).order();
         assertThat(second.status()).isEqualTo(OrderStatus.REJECTED);
 
         List<Order> afterBoth = new ArrayList<>(Account10001Fixture.orders());
@@ -151,7 +151,7 @@ class RejectOrderServiceTest {
 
     private void stubAccountAndGgalWithClose() {
         stubAccountAndGgal();
-        when(prices.findLatestByInstrumentId(34L)).thenReturn(Optional.of(Account10001Fixture.latestPrices().get(34L)));
+        when(prices.findByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.List.of(Account10001Fixture.latestPrices().get(34L)));
     }
 
     private void assertUnchangedHoldings(Order saved) {

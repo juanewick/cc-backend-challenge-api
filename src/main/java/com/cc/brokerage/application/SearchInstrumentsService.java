@@ -3,8 +3,10 @@ package com.cc.brokerage.application;
 import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.InstrumentQuote;
+import com.cc.brokerage.domain.model.InstrumentType;
 import com.cc.brokerage.domain.model.MarketPrice;
 import com.cc.brokerage.domain.model.MoneyMath;
+import com.cc.brokerage.domain.service.LatestPrices;
 import com.cc.brokerage.domain.port.in.SearchInstrumentsUseCase;
 import com.cc.brokerage.domain.port.out.InstrumentRepository;
 import com.cc.brokerage.domain.port.out.MarketPriceRepository;
@@ -12,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -35,11 +36,12 @@ public class SearchInstrumentsService implements SearchInstrumentsUseCase {
     public List<InstrumentQuote> search(String query) {
         String needle = InputText.search(query).toLowerCase(Locale.ROOT);
         List<Instrument> matches = instruments.findAll().stream()
+                .filter(instrument -> instrument.type() != InstrumentType.MONEDA)
                 .filter(instrument -> contains(instrument.ticker(), needle) || contains(instrument.name(), needle))
                 .sorted(Comparator.comparing(Instrument::ticker))
                 .toList();
         Set<Long> ids = matches.stream().map(Instrument::id).collect(Collectors.toSet());
-        Map<Long, MarketPrice> latest = latestPrices(ids);
+        Map<Long, MarketPrice> latest = LatestPrices.byInstrument(prices.findByInstrumentIds(ids));
         return matches.stream()
                 .map(instrument -> toQuote(instrument, latest.get(instrument.id())))
                 .toList();
@@ -49,23 +51,7 @@ public class SearchInstrumentsService implements SearchInstrumentsUseCase {
         return value != null && value.toLowerCase(Locale.ROOT).contains(needle);
     }
 
-    private Map<Long, MarketPrice> latestPrices(Set<Long> instrumentIds) {
-        Map<Long, MarketPrice> latest = new HashMap<>();
-        if (instrumentIds.isEmpty()) {
-            return latest;
-        }
-        for (MarketPrice price : prices.findByInstrumentIds(instrumentIds)) {
-            MarketPrice current = latest.get(price.instrumentId());
-            if (current == null
-                    || price.date().isAfter(current.date())
-                    || (price.date().equals(current.date()) && price.id() > current.id())) {
-                latest.put(price.instrumentId(), price);
-            }
-        }
-        return latest;
-    }
-
-    private static InstrumentQuote toQuote(Instrument instrument, MarketPrice price) {
+    static InstrumentQuote toQuote(Instrument instrument, MarketPrice price) {
         if (price == null || price.close() == null) {
             return new InstrumentQuote(instrument.ticker(), instrument.name(), instrument.type().name(), null, null);
         }

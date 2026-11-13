@@ -19,7 +19,9 @@ class RejectOrderIT extends IntegrationTestBase {
                                 {"ticker":"GGAL","side":"BUY","type":"MARKET","size":1000000}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("REJECTED"));
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.rejectionReason").value("INSUFFICIENT_CASH"))
+                .andExpect(jsonPath("$.amount").value("885800000.00"));
 
         assertReferencePortfolio();
     }
@@ -32,7 +34,9 @@ class RejectOrderIT extends IntegrationTestBase {
                                 {"ticker":"PAMP","side":"SELL","type":"MARKET","size":100}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("REJECTED"));
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.rejectionReason").value("INSUFFICIENT_SHARES"))
+                .andExpect(jsonPath("$.amount").value("92585.00"));
 
         mockMvc.perform(get(API_V1 + "/accounts/10001/portfolio"))
                 .andExpect(status().isOk())
@@ -50,6 +54,7 @@ class RejectOrderIT extends IntegrationTestBase {
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.rejectionReason").value("ZERO_SHARES"))
                 .andExpect(jsonPath("$.size").value(0));
 
         assertReferencePortfolio();
@@ -64,6 +69,8 @@ class RejectOrderIT extends IntegrationTestBase {
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.rejectionReason").value("INSUFFICIENT_CASH"))
+                .andExpect(jsonPath("$.amount").value("752930.00"))
                 .andExpect(jsonPath("$.size").value(850));
 
         assertReferencePortfolio();
@@ -85,7 +92,9 @@ class RejectOrderIT extends IntegrationTestBase {
                                 {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":400,"price":"800.00"}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("REJECTED"));
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.rejectionReason").value("INSUFFICIENT_CASH"))
+                .andExpect(jsonPath("$.amount").value("320000.00"));
 
         mockMvc.perform(get(API_V1 + "/accounts/10001/portfolio"))
                 .andExpect(status().isOk())

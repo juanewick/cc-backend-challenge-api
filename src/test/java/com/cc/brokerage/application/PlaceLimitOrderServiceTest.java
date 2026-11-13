@@ -129,7 +129,7 @@ class PlaceLimitOrderServiceTest {
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Order placed = service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 10, null, new BigDecimal("800.00")));
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 10, null, new BigDecimal("800.00"))).order();
 
         assertThat(placed.status()).isEqualTo(OrderStatus.NEW);
         assertThat(placed.price()).isEqualByComparingTo("800.00");
@@ -181,7 +181,7 @@ class PlaceLimitOrderServiceTest {
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Order placed = service.place(new PlaceOrderCommand(
-                "10001", "PAMP", OrderSide.SELL, OrderType.LIMIT, 10, null, new BigDecimal("1000.00")));
+                "10001", "PAMP", OrderSide.SELL, OrderType.LIMIT, 10, null, new BigDecimal("1000.00"))).order();
 
         assertThat(placed.status()).isEqualTo(OrderStatus.NEW);
         assertThat(placed.size()).isEqualTo(10);

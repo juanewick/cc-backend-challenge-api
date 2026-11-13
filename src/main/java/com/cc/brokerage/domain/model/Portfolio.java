@@ -7,6 +7,8 @@ public record Portfolio(
         String accountNumber,
         BigDecimal totalValue,
         BigDecimal availableCash,
+        BigDecimal settledCash,
+        BigDecimal reservedCash,
         List<Position> positions
 ) {
 }

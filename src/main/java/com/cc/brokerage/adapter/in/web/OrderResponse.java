@@ -4,7 +4,11 @@ import com.cc.brokerage.domain.model.Order;
 import com.cc.brokerage.domain.model.OrderSide;
 import com.cc.brokerage.domain.model.OrderStatus;
 import com.cc.brokerage.domain.model.OrderType;
+import com.cc.brokerage.domain.model.RejectionReason;
+import io.swagger.v3.oas.annotations.media.Schema;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 
 public record OrderResponse(
@@ -14,9 +18,15 @@ public record OrderResponse(
         OrderSide side,
         OrderType type,
         int size,
-        String price,
+        @Schema(description = "Precio a dos decimales, como texto.") String price,
         OrderStatus status,
-        String datetime
+        String datetime,
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @Schema(description = "Importe calculado, cantidad por precio, a dos decimales. Solo en el alta. No se guarda.")
+        String amount,
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @Schema(description = "Motivo del rechazo. Solo en el alta cuando el estado es REJECTED. No se guarda.")
+        RejectionReason rejectionReason
 ) {
     static OrderResponse from(Order order, String accountNumber, String ticker) {
         return new OrderResponse(
@@ -28,7 +38,26 @@ public record OrderResponse(
                 order.size(),
                 MoneyFormats.money(order.price()),
                 order.status(),
-                order.datetime() == null ? null : DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(order.datetime())
+                order.datetime() == null ? null : DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(order.datetime()),
+                null,
+                null
+        );
+    }
+
+    static OrderResponse placed(Order order, String accountNumber, String ticker, BigDecimal amount, RejectionReason reason) {
+        OrderResponse response = from(order, accountNumber, ticker);
+        return new OrderResponse(
+                response.id(),
+                response.accountNumber(),
+                response.ticker(),
+                response.side(),
+                response.type(),
+                response.size(),
+                response.price(),
+                response.status(),
+                response.datetime(),
+                MoneyFormats.money(amount),
+                reason
         );
     }
 }

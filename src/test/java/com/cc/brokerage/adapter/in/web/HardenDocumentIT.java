@@ -89,7 +89,7 @@ class HardenDocumentIT extends IntegrationTestBase {
                         .contentType(contentType)
                         .content(body))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(message))
+                .andExpect(jsonPath("$.detail").value(message))
                 .andReturn();
 
         if (absent != null) {

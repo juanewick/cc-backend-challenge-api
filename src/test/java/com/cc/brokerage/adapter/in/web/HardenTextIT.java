@@ -68,7 +68,12 @@ class HardenTextIT extends IntegrationTestBase {
     void unknownAccountDoesNotEchoTheNumber() throws Exception {
         MvcResult result = mockMvc.perform(get(API_V1 + "/accounts/{accountNumber}/portfolio", "99999"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("La cuenta no existe"))
+                .andExpect(jsonPath("$.type").value("/v3/api-docs#/components/schemas/NotFound"))
+                .andExpect(jsonPath("$.title").value("No encontrado"))
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.code").value("ACCOUNT_NOT_FOUND"))
+                .andExpect(jsonPath("$.detail").value("La cuenta no existe"))
+                .andExpect(jsonPath("$.invalid_params").doesNotExist())
                 .andReturn();
 
         assertThat(result.getResponse().getContentAsString()).doesNotContain("99999");
@@ -82,7 +87,8 @@ class HardenTextIT extends IntegrationTestBase {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(order("ZZZZ")))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("El activo no existe"))
+                .andExpect(jsonPath("$.code").value("INSTRUMENT_NOT_FOUND"))
+                .andExpect(jsonPath("$.detail").value("El activo no existe"))
                 .andReturn();
 
         assertThat(result.getResponse().getContentAsString()).doesNotContain("ZZZZ");
@@ -110,7 +116,8 @@ class HardenTextIT extends IntegrationTestBase {
 
         MvcResult portfolio = mockMvc.perform(get(API_V1 + "/accounts/{accountNumber}/portfolio", account))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(INVALID_ACCOUNT))
+                .andExpect(jsonPath("$.code").value("INVALID_ACCOUNT"))
+                .andExpect(jsonPath("$.detail").value(INVALID_ACCOUNT))
                 .andReturn();
         assertThat(portfolio.getResponse().getContentAsString()).doesNotContain(account);
         assertThat(portfolio.getResponse().getContentAsString()).doesNotContain("627500.00");
@@ -119,11 +126,13 @@ class HardenTextIT extends IntegrationTestBase {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(order("GGAL")))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(INVALID_ACCOUNT));
+                .andExpect(jsonPath("$.code").value("INVALID_ACCOUNT"))
+                .andExpect(jsonPath("$.detail").value(INVALID_ACCOUNT));
 
         mockMvc.perform(post(API_V1 + "/accounts/{accountNumber}/orders/5/cancellation", account))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(INVALID_ACCOUNT));
+                .andExpect(jsonPath("$.code").value("INVALID_ACCOUNT"))
+                .andExpect(jsonPath("$.detail").value(INVALID_ACCOUNT));
 
         assertThat(orderCount()).isEqualTo(before);
         assertThat(statusOf(5L)).isEqualTo("NEW");
@@ -136,7 +145,13 @@ class HardenTextIT extends IntegrationTestBase {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(order(ticker)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(INVALID_TICKER))
+                .andExpect(jsonPath("$.type").value("/v3/api-docs#/components/schemas/InvalidParameters"))
+                .andExpect(jsonPath("$.title").value("Parámetros inválidos"))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("INVALID_TICKER"))
+                .andExpect(jsonPath("$.detail").value(INVALID_TICKER))
+                .andExpect(jsonPath("$.invalid_params[0].field").value("ticker"))
+                .andExpect(jsonPath("$.invalid_params[0].message").value(INVALID_TICKER))
                 .andReturn();
 
         if (!ticker.isEmpty()) {

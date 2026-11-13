@@ -99,6 +99,8 @@ public class PortfolioCalculator {
                 user.accountNumber(),
                 holdings.settledCash().add(marketTotal),
                 holdings.availableCash(),
+                holdings.settledCash(),
+                holdings.reservedCash(),
                 List.copyOf(positions)
         );
     }

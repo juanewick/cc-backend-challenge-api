@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -25,9 +27,13 @@ class PlaceMarketOrderIT extends IntegrationTestBase {
                                 {"ticker":"GGAL","side":"BUY","type":"MARKET","size":1}
                                 """))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", containsString("/api/brokerage-api/v1/accounts/10001/orders/")))
+                .andExpect(jsonPath("$.ticker").value("GGAL"))
                 .andExpect(jsonPath("$.status").value("FILLED"))
                 .andExpect(jsonPath("$.size").value(1))
-                .andExpect(jsonPath("$.price").value("885.80"));
+                .andExpect(jsonPath("$.price").value("885.80"))
+                .andExpect(jsonPath("$.amount").value("885.80"))
+                .andExpect(jsonPath("$.rejectionReason").doesNotExist());
 
         mockMvc.perform(get(API_V1 + "/accounts/10001/portfolio"))
                 .andExpect(status().isOk())
@@ -70,6 +76,34 @@ class PlaceMarketOrderIT extends IntegrationTestBase {
                         .content("""
                                 {"ticker":"GGAL","side":"BUY","type":"MARKET","size":1}
                                 """))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_NOT_FOUND"));
+    }
+
+    @Test
+    void lowercaseTickerUsesCatalogSymbol() throws Exception {
+        mockMvc.perform(post(API_V1 + "/accounts/10001/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"ticker":"ggal","side":"BUY","type":"MARKET","size":1}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.ticker").value("GGAL"))
+                .andExpect(jsonPath("$.price").value("885.80"))
+                .andExpect(jsonPath("$.status").value("FILLED"));
+    }
+
+    @Test
+    void marketBuyOfOnePampUsesTheSameCloseAsTheQuote() throws Exception {
+        mockMvc.perform(post(API_V1 + "/accounts/10001/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"ticker":"PAMP","side":"BUY","type":"MARKET","size":1}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.ticker").value("PAMP"))
+                .andExpect(jsonPath("$.price").value("925.85"))
+                .andExpect(jsonPath("$.amount").value("925.85"))
+                .andExpect(jsonPath("$.status").value("FILLED"));
     }
 }

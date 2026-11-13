@@ -147,3 +147,14 @@ Requisito de arranque
 ---------------------
 La aplicación se levanta standalone con Docker, junto con la base de datos y los datos de referencia.
 Un único arranque alcanza para consultar el portfolio, buscar activos y enviar órdenes, sin instalar la plataforma ni la base por separado.
+
+MEJORAS
+=======
+
+Estas mejoras tocan el modelo entregado por Cocos. No se hicieron: no queríamos tocarlo para no salirnos de alcance. Podemos tener una charla técnica para ver estos puntos.
+
+- Cantidad de la orden y de la posición. La columna orders.size es INT. La entidad de la orden y la cantidad acumulada de cada posición usan ese mismo entero, con tope 2147483647. Varias órdenes grandes pueden desbordar la suma y la tenencia deja de coincidir con las órdenes guardadas. Corregirlo cambia el tipo en la tabla y en las entidades, por un entero más ancho.
+
+- Fecha y hora de la orden. La columna orders.datetime es TIMESTAMP sin zona horaria. La entidad la representa como fecha local y la guarda con la zona del proceso. El mismo instante puede verse distinto según dónde corre el servicio, y la respuesta no trae offset. Corregirlo cambia el tipo en la tabla y en la entidad, por un instante con zona horaria.
+
+- Idempotencia del alta. No la implementamos: no queremos tocar el modelo base. Si no fuera así, agregaríamos una columna para guardar el idempotency-key y una caché para dar alta disponibilidad.

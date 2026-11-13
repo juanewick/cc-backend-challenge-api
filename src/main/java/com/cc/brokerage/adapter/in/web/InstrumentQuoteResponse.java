@@ -1,13 +1,14 @@
 package com.cc.brokerage.adapter.in.web;
 
 import com.cc.brokerage.domain.model.InstrumentQuote;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public record InstrumentQuoteResponse(
         String ticker,
         String name,
         String type,
-        String lastPrice,
-        String dailyReturnPercent
+        @Schema(description = "Último precio a dos decimales, como texto.") String lastPrice,
+        @Schema(description = "Rendimiento diario a dos decimales. 0.48 es 0,48 %, no 48 %.") String dailyReturnPercent
 ) {
     static InstrumentQuoteResponse from(InstrumentQuote quote) {
         return new InstrumentQuoteResponse(

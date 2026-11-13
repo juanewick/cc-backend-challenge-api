@@ -12,6 +12,7 @@ import com.cc.brokerage.domain.port.out.InstrumentRepository;
 import com.cc.brokerage.domain.port.out.MarketPriceRepository;
 import com.cc.brokerage.domain.port.out.OrderRepository;
 import com.cc.brokerage.domain.port.out.UserRepository;
+import com.cc.brokerage.domain.service.LatestPrices;
 import com.cc.brokerage.domain.service.PortfolioCalculator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,23 +58,7 @@ public class GetPortfolioService implements GetPortfolioUseCase {
         for (Long id : instrumentIds) {
             instruments.findInstrumentById(id).ifPresent(instrument -> instrumentMap.put(id, instrument));
         }
-        Map<Long, MarketPrice> latest = latestPrices(instrumentIds);
+        Map<Long, MarketPrice> latest = LatestPrices.byInstrument(prices.findByInstrumentIds(instrumentIds));
         return calculator.toPortfolio(user, userOrders, instrumentMap, latest);
-    }
-
-    private Map<Long, MarketPrice> latestPrices(Set<Long> instrumentIds) {
-        Map<Long, MarketPrice> latest = new HashMap<>();
-        if (instrumentIds.isEmpty()) {
-            return latest;
-        }
-        for (MarketPrice price : prices.findByInstrumentIds(instrumentIds)) {
-            MarketPrice current = latest.get(price.instrumentId());
-            if (current == null
-                    || price.date().isAfter(current.date())
-                    || (price.date().equals(current.date()) && price.id() > current.id())) {
-                latest.put(price.instrumentId(), price);
-            }
-        }
-        return latest;
     }
 }

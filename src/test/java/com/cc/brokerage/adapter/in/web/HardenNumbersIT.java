@@ -116,7 +116,7 @@ class HardenNumbersIT extends IntegrationTestBase {
     void missingOrderDoesNotEchoTheId() throws Exception {
         MvcResult result = mockMvc.perform(post(ORDERS + "/999/cancellation"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("La orden no existe"))
+                .andExpect(jsonPath("$.detail").value("La orden no existe"))
                 .andReturn();
 
         assertThat(result.getResponse().getContentAsString()).doesNotContain("999");
@@ -139,7 +139,7 @@ class HardenNumbersIT extends IntegrationTestBase {
 
         mockMvc.perform(post(ORDERS + "/" + orderId + "/cancellation"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(INVALID_ORDER));
+                .andExpect(jsonPath("$.detail").value(INVALID_ORDER));
 
         assertThat(orderCount()).isEqualTo(before);
         assertThat(statusOf(5L)).isEqualTo("NEW");

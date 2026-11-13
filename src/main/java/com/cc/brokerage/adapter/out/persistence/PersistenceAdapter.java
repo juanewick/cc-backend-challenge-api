@@ -49,7 +49,7 @@ public class PersistenceAdapter implements UserRepository, InstrumentRepository,
 
     @Override
     public Optional<Instrument> findByTicker(String ticker) {
-        return instruments.findByTicker(ticker).map(this::toDomain);
+        return instruments.findByTickerIgnoreCase(ticker).map(this::toDomain);
     }
 
     @Override
