@@ -1,7 +1,7 @@
 package com.cc.brokerage.UnitTest;
 
 import com.cc.brokerage.application.PlaceOrderService;
-import com.cc.brokerage.domain.InvalidRequestException;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.Order;
 import com.cc.brokerage.domain.model.OrderSide;
 import com.cc.brokerage.domain.model.OrderStatus;
@@ -87,7 +87,7 @@ class PlaceLimitOrderServiceTest {
     void missingLimitPriceDoesNotSave() {
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 10, null, null)))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
 
@@ -95,10 +95,10 @@ class PlaceLimitOrderServiceTest {
     void nonPositiveLimitPriceDoesNotSave() {
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 10, null, MoneyMath.minAmount())))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 10, null, MoneyBounds.belowMinAmount())))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
 
@@ -140,7 +140,7 @@ class PlaceLimitOrderServiceTest {
         stubAccountAndGgalLenient();
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, MoneyBounds.oneSharePastMax(), BigDecimal.ONE)))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
 
@@ -149,7 +149,7 @@ class PlaceLimitOrderServiceTest {
         stubAccountAndGgalLenient();
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, MoneyBounds.justPastMax(), BigDecimal.ONE)))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
 
@@ -158,7 +158,7 @@ class PlaceLimitOrderServiceTest {
         stubAccountAndGgalLenient();
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 1, null, MoneyBounds.justPastMax())))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
 
@@ -166,10 +166,10 @@ class PlaceLimitOrderServiceTest {
     void nonPositiveLimitAmountDoesNotSave() {
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, MoneyMath.minAmount(), BigDecimal.ONE)))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, MoneyBounds.belowMinAmount(), BigDecimal.ONE)))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
 

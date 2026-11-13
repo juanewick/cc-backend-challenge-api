@@ -1,8 +1,8 @@
 package com.cc.brokerage.UnitTest;
 
 import com.cc.brokerage.application.CancelOrderService;
-import com.cc.brokerage.domain.OrderConflictException;
-import com.cc.brokerage.domain.OrderNotFoundException;
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.Order;
 import com.cc.brokerage.domain.model.OrderSide;
 import com.cc.brokerage.domain.model.OrderStatus;
@@ -56,8 +56,9 @@ class CancelOrderServiceTest {
         when(orders.findOrderById(2L)).thenReturn(Optional.of(Account10001Fixture.orders().get(1)));
 
         assertThatThrownBy(() -> service.cancel("10001", 2L))
-                .isInstanceOf(OrderConflictException.class)
-                .hasMessageContaining("abiertas");
+                .isInstanceOf(DomainException.class)
+                .extracting(ex -> ((DomainException) ex).error())
+                .isEqualTo(DomainErrorCodes.ORDER_NOT_OPEN);
         verify(orders, never()).save(any());
     }
 
@@ -67,8 +68,9 @@ class CancelOrderServiceTest {
         when(orders.findOrderById(5L)).thenReturn(Optional.of(Account10001Fixture.orders().get(4)));
 
         assertThatThrownBy(() -> service.cancel("10002", 5L))
-                .isInstanceOf(OrderConflictException.class)
-                .hasMessageContaining("no pertenece");
+                .isInstanceOf(DomainException.class)
+                .extracting(ex -> ((DomainException) ex).error())
+                .isEqualTo(DomainErrorCodes.ORDER_NOT_OWNED);
     }
 
     @Test
@@ -77,7 +79,9 @@ class CancelOrderServiceTest {
         when(orders.findOrderById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.cancel("10001", 99L))
-                .isInstanceOf(OrderNotFoundException.class);
+                .isInstanceOf(DomainException.class)
+                .extracting(ex -> ((DomainException) ex).error())
+                .isEqualTo(DomainErrorCodes.ORDER_NOT_FOUND);
     }
 
     @Test

@@ -1,7 +1,7 @@
 package com.cc.brokerage.application;
 
-import com.cc.brokerage.domain.InstrumentNotFoundException;
-import com.cc.brokerage.domain.InvalidRequestException;
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.InstrumentType;
@@ -60,11 +60,11 @@ public class PlaceOrderService implements PlaceOrderUseCase {
         validateShape(command);
         User user = users.lockByAccountNumber(accountNumber);
         Instrument instrument = instruments.findByTicker(ticker)
-                .orElseThrow(InstrumentNotFoundException::new);
+                .orElseThrow(() -> new DomainException(DomainErrorCodes.INSTRUMENT_NOT_FOUND));
         if (instrument.type() == InstrumentType.MONEDA
                 || command.side() == OrderSide.CASH_IN
                 || command.side() == OrderSide.CASH_OUT) {
-            throw new InvalidRequestException("No se registran ingresos ni egresos de pesos nuevos");
+            throw new DomainException(DomainErrorCodes.CASH_MOVEMENT);
         }
 
         BigDecimal price = resolvePrice(command, instrument);
@@ -87,37 +87,45 @@ public class PlaceOrderService implements PlaceOrderUseCase {
 
     private void validateShape(PlaceOrderCommand command) {
         if (command.side() != OrderSide.BUY && command.side() != OrderSide.SELL) {
-            throw new InvalidRequestException("El lado debe ser BUY o SELL");
+            throw new DomainException(DomainErrorCodes.INVALID_SIDE);
         }
         if (command.type() == null) {
-            throw new InvalidRequestException("El tipo de orden es obligatorio");
+            throw new DomainException(DomainErrorCodes.INVALID_TYPE);
         }
         boolean hasSize = command.size() != null;
         boolean hasAmount = command.amount() != null;
         if (hasSize == hasAmount) {
-            throw new InvalidRequestException("Debe indicarse exactamente una forma de cantidad: acciones o monto");
+            throw new DomainException(DomainErrorCodes.EXCLUSIVE_QUANTITY);
         }
         if (hasSize && (command.size() < MoneyMath.minShares() || command.size() > MoneyMath.maxShares())) {
-            throw new InvalidRequestException(MoneyMath.sharesRangeMessage());
+            throw new DomainException(DomainErrorCodes.INVALID_SIZE, MoneyMath.minShares(), MoneyMath.maxShares());
         }
         if (hasAmount) {
-            acceptMoney(command.amount(), "El monto debe ser mayor que cero", "El monto supera el máximo permitido");
+            acceptAmount(command.amount());
         }
         if (command.type() == OrderType.LIMIT) {
             if (command.price() == null) {
-                throw new InvalidRequestException("El precio es obligatorio y debe ser mayor que cero");
+                throw new DomainException(DomainErrorCodes.PRICE_NOT_POSITIVE);
             }
-            acceptMoney(command.price(), "El precio es obligatorio y debe ser mayor que cero", "El precio supera el máximo permitido");
+            acceptPrice(command.price());
         }
     }
 
-    private static void acceptMoney(BigDecimal value, String notPositive, String aboveMaximum) {
+    private static void acceptAmount(BigDecimal value) {
+        acceptMoney(value, DomainErrorCodes.AMOUNT_NOT_POSITIVE, DomainErrorCodes.AMOUNT_ABOVE_MAXIMUM);
+    }
+
+    private static void acceptPrice(BigDecimal value) {
+        acceptMoney(value, DomainErrorCodes.PRICE_NOT_POSITIVE, DomainErrorCodes.PRICE_ABOVE_MAXIMUM);
+    }
+
+    private static void acceptMoney(BigDecimal value, DomainErrorCodes notPositive, DomainErrorCodes aboveMaximum) {
         BigDecimal rounded = rounded(value);
         if (rounded.compareTo(MoneyMath.minAmount()) <= 0) {
-            throw new InvalidRequestException(notPositive);
+            throw new DomainException(notPositive);
         }
         if (rounded.compareTo(MoneyMath.maxAmount()) > 0) {
-            throw new InvalidRequestException(aboveMaximum);
+            throw new DomainException(aboveMaximum);
         }
     }
 

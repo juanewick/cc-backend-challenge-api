@@ -1,9 +1,7 @@
 package com.cc.brokerage.application;
 
-import com.cc.brokerage.domain.AccountNotFoundException;
-import com.cc.brokerage.domain.InstrumentNotFoundException;
-import com.cc.brokerage.domain.OrderConflictException;
-import com.cc.brokerage.domain.OrderNotFoundException;
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.ListedOrder;
@@ -33,14 +31,14 @@ public class GetOrderService implements GetOrderUseCase {
     @Transactional(readOnly = true)
     public ListedOrder get(String accountNumber, long orderId) {
         String account = InputText.account(accountNumber);
-        User user = users.findByAccountNumber(account).orElseThrow(AccountNotFoundException::new);
-        Order order = orders.findOrderById(orderId).orElseThrow(OrderNotFoundException::new);
+        User user = users.findByAccountNumber(account).orElseThrow(() -> new DomainException(DomainErrorCodes.ACCOUNT_NOT_FOUND));
+        Order order = orders.findOrderById(orderId).orElseThrow(() -> new DomainException(DomainErrorCodes.ORDER_NOT_FOUND));
         if (!order.userId().equals(user.id())) {
-            throw new OrderConflictException("La orden no pertenece a esa cuenta");
+            throw new DomainException(DomainErrorCodes.ORDER_NOT_OWNED);
         }
         String ticker = instruments.findInstrumentById(order.instrumentId())
                 .map(Instrument::ticker)
-                .orElseThrow(InstrumentNotFoundException::new);
+                .orElseThrow(() -> new DomainException(DomainErrorCodes.INSTRUMENT_NOT_FOUND));
         return new ListedOrder(order, ticker);
     }
 }

@@ -1,7 +1,8 @@
 package com.cc.brokerage.UnitTest;
 
 import com.cc.brokerage.application.SearchInstrumentsService;
-import com.cc.brokerage.domain.InvalidRequestException;
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.InstrumentQuote;
 import com.cc.brokerage.domain.model.InstrumentType;
@@ -89,18 +90,18 @@ class SearchInstrumentsServiceTest {
     @Test
     void blankQueryIsRejected() {
         assertThatThrownBy(() -> service.search("   "))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("La búsqueda no tiene texto");
+                .isInstanceOf(DomainException.class)
+                .hasMessage(DomainErrorCodes.SEARCH_EMPTY.message());
         assertThatThrownBy(() -> service.search(""))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("La búsqueda no tiene texto");
+                .isInstanceOf(DomainException.class)
+                .hasMessage(DomainErrorCodes.SEARCH_EMPTY.message());
     }
 
     @Test
     void queryAboveOneHundredCharactersIsRejected() {
         assertThatThrownBy(() -> service.search("n".repeat(101)))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("La búsqueda supera el máximo permitido");
+                .isInstanceOf(DomainException.class)
+                .hasMessage(DomainErrorCodes.SEARCH_TOO_LONG.message());
     }
 
     @Test
@@ -113,15 +114,15 @@ class SearchInstrumentsServiceTest {
     @Test
     void controlCharacterIsRejected() {
         assertThatThrownBy(() -> service.search("pamp\n"))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("La búsqueda no es válida");
+                .isInstanceOf(DomainException.class)
+                .hasMessage(DomainErrorCodes.SEARCH_INVALID.message());
     }
 
     @Test
     void nullCharacterIsRejected() {
         assertThatThrownBy(() -> service.search("pamp\u0000"))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("La búsqueda no es válida");
+                .isInstanceOf(DomainException.class)
+                .hasMessage(DomainErrorCodes.SEARCH_INVALID.message());
     }
 
     @Test

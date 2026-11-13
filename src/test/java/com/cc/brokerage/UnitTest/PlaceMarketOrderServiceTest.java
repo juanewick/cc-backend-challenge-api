@@ -1,9 +1,8 @@
 package com.cc.brokerage.UnitTest;
 
 import com.cc.brokerage.application.PlaceOrderService;
-import com.cc.brokerage.domain.AccountNotFoundException;
-import com.cc.brokerage.domain.InstrumentNotFoundException;
-import com.cc.brokerage.domain.InvalidRequestException;
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.Order;
 import com.cc.brokerage.domain.model.OrderSide;
 import com.cc.brokerage.domain.model.OrderStatus;
@@ -109,7 +108,7 @@ class PlaceMarketOrderServiceTest {
     void bothSizeAndAmountAreRejectedWithoutSaving() {
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, 1, new BigDecimal("2000"), null)))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
 
@@ -117,16 +116,18 @@ class PlaceMarketOrderServiceTest {
     void missingSizeAndAmountAreRejectedWithoutSaving() {
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, null, null)))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
 
     @Test
     void unknownAccountDoesNotSave() {
-        when(users.lockByAccountNumber("99999")).thenThrow(new AccountNotFoundException());
+        when(users.lockByAccountNumber("99999")).thenThrow(new DomainException(DomainErrorCodes.ACCOUNT_NOT_FOUND));
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "99999", "GGAL", OrderSide.BUY, OrderType.MARKET, 1, null, null)))
-                .isInstanceOf(AccountNotFoundException.class);
+                .isInstanceOf(DomainException.class)
+                .extracting(ex -> ((DomainException) ex).error())
+                .isEqualTo(DomainErrorCodes.ACCOUNT_NOT_FOUND);
         verify(orders, never()).save(any());
     }
 
@@ -136,7 +137,9 @@ class PlaceMarketOrderServiceTest {
         when(instruments.findByTicker("ZZZZ")).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "10001", "ZZZZ", OrderSide.BUY, OrderType.MARKET, 1, null, null)))
-                .isInstanceOf(InstrumentNotFoundException.class);
+                .isInstanceOf(DomainException.class)
+                .extracting(ex -> ((DomainException) ex).error())
+                .isEqualTo(DomainErrorCodes.INSTRUMENT_NOT_FOUND);
         verify(orders, never()).save(any());
     }
 
@@ -146,7 +149,7 @@ class PlaceMarketOrderServiceTest {
         BigDecimal close = Account10001Fixture.latestPrices().get(Account10001Fixture.GGAL.id()).close();
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, close.multiply(MoneyBounds.oneSharePastMax()), null)))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
 
@@ -155,7 +158,7 @@ class PlaceMarketOrderServiceTest {
         stubAccountAndGgalLenient();
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, MoneyBounds.justPastMax(), null)))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
 
@@ -163,10 +166,10 @@ class PlaceMarketOrderServiceTest {
     void nonPositiveAmountDoesNotSave() {
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, MoneyMath.minAmount(), null)))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, MoneyBounds.belowMinAmount(), null)))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
 
@@ -203,7 +206,7 @@ class PlaceMarketOrderServiceTest {
     void cashMovementsAreRejectedWithoutSaving() {
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "10001", "ARS", OrderSide.CASH_IN, OrderType.MARKET, 500, null, new BigDecimal("1"))))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
 

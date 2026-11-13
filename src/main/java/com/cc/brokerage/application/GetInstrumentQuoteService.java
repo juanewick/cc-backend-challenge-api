@@ -1,7 +1,7 @@
 package com.cc.brokerage.application;
 
-import com.cc.brokerage.domain.InstrumentNotFoundException;
-import com.cc.brokerage.domain.InvalidRequestException;
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.InstrumentQuote;
@@ -30,9 +30,9 @@ public class GetInstrumentQuoteService implements GetInstrumentQuoteUseCase {
     @Transactional(readOnly = true)
     public InstrumentQuote quote(String ticker) {
         String symbol = InputText.ticker(ticker);
-        Instrument instrument = instruments.findByTicker(symbol).orElseThrow(InstrumentNotFoundException::new);
+        Instrument instrument = instruments.findByTicker(symbol).orElseThrow(() -> new DomainException(DomainErrorCodes.INSTRUMENT_NOT_FOUND));
         if (instrument.type() == InstrumentType.MONEDA) {
-            throw new InvalidRequestException("La moneda no es operable");
+            throw new DomainException(DomainErrorCodes.INSTRUMENT_NOT_TRADABLE);
         }
         var latest = LatestPrices.one(prices.findByInstrumentIds(Set.of(instrument.id()))).orElse(null);
         return SearchInstrumentsService.toQuote(instrument, latest);

@@ -1,6 +1,7 @@
 package com.cc.brokerage.adapter.out.persistence;
 
-import com.cc.brokerage.domain.AccountNotFoundException;
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.MarketPrice;
 import com.cc.brokerage.domain.model.Order;
@@ -44,7 +45,7 @@ public class PersistenceAdapter implements UserRepository, InstrumentRepository,
     public User lockByAccountNumber(String accountNumber) {
         return users.lockByAccountNumber(accountNumber)
                 .map(this::toDomain)
-                .orElseThrow(AccountNotFoundException::new);
+                .orElseThrow(() -> new DomainException(DomainErrorCodes.ACCOUNT_NOT_FOUND));
     }
 
     @Override

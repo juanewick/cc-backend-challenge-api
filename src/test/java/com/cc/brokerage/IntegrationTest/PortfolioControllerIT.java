@@ -49,7 +49,7 @@ class PortfolioControllerIT extends IntegrationTestBase {
     void unknownAccountIsNotFound() throws Exception {
         mockMvc.perform(get(API_V1 + "/accounts/99999/portfolio"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("ACCOUNT_NOT_FOUND"))
-                .andExpect(jsonPath("$.detail").value("La cuenta no existe"));
+                .andExpect(jsonPath("$.code").value("BRK-004"))
+                .andExpect(jsonPath("$.detail").value("Account not found."));
     }
 }

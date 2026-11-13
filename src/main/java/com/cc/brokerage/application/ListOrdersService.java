@@ -1,7 +1,7 @@
 package com.cc.brokerage.application;
 
-import com.cc.brokerage.domain.AccountNotFoundException;
-import com.cc.brokerage.domain.InstrumentNotFoundException;
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.ListedOrder;
@@ -34,7 +34,7 @@ public class ListOrdersService implements ListOrdersUseCase {
     @Transactional(readOnly = true)
     public List<ListedOrder> list(String accountNumber) {
         String account = InputText.account(accountNumber);
-        User user = users.findByAccountNumber(account).orElseThrow(AccountNotFoundException::new);
+        User user = users.findByAccountNumber(account).orElseThrow(() -> new DomainException(DomainErrorCodes.ACCOUNT_NOT_FOUND));
         return orders.findByUserId(user.id()).stream()
                 .sorted(Comparator.comparing(Order::datetime, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(Order::id, Comparator.nullsLast(Comparator.naturalOrder())))
@@ -45,6 +45,6 @@ public class ListOrdersService implements ListOrdersUseCase {
     private String tickerOf(Order order) {
         return instruments.findInstrumentById(order.instrumentId())
                 .map(Instrument::ticker)
-                .orElseThrow(InstrumentNotFoundException::new);
+                .orElseThrow(() -> new DomainException(DomainErrorCodes.INSTRUMENT_NOT_FOUND));
     }
 }

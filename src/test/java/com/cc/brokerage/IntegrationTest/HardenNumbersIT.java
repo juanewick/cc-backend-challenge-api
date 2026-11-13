@@ -16,7 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class HardenNumbersIT extends IntegrationTestBase {
 
     private static final String ORDERS = API_V1 + "/accounts/10001/orders";
-    private static final String INVALID_ORDER = "La orden no es válida";
+    private static final String INVALID_ORDER = "The order is not valid.";
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -117,7 +117,7 @@ class HardenNumbersIT extends IntegrationTestBase {
     void missingOrderDoesNotEchoTheId() throws Exception {
         MvcResult result = mockMvc.perform(post(ORDERS + "/999/cancellation"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.detail").value("La orden no existe"))
+                .andExpect(jsonPath("$.detail").value("Order not found."))
                 .andReturn();
 
         assertThat(result.getResponse().getContentAsString()).doesNotContain("999");

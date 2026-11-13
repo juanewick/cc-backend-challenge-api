@@ -76,7 +76,7 @@ class PlaceMarketOrderIT extends IntegrationTestBase {
                                 {"ticker":"GGAL","side":"BUY","type":"MARKET","size":1}
                                 """))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("ACCOUNT_NOT_FOUND"));
+                .andExpect(jsonPath("$.code").value("BRK-004"));
     }
 
     @Test

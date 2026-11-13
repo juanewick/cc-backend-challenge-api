@@ -27,10 +27,10 @@ class CancelOrderIT extends IntegrationTestBase {
         mockMvc.perform(post(API_V1 + "/accounts/10001/orders/2/cancellation"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.type").value("/v3/api-docs#/components/schemas/Conflict"))
-                .andExpect(jsonPath("$.title").value("Conflicto"))
+                .andExpect(jsonPath("$.title").value("Conflict"))
                 .andExpect(jsonPath("$.status").value(409))
-                .andExpect(jsonPath("$.code").value("ORDER_NOT_OPEN"))
-                .andExpect(jsonPath("$.detail").value("Solo se cancelan órdenes abiertas"))
+                .andExpect(jsonPath("$.code").value("BRK-005"))
+                .andExpect(jsonPath("$.detail").value("Only open orders can be cancelled."))
                 .andExpect(jsonPath("$.invalid_params").doesNotExist());
     }
 
@@ -38,15 +38,15 @@ class CancelOrderIT extends IntegrationTestBase {
     void otherAccountCannotCancel() throws Exception {
         mockMvc.perform(post(API_V1 + "/accounts/10002/orders/5/cancellation"))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("ORDER_NOT_OWNED"))
-                .andExpect(jsonPath("$.detail").value("La orden no pertenece a esa cuenta"));
+                .andExpect(jsonPath("$.code").value("BRK-001"))
+                .andExpect(jsonPath("$.detail").value("The order does not belong to this account."));
     }
 
     @Test
     void missingOrderIsNotFound() throws Exception {
         mockMvc.perform(post(API_V1 + "/accounts/10001/orders/999/cancellation"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("ORDER_NOT_FOUND"))
-                .andExpect(jsonPath("$.detail").value("La orden no existe"));
+                .andExpect(jsonPath("$.code").value("BRK-003"))
+                .andExpect(jsonPath("$.detail").value("Order not found."));
     }
 }

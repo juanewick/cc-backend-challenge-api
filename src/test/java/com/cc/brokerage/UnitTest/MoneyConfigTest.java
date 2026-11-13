@@ -1,7 +1,7 @@
 package com.cc.brokerage.UnitTest;
 
 import com.cc.brokerage.config.MoneyConfig;
-import com.cc.brokerage.domain.InvalidRequestException;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.MoneyLimits;
 import com.cc.brokerage.domain.model.MoneyMath;
 import com.cc.brokerage.support.MoneyBounds;
@@ -53,10 +53,10 @@ class MoneyConfigTest {
                     assertThat(MoneyMath.maxAmount()).isEqualByComparingTo("10.00");
                     assertThat(MoneyMath.minShares()).isEqualTo(2L);
                     assertThatThrownBy(() -> MoneyMath.scaled(new BigDecimal("10.01")))
-                            .isInstanceOf(InvalidRequestException.class);
+                            .isInstanceOf(DomainException.class);
                     assertThatThrownBy(() -> MoneyMath.sharesFromAmount(new BigDecimal("6"), BigDecimal.ONE))
-                            .isInstanceOf(InvalidRequestException.class)
-                            .hasMessage("La cantidad debe ser un entero de 2 a 5");
+                            .isInstanceOf(DomainException.class)
+                            .hasMessage("Size must be an integer from 2 to 5.");
                 });
     }
 }

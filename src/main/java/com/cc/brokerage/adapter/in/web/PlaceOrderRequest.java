@@ -1,6 +1,7 @@
 package com.cc.brokerage.adapter.in.web;
 
-import com.cc.brokerage.domain.InvalidRequestException;
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.OrderSide;
 import com.cc.brokerage.domain.model.OrderType;
 
@@ -18,9 +19,9 @@ public record PlaceOrderRequest(
         if (type != OrderType.LIMIT) {
             return;
         }
-        BigDecimal parsed = MoneyFormats.parse(price, "precio");
+        BigDecimal parsed = MoneyFormats.parse(price, DomainErrorCodes.PRICE_NOT_A_NUMBER);
         if (parsed == null || parsed.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidRequestException("El precio es obligatorio y debe ser mayor que cero");
+            throw new DomainException(DomainErrorCodes.PRICE_NOT_POSITIVE);
         }
     }
 }

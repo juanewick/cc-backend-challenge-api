@@ -56,8 +56,8 @@ class InstrumentControllerIT extends IntegrationTestBase {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value("/v3/api-docs#/components/schemas/BadRequest"))
                 .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.code").value("INSTRUMENT_NOT_TRADABLE"))
-                .andExpect(jsonPath("$.detail").value("La moneda no es operable"))
+                .andExpect(jsonPath("$.code").value("BRK-006"))
+                .andExpect(jsonPath("$.detail").value("The currency is not tradable."))
                 .andExpect(jsonPath("$.invalid_params").doesNotExist())
                 .andReturn();
         org.assertj.core.api.Assertions.assertThat(currency.getResponse().getContentAsString()).doesNotContain("ARS");
@@ -76,8 +76,8 @@ class InstrumentControllerIT extends IntegrationTestBase {
     void unknownTickerQuoteIsNotFound() throws Exception {
         var missing = mockMvc.perform(get(API_V1 + "/instruments/ZZZZ"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("INSTRUMENT_NOT_FOUND"))
-                .andExpect(jsonPath("$.detail").value("El activo no existe"))
+                .andExpect(jsonPath("$.code").value("BRK-002"))
+                .andExpect(jsonPath("$.detail").value("Instrument not found."))
                 .andReturn();
         org.assertj.core.api.Assertions.assertThat(missing.getResponse().getContentAsString()).doesNotContain("ZZZZ");
     }

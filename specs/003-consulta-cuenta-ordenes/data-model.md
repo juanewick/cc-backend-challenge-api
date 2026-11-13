@@ -42,4 +42,4 @@ La fila de `marketdata` del activo con mayor `date` y, a igual fecha, mayor `id`
 
 ## Código de error
 
-Solo el cuerpo HTTP `{ "code", "message" }`. No se guarda. El mensaje sigue siendo el texto estable en español y no incluye el valor enviado.
+Solo el cuerpo HTTP del problema: `type`, `title`, `status`, `detail` y `code`. No se guarda. En un error de dominio, `code` es `BRK-xxx` y `detail` es el texto en inglés de ese código. No incluye el valor enviado. Un pedido ilegible o un campo de más, repetido o de otro tipo no usa un código `BRK`.

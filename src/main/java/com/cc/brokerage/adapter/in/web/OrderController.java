@@ -1,6 +1,7 @@
 package com.cc.brokerage.adapter.in.web;
 
-import com.cc.brokerage.domain.InstrumentNotFoundException;
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.ListedOrder;
@@ -94,8 +95,8 @@ public class OrderController {
                 request.side(),
                 request.type(),
                 request.size(),
-                MoneyFormats.parse(request.amount(), "monto"),
-                MoneyFormats.parse(request.price(), "precio")
+                MoneyFormats.parse(request.amount(), DomainErrorCodes.AMOUNT_NOT_A_NUMBER),
+                MoneyFormats.parse(request.price(), DomainErrorCodes.PRICE_NOT_A_NUMBER)
         );
         PlaceOrderOutcome outcome = placeOrder.place(command);
         Order order = outcome.order();
@@ -122,6 +123,6 @@ public class OrderController {
     private String tickerOf(Order order) {
         return instruments.findInstrumentById(order.instrumentId())
                 .map(Instrument::ticker)
-                .orElseThrow(InstrumentNotFoundException::new);
+                .orElseThrow(() -> new DomainException(DomainErrorCodes.INSTRUMENT_NOT_FOUND));
     }
 }

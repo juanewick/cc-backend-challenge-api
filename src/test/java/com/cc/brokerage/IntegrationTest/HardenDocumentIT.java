@@ -14,7 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class HardenDocumentIT extends IntegrationTestBase {
 
     private static final String ORDERS = API_V1 + "/accounts/10001/orders";
-    private static final String UNREADABLE = "El pedido no se puede leer";
+    private static final String UNREADABLE = "The request cannot be read.";
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -49,7 +49,7 @@ class HardenDocumentIT extends IntegrationTestBase {
         String body = """
                 {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"price":"1.00","campoAjeno":1}
                 """;
-        reject(MediaType.APPLICATION_JSON, body, "El pedido tiene un campo que no corresponde", "campoAjeno");
+        reject(MediaType.APPLICATION_JSON, body, "The request contains a field that is not allowed.", "campoAjeno");
     }
 
     @Test
@@ -57,7 +57,7 @@ class HardenDocumentIT extends IntegrationTestBase {
         String body = """
                 {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"size":2,"price":"1.00"}
                 """;
-        reject(MediaType.APPLICATION_JSON, body, "El campo cantidad está repetido", "2");
+        reject(MediaType.APPLICATION_JSON, body, "The size field is duplicated.", "2");
     }
 
     @Test
@@ -65,7 +65,7 @@ class HardenDocumentIT extends IntegrationTestBase {
         String body = """
                 {"ticker":12345,"side":"BUY","type":"LIMIT","size":1,"price":"1.00"}
                 """;
-        reject(MediaType.APPLICATION_JSON, body, "El campo ticker no es válido", "12345");
+        reject(MediaType.APPLICATION_JSON, body, "The ticker field is not valid.", "12345");
     }
 
     @Test
@@ -73,7 +73,7 @@ class HardenDocumentIT extends IntegrationTestBase {
         String body = """
                 {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":"no-es-cantidad","price":"1.00"}
                 """;
-        reject(MediaType.APPLICATION_JSON, body, "El campo cantidad no es válido", "no-es-cantidad");
+        reject(MediaType.APPLICATION_JSON, body, "The size field is not valid.", "no-es-cantidad");
     }
 
     private static String validOrder() {

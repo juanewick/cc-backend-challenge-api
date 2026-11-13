@@ -1,7 +1,8 @@
 package com.cc.brokerage.UnitTest;
 
 import com.cc.brokerage.application.GetPortfolioService;
-import com.cc.brokerage.domain.AccountNotFoundException;
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.Portfolio;
 import com.cc.brokerage.domain.model.User;
 import com.cc.brokerage.domain.port.out.InstrumentRepository;
@@ -44,7 +45,9 @@ class GetPortfolioServiceTest {
         when(users.findByAccountNumber("99999")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getPortfolio("99999"))
-                .isInstanceOf(AccountNotFoundException.class);
+                .isInstanceOf(DomainException.class)
+                .extracting(ex -> ((DomainException) ex).error())
+                .isEqualTo(DomainErrorCodes.ACCOUNT_NOT_FOUND);
     }
 
     @Test

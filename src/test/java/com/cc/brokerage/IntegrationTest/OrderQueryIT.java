@@ -43,16 +43,16 @@ class OrderQueryIT extends IntegrationTestBase {
     void otherAccountCannotReadTheOrder() throws Exception {
         mockMvc.perform(get(API_V1 + "/accounts/10002/orders/5"))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("ORDER_NOT_OWNED"))
-                .andExpect(jsonPath("$.detail").value("La orden no pertenece a esa cuenta"));
+                .andExpect(jsonPath("$.code").value("BRK-001"))
+                .andExpect(jsonPath("$.detail").value("The order does not belong to this account."));
     }
 
     @Test
     void missingOrderDoesNotEchoTheId() throws Exception {
         MvcResult result = mockMvc.perform(get(API_V1 + "/accounts/10001/orders/999"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("ORDER_NOT_FOUND"))
-                .andExpect(jsonPath("$.detail").value("La orden no existe"))
+                .andExpect(jsonPath("$.code").value("BRK-003"))
+                .andExpect(jsonPath("$.detail").value("Order not found."))
                 .andReturn();
 
         assertThat(result.getResponse().getContentAsString()).doesNotContain("999");

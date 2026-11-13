@@ -1,7 +1,7 @@
 package com.cc.brokerage.application;
 
-import com.cc.brokerage.domain.OrderConflictException;
-import com.cc.brokerage.domain.OrderNotFoundException;
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.Order;
 import com.cc.brokerage.domain.model.OrderStatus;
@@ -28,12 +28,12 @@ public class CancelOrderService implements CancelOrderUseCase {
     public Order cancel(String accountNumber, Long orderId) {
         String account = InputText.account(accountNumber);
         User user = users.lockByAccountNumber(account);
-        Order order = orders.findOrderById(orderId).orElseThrow(OrderNotFoundException::new);
+        Order order = orders.findOrderById(orderId).orElseThrow(() -> new DomainException(DomainErrorCodes.ORDER_NOT_FOUND));
         if (!order.userId().equals(user.id())) {
-            throw new OrderConflictException("La orden no pertenece a esa cuenta");
+            throw new DomainException(DomainErrorCodes.ORDER_NOT_OWNED);
         }
         if (order.status() != OrderStatus.NEW) {
-            throw new OrderConflictException("Solo se cancelan órdenes abiertas");
+            throw new DomainException(DomainErrorCodes.ORDER_NOT_OPEN);
         }
         Order cancelled = order.withStatus(OrderStatus.CANCELLED);
         return orders.save(cancelled);

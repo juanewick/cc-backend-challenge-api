@@ -1,10 +1,7 @@
 package com.cc.brokerage.adapter.in.web;
 
-import com.cc.brokerage.domain.AccountNotFoundException;
-import com.cc.brokerage.domain.InstrumentNotFoundException;
-import com.cc.brokerage.domain.InvalidRequestException;
-import com.cc.brokerage.domain.OrderConflictException;
-import com.cc.brokerage.domain.OrderNotFoundException;
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -20,36 +17,36 @@ import tools.jackson.databind.exc.MismatchedInputException;
 import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
-    private static final String UNREADABLE = "El pedido no se puede leer";
-    private static final String UNKNOWN_FIELD = "El pedido tiene un campo que no corresponde";
+    private static final String UNREADABLE = "The request cannot be read.";
+    private static final String UNKNOWN_FIELD = "The request contains a field that is not allowed.";
     private static final String DUPLICATE_PREFIX = "Duplicate Object property \"";
-    private static final Map<String, String> FIELDS = Map.of(
-            "ticker", "ticker",
-            "side", "lado",
-            "type", "tipo",
-            "size", "cantidad",
-            "amount", "monto",
-            "price", "precio"
-    );
+    private static final Set<String> FIELDS = Set.of("ticker", "side", "type", "size", "amount", "price");
 
-    @ExceptionHandler({AccountNotFoundException.class, InstrumentNotFoundException.class, OrderNotFoundException.class})
-    ResponseEntity<ApiError> notFound(RuntimeException exception) {
-        return problem(HttpStatus.NOT_FOUND, ErrorCodes.ofMessage(exception.getMessage()), exception.getMessage(), List.of());
+    @ExceptionHandler(DomainException.class)
+    ResponseEntity<ApiError> domain(DomainException exception) {
+        DomainErrorCodes error = exception.error();
+        return problem(
+                HttpStatus.valueOf(error.status()),
+                error.code(),
+                exception.getMessage(),
+                error.description(),
+                List.of()
+        );
     }
 
-    @ExceptionHandler({InvalidRequestException.class, IllegalArgumentException.class})
-    ResponseEntity<ApiError> badRequest(Exception exception) {
-        return problem(HttpStatus.BAD_REQUEST, ErrorCodes.ofMessage(exception.getMessage()), exception.getMessage(), List.of());
+    @ExceptionHandler(IllegalArgumentException.class)
+    ResponseEntity<ApiError> illegalArgument(IllegalArgumentException exception) {
+        return problem(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", exception.getMessage(), List.of());
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     ResponseEntity<ApiError> missingParameter() {
-        return problem(HttpStatus.BAD_REQUEST, "SEARCH_EMPTY", "La búsqueda no tiene texto", List.of());
+        return domain(new DomainException(DomainErrorCodes.SEARCH_EMPTY));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -68,20 +65,25 @@ public class ApiExceptionHandler {
         return problem(HttpStatus.BAD_REQUEST, "UNREADABLE", UNREADABLE, List.of());
     }
 
-    @ExceptionHandler(OrderConflictException.class)
-    ResponseEntity<ApiError> conflict(OrderConflictException exception) {
-        return problem(HttpStatus.CONFLICT, ErrorCodes.ofMessage(exception.getMessage()), exception.getMessage(), List.of());
-    }
-
     private static ResponseEntity<ApiError> problem(
             HttpStatus status,
             String code,
             String detail,
             List<ApiError.InvalidParam> params
     ) {
+        return problem(status, code, detail, code, params);
+    }
+
+    private static ResponseEntity<ApiError> problem(
+            HttpStatus status,
+            String code,
+            String detail,
+            String paramKey,
+            List<ApiError.InvalidParam> params
+    ) {
         return ResponseEntity.status(status)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
-                .body(ApiError.of(status, code, detail, params));
+                .body(ApiError.of(status, code, detail, paramKey, params));
     }
 
     private static String codeFor(Throwable exception) {
@@ -118,12 +120,12 @@ public class ApiExceptionHandler {
             }
             String repeated = repeatedField(jackson);
             if (repeated != null) {
-                return "El campo " + FIELDS.get(repeated) + " está repetido";
+                return "The " + repeated + " field is duplicated.";
             }
             if (current instanceof MismatchedInputException || current instanceof InputCoercionException) {
                 String field = ourField(jackson);
                 if (field != null) {
-                    return "El campo " + FIELDS.get(field) + " no es válido";
+                    return "The " + field + " field is not valid.";
                 }
             }
         }
@@ -140,7 +142,7 @@ public class ApiExceptionHandler {
             return null;
         }
         String property = original.substring(DUPLICATE_PREFIX.length(), end);
-        return FIELDS.containsKey(property) ? property : null;
+        return FIELDS.contains(property) ? property : null;
     }
 
     private static String fieldFor(Throwable exception) {
@@ -173,7 +175,7 @@ public class ApiExceptionHandler {
         }
         for (int index = exception.getPath().size() - 1; index >= 0; index--) {
             String name = exception.getPath().get(index).getPropertyName();
-            if (name != null && FIELDS.containsKey(name)) {
+            if (name != null && FIELDS.contains(name)) {
                 return name;
             }
         }

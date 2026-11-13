@@ -21,7 +21,7 @@ Lista las órdenes de esa cuenta por `datetime` ascendente e `id` ascendente. Ca
 
 `GET /accounts/{accountNumber}/orders/{orderId}`
 
-La misma forma. Si la orden es de otra cuenta, `409` y `ORDER_NOT_OWNED`. Si no existe, `404` y `ORDER_NOT_FOUND`. Ninguno repite el identificador.
+La misma forma. Si la orden es de otra cuenta, `409` y `BRK-001`. Si no existe, `404` y `BRK-003`. Ninguno repite el identificador.
 
 `POST /accounts/{accountNumber}/orders`
 
@@ -43,50 +43,58 @@ Igual que antes, sin `MONEDA`. `PESOS` y `ARS` no devuelven una acción operable
 
 `GET /instruments/{ticker}`
 
-Una cotización. Si no hay cierre, `lastPrice` y `dailyReturnPercent` van ausentes. Si el ticker no existe, `404` e `INSTRUMENT_NOT_FOUND`. Si es moneda, `400` y `INSTRUMENT_NOT_TRADABLE`.
+Una cotización. Si no hay cierre, `lastPrice` y `dailyReturnPercent` van ausentes. Si el ticker no existe, `404` y `BRK-002`. Si es moneda, `400` y `BRK-006`.
 
 ## Error
 
 ```json
 {
   "type": "/v3/api-docs#/components/schemas/InvalidParameters",
-  "title": "Parámetros inválidos",
+  "title": "Invalid parameters",
   "status": 400,
-  "detail": "El ticker no es válido",
-  "code": "INVALID_TICKER",
+  "detail": "The ticker is not valid.",
+  "code": "BRK-009",
   "invalid_params": [
-    { "field": "ticker", "message": "El ticker no es válido" }
+    { "field": "ticker", "message": "The ticker is not valid." }
   ]
 }
 ```
 
-`type` apunta al esquema generado: `InvalidParameters`, `BadRequest`, `NotFound` o `Conflict`.
+`type` apunta al esquema generado: `InvalidParameters`, `BadRequest`, `NotFound` o `Conflict`. Los títulos son "Invalid parameters", "Bad request", "Not found" y "Conflict".
 
 - `InvalidParameters`: validación de un parámetro. Trae `invalid_params` con `field` y `message`. No trae el valor enviado.
 - `BadRequest`, `NotFound` y `Conflict`: no traen `invalid_params`.
 
-## Códigos que acompañan al detalle ya existente
+## Códigos de dominio
 
-| Situación | Código |
-|-----------|--------|
-| Cuenta inexistente | `ACCOUNT_NOT_FOUND` |
-| Activo inexistente | `INSTRUMENT_NOT_FOUND` |
-| Moneda no operable | `INSTRUMENT_NOT_TRADABLE` |
-| Orden inexistente | `ORDER_NOT_FOUND` |
-| Orden de otra cuenta | `ORDER_NOT_OWNED` |
-| Orden que no está abierta | `ORDER_NOT_OPEN` |
-| Cuenta con formato inválido | `INVALID_ACCOUNT` |
-| Ticker inválido | `INVALID_TICKER` |
-| Identificador de orden inválido | `INVALID_ORDER_ID` |
-| Búsqueda vacía | `SEARCH_EMPTY` |
-| Búsqueda demasiado larga | `SEARCH_TOO_LONG` |
-| Búsqueda con control o nulo | `SEARCH_INVALID` |
-| Pedido ilegible | `UNREADABLE` |
-| Campo de más | `UNKNOWN_FIELD` |
-| Campo repetido | `DUPLICATE_FIELD` |
-| Campo con tipo distinto | `INVALID_FIELD` |
-| Lado, tipo, cantidad, monto o precio inválidos | `INVALID_SIDE`, `INVALID_TYPE`, `INVALID_SIZE`, `INVALID_AMOUNT`, `INVALID_PRICE` |
-| Cantidad y monto a la vez, o ninguno | `EXCLUSIVE_QUANTITY` |
-| Ingreso o egreso nuevo | `CASH_MOVEMENT` |
+El `detail` es el texto en inglés. El código no cambia si se ajusta esa redacción.
+
+| Situación | Código | Detail |
+|-----------|--------|--------|
+| Orden de otra cuenta | `BRK-001` | The order does not belong to this account. |
+| Activo inexistente | `BRK-002` | Instrument not found. |
+| Orden inexistente | `BRK-003` | Order not found. |
+| Cuenta inexistente | `BRK-004` | Account not found. |
+| Orden que no está abierta | `BRK-005` | Only open orders can be cancelled. |
+| Moneda no operable | `BRK-006` | The currency is not tradable. |
+| Ingreso o egreso nuevo | `BRK-007` | New cash deposits and withdrawals are not accepted. |
+| Cuenta con formato inválido | `BRK-008` | The account is not valid. |
+| Ticker inválido | `BRK-009` | The ticker is not valid. |
+| Identificador de orden inválido | `BRK-010` | The order is not valid. |
+| Búsqueda vacía | `BRK-011` | The search has no text. |
+| Búsqueda demasiado larga | `BRK-012` | The search exceeds the maximum length. |
+| Búsqueda con control o nulo | `BRK-013` | The search is not valid. |
+| Lado inválido | `BRK-014` | Side must be BUY or SELL. |
+| Tipo de orden ausente | `BRK-015` | Order type is required. |
+| Cantidad y monto a la vez, o ninguno | `BRK-016` | Exactly one quantity is required: shares or amount. |
+| Cantidad fuera de rango | `BRK-017` | Size must be an integer from {mínimo} to {máximo}. |
+| Monto no positivo | `BRK-018` | Amount must be greater than zero. |
+| Monto por encima del máximo | `BRK-019` | Amount exceeds the maximum allowed. |
+| Monto que no es un número | `BRK-020` | Amount is not a valid number. |
+| Precio ausente o no positivo | `BRK-021` | Price is required and must be greater than zero. |
+| Precio por encima del máximo | `BRK-022` | Price exceeds the maximum allowed. |
+| Precio que no es un número | `BRK-023` | Price is not a valid number. |
+
+Fuera de ese catálogo, el pedido ilegible usa `UNREADABLE` y "The request cannot be read.". Un campo de más usa `UNKNOWN_FIELD`. Un campo repetido usa `DUPLICATE_FIELD`. Un campo con otro tipo usa `INVALID_FIELD`. Esos detalles también están en inglés.
 
 El contrato generado en `/v3/api-docs` describe estas operaciones, esos errores, los importes a dos decimales y la unidad del porcentaje.

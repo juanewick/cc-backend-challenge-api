@@ -26,7 +26,7 @@ La cuenta se puede leer completa sin cambiar el esquema entregado por Cocos. Se 
 
 **Performance Goals**: El cierre vigente de varios activos se elige en una sola pasada compartida, no en dos copias del mismo recorrido. El catálogo de referencia sigue cabiendo en una lectura.
 
-**Constraints**: Sin sesiones, sin límite de intentos y sin idempotencia del alta. Sin copia escrita del OpenAPI: el contrato lo sigue generando la aplicación y esta feature lo anota. El cuerpo de error pasa a `{ "code", "message" }`. El mensaje sigue en español, estable, y no repite el valor enviado. Una posición corta puede seguir con cantidad negativa.
+**Constraints**: Sin sesiones, sin límite de intentos y sin idempotencia del alta. Sin copia escrita del OpenAPI: el contrato lo sigue generando la aplicación y esta feature lo anota. El cuerpo de error es un problema con `type`, `title`, `status`, `detail` y `code`. En un error de dominio, `code` es `BRK-xxx` y `detail` está en inglés. No repite el valor enviado. Una posición corta puede seguir con cantidad negativa.
 
 **Scale/Scope**: Las operaciones ya entregadas más el listado de órdenes, la consulta de una orden, la cotización por ticker y los campos calculados del portfolio y del alta. El catálogo y las cuentas de referencia no cambian.
 

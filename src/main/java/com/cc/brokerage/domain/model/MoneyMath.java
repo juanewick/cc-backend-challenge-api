@@ -1,6 +1,7 @@
 package com.cc.brokerage.domain.model;
 
-import com.cc.brokerage.domain.InvalidRequestException;
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -9,9 +10,6 @@ public final class MoneyMath {
 
     public static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
 
-    private static final String NOT_POSITIVE = "El importe debe ser mayor que cero";
-    private static final String ABOVE_MAXIMUM = "El importe supera el máximo permitido";
-
     private static volatile MoneyLimits limits = MoneyLimits.defaults();
 
     private MoneyMath() {
@@ -19,7 +17,7 @@ public final class MoneyMath {
 
     public static void configure(MoneyLimits next) {
         if (next == null) {
-            throw new IllegalArgumentException("Los límites de importe son obligatorios");
+            throw new IllegalArgumentException("Money limits are required");
         }
         limits = next;
     }
@@ -55,10 +53,10 @@ public final class MoneyMath {
         MoneyLimits current = limits;
         BigDecimal rounded = value.setScale(current.scale(), ROUNDING);
         if (rounded.compareTo(current.minAmount()) <= 0) {
-            throw new InvalidRequestException(NOT_POSITIVE);
+            throw new DomainException(DomainErrorCodes.AMOUNT_NOT_POSITIVE);
         }
         if (rounded.compareTo(current.maxAmount()) > 0) {
-            throw new InvalidRequestException(ABOVE_MAXIMUM);
+            throw new DomainException(DomainErrorCodes.AMOUNT_ABOVE_MAXIMUM);
         }
         return rounded;
     }
@@ -71,7 +69,7 @@ public final class MoneyMath {
         MoneyLimits current = limits;
         BigDecimal shares = amount.divideToIntegralValue(price);
         if (shares.compareTo(BigDecimal.valueOf(current.maxShares())) > 0) {
-            throw new InvalidRequestException(current.sharesRangeMessage());
+            throw new DomainException(DomainErrorCodes.INVALID_SIZE, current.minShares(), current.maxShares());
         }
         return shares.intValueExact();
     }

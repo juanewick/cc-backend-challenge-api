@@ -65,7 +65,7 @@ Una persona busca un activo sin cuidar las mayúsculas y después lo opera con e
 
 ### User Story 4 - Leer un problema y el contrato (Priority: P4)
 
-Quien integra la cuenta distingue un rechazo por un código estable y por el tipo de problema publicado en el contrato. El detalle sigue en español. Si el rechazo es una validación de la API, la respuesta nombra los parámetros inválidos. Si no lo es, esa lista no viene.
+Quien integra la cuenta distingue un rechazo por un código `BRK-xxx` y por el tipo de problema publicado en el contrato. El detalle y los títulos están en inglés. Si el rechazo es una validación de la API, la respuesta nombra los parámetros inválidos. Si no lo es, esa lista no viene.
 
 **Why this priority**: Hoy el cliente solo puede comparar el texto del mensaje. Un `0.48` de rendimiento se puede leer como 0,48 % o como 48 %.
 
@@ -73,11 +73,11 @@ Quien integra la cuenta distingue un rechazo por un código estable y por el tip
 
 **Acceptance Scenarios**:
 
-1. **Given** un parámetro de la API que no cumple la validación, **When** se rechaza la operación, **Then** la respuesta es un problema con `type` igual a la URI del esquema `InvalidParameters` de la definición OpenAPI, `title` "Parámetros inválidos", `status` igual al HTTP `400`, `detail` en español, `code` estable y `invalid_params`. Cada ítem de `invalid_params` trae `field` y `message`. Ni `detail` ni `message` repiten el valor enviado. El código no cambia si se ajusta la redacción.
-2. **Given** un ticker inválido, **When** se rechaza el alta, **Then** el problema es el de parámetros inválidos y `invalid_params` señala el campo `ticker` con el detalle "El ticker no es válido".
-3. **Given** una cuenta, un activo o una orden que no existe, **When** se rechaza la consulta, **Then** `type` es la URI del esquema `NotFound`, `title` es "No encontrado", `status` es `404` y `invalid_params` no viene.
-4. **Given** una orden de otra cuenta o una orden que no está abierta, **When** se rechaza la operación, **Then** `type` es la URI del esquema `Conflict`, `title` es "Conflicto", `status` es `409` y `invalid_params` no viene.
-5. **Given** una regla de negocio que no es una validación de parámetros, como operar la moneda o registrar un ingreso o un egreso nuevo, **When** se rechaza, **Then** `type` es la URI del esquema `BadRequest`, `title` es "Pedido inválido", `status` es `400` y `invalid_params` no viene.
+1. **Given** un parámetro de la API que no cumple la validación, **When** se rechaza la operación, **Then** la respuesta es un problema con `type` igual a la URI del esquema `InvalidParameters` de la definición OpenAPI, `title` "Invalid parameters", `status` igual al HTTP `400`, `detail` en inglés, `code` `BRK-xxx` y `invalid_params`. Cada ítem de `invalid_params` trae `field` y `message`. Ni `detail` ni `message` repiten el valor enviado. El código no cambia si se ajusta la redacción.
+2. **Given** un ticker inválido, **When** se rechaza el alta, **Then** el problema es el de parámetros inválidos, `code` es `BRK-009` e `invalid_params` señala el campo `ticker` con el detalle "The ticker is not valid.".
+3. **Given** una cuenta, un activo o una orden que no existe, **When** se rechaza la consulta, **Then** `type` es la URI del esquema `NotFound`, `title` es "Not found", `status` es `404`, `code` es `BRK-004`, `BRK-002` o `BRK-003` según el recurso, y `invalid_params` no viene.
+4. **Given** una orden de otra cuenta o una orden que no está abierta, **When** se rechaza la operación, **Then** `type` es la URI del esquema `Conflict`, `title` es "Conflict", `status` es `409`, `code` es `BRK-001` o `BRK-005`, y `invalid_params` no viene.
+5. **Given** una regla de negocio que no es una validación de parámetros, como operar la moneda o registrar un ingreso o un egreso nuevo, **When** se rechaza, **Then** `type` es la URI del esquema `BadRequest`, `title` es "Bad request", `status` es `400`, `code` es `BRK-006` o `BRK-007`, y `invalid_params` no viene.
 6. **Given** un cuerpo con un campo que no corresponde, **When** se rechaza, **Then** es una validación de la API y trae `invalid_params`, pero no nombra ese campo ni cita el cuerpo.
 7. **Given** el contrato publicado por la aplicación, **When** se lee, **Then** publica los esquemas `InvalidParameters`, `BadRequest`, `NotFound` y `Conflict`, describe los rechazos de estas operaciones, presenta los importes como texto a dos decimales y deja explícito que un rendimiento de `0.48` significa 0,48 %. El `type` de cada problema es la URI de su esquema en esa definición.
 8. **Given** la cuenta `10001`, una búsqueda `PAMP` y un alta válida, **When** se invocan como antes, **Then** siguen completándose. Un cuerpo ilegible, vacío, con un campo de más, repetido o de otro tipo sigue sin grabar nada y sin citar el cuerpo.
@@ -126,7 +126,7 @@ Portfolio, búsqueda, cotización y orden de mercado toman el mismo último cier
 - **FR-007**: El alta MUST resolver el ticker sin distinguir mayúsculas. La respuesta MUST mostrar el ticker del catálogo.
 - **FR-008**: Una búsqueda MUST NOT ofrecer la moneda como activo operable. Un ingreso o un egreso de pesos nuevo MUST seguir sin grabarse.
 - **FR-009**: Se MUST poder pedir la cotización de un ticker. Si no hay cierre, el precio y el rendimiento diario MUST figurar como no disponibles.
-- **FR-010**: Todo rechazo MUST responder un problema con `type`, `title`, `status`, `detail` y `code`. `type` MUST ser la URI del esquema correspondiente en la definición OpenAPI publicada por la aplicación. `status` MUST ser el estado HTTP. `detail` MUST ser el texto en español ya definido para ese caso y MUST NOT repetir el valor enviado ni un detalle interno. `code` MUST ser estable para ese caso, MUST existir solo en la respuesta y MUST NOT guardarse. El código no cambia si se ajusta la redacción.
+- **FR-010**: Todo rechazo de dominio MUST responder un problema con `type`, `title`, `status`, `detail` y `code`. `type` MUST ser la URI del esquema correspondiente en la definición OpenAPI publicada por la aplicación. `status` MUST ser el estado HTTP declarado para ese error. `detail` MUST ser el texto en inglés de ese error y MUST NOT repetir el valor enviado ni un detalle interno. `code` MUST ser el `BRK-xxx` de ese error, MUST existir solo en la respuesta y MUST NOT guardarse. El código no cambia si se ajusta la redacción. Un pedido ilegible, un campo de más, uno repetido o de otro tipo MUST seguir fuera de ese catálogo, con `code` `UNREADABLE`, `UNKNOWN_FIELD`, `DUPLICATE_FIELD` o `INVALID_FIELD` y el detalle en inglés.
 - **FR-011**: `invalid_params` MUST venir solo cuando el rechazo es una validación de la API. Cada ítem MUST traer `field` y `message`, y `message` MUST NOT repetir el valor enviado. Un campo que no corresponde MUST tratarse como validación de la API sin nombrar ese campo. En un recurso inexistente, un conflicto o una regla de negocio, `invalid_params` MUST NOT venir.
 - **FR-012**: El contrato publicado MUST incluir los esquemas `InvalidParameters`, `BadRequest`, `NotFound` y `Conflict`, MUST describir los rechazos, MUST presentar los importes como texto a dos decimales y MUST dejar explícito que un rendimiento informado como `0.48` es 0,48 %.
 - **FR-013**: Portfolio, búsqueda, cotización y orden de mercado MUST usar el cierre de la observación más reciente del activo. A igual fecha, MUST usarse la observación más nueva.
@@ -140,7 +140,7 @@ Portfolio, búsqueda, cotización y orden de mercado toman el mismo último cier
 - **Reserva de la cuenta**: Efectivo liquidado, efectivo reservado por compras abiertas y efectivo disponible. Se calcula al responder, con las órdenes ya existentes. No se guarda.
 - **Resultado de alta**: Lo que vuelve al crear. El importe y, si fue rechazada, el motivo se calculan en esa respuesta y no se guardan.
 - **Cotización**: La lectura de un activo que ya existe, con su último precio y su rendimiento diario, o sin ellos si no hay cierre. No se guarda una cotización nueva.
-- **Problema**: El rechazo de una operación. Lleva el tipo publicado en el contrato, un título, el estado HTTP, el detalle en español y un código estable. La lista de parámetros inválidos forma parte del problema solo en una validación de la API. No se guarda.
+- **Problema**: El rechazo de una operación. Lleva el tipo publicado en el contrato, un título en inglés, el estado HTTP, el detalle en inglés y un código `BRK-xxx`, salvo el pedido ilegible y el campo de más, repetido o de otro tipo. La lista de parámetros inválidos forma parte del problema solo en una validación de la API. No se guarda.
 
 ## Success Criteria *(mandatory)*
 
@@ -158,6 +158,6 @@ Portfolio, búsqueda, cotización y orden de mercado toman el mismo último cier
 - No se crea una tabla ni una columna, y no se modifica ninguna columna. La cantidad y la fecha de la orden quedan con los tipos del modelo de referencia. La fecha sigue siendo la del alta. No se agrega una fecha de cancelación.
 - Quien consulta la orden ve el estado `REJECTED` y los datos que esa orden ya tenía. El motivo se entiende en la respuesta del alta.
 - Quien conoce el número de cuenta opera, igual que antes.
-- El detalle en español de cada rechazo sigue siendo el texto ya estable. El problema le agrega tipo, título, estado y código. No reemplaza ese texto por otro.
+- El detalle de cada rechazo de dominio es el mensaje en inglés de su código `BRK-xxx`. El problema le agrega tipo, título, estado y ese código. Ajustar la redacción no cambia el código.
 - `type` no es una dirección de otra empresa. Es la URI del esquema dentro de la definición OpenAPI que publica esta aplicación.
-- Los títulos son "Parámetros inválidos", "Pedido inválido", "No encontrado" y "Conflicto", uno por esquema.
+- Los títulos son "Invalid parameters", "Bad request", "Not found" y "Conflict", uno por esquema.

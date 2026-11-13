@@ -1,6 +1,6 @@
 package com.cc.brokerage.UnitTest;
 
-import com.cc.brokerage.domain.InvalidRequestException;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.MoneyMath;
 import com.cc.brokerage.support.MoneyBounds;
 import org.junit.jupiter.api.Test;
@@ -20,13 +20,13 @@ class MoneyMathTest {
     @Test
     void roundingPastTheMaximumIsRejected() {
         assertThatThrownBy(() -> MoneyMath.scaled(MoneyBounds.justPastMax()))
-                .isInstanceOf(InvalidRequestException.class);
+                .isInstanceOf(DomainException.class);
     }
 
     @Test
     void shareCountAboveTheMaximumIsNotTruncated() {
         assertThatThrownBy(() -> MoneyMath.sharesFromAmount(MoneyBounds.oneSharePastMax(), BigDecimal.ONE))
-                .isInstanceOf(InvalidRequestException.class)
+                .isInstanceOf(DomainException.class)
                 .hasMessage(MoneyMath.sharesRangeMessage());
     }
 

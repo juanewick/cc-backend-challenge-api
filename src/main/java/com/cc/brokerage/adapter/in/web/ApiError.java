@@ -22,8 +22,8 @@ public record ApiError(
     ) {
     }
 
-    static ApiError of(HttpStatus httpStatus, String code, String detail, List<InvalidParam> params) {
-        List<InvalidParam> published = params == null || params.isEmpty() ? paramsFor(code, detail) : params;
+    static ApiError of(HttpStatus httpStatus, String code, String detail, String paramKey, List<InvalidParam> params) {
+        List<InvalidParam> published = params == null || params.isEmpty() ? paramsFor(paramKey, detail) : params;
         boolean validation = !published.isEmpty();
         Kind kind = kind(httpStatus, validation);
         return new ApiError(
@@ -58,15 +58,15 @@ public record ApiError(
 
     private static Kind kind(HttpStatus httpStatus, boolean validation) {
         if (httpStatus == HttpStatus.NOT_FOUND) {
-            return new Kind(ProblemTypes.NOT_FOUND, "No encontrado");
+            return new Kind(ProblemTypes.NOT_FOUND, "Not found");
         }
         if (httpStatus == HttpStatus.CONFLICT) {
-            return new Kind(ProblemTypes.CONFLICT, "Conflicto");
+            return new Kind(ProblemTypes.CONFLICT, "Conflict");
         }
         if (validation) {
-            return new Kind(ProblemTypes.INVALID_PARAMETERS, "Parámetros inválidos");
+            return new Kind(ProblemTypes.INVALID_PARAMETERS, "Invalid parameters");
         }
-        return new Kind(ProblemTypes.BAD_REQUEST, "Pedido inválido");
+        return new Kind(ProblemTypes.BAD_REQUEST, "Bad request");
     }
 
     private record Kind(String type, String title) {

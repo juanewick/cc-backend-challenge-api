@@ -1,5 +1,7 @@
 package com.cc.brokerage.adapter.in.web;
 
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.MoneyMath;
 
 import java.math.BigDecimal;
@@ -16,14 +18,14 @@ public final class MoneyFormats {
         return value.setScale(MoneyMath.scale(), MoneyMath.ROUNDING).toPlainString();
     }
 
-    public static BigDecimal parse(String value, String field) {
+    public static BigDecimal parse(String value, DomainErrorCodes invalidNumber) {
         if (value == null || value.isBlank()) {
             return null;
         }
         try {
             return new BigDecimal(value.trim());
         } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("El " + field + " no es un número válido");
+            throw new DomainException(invalidNumber);
         }
     }
 }

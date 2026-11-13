@@ -1,6 +1,7 @@
 package com.cc.brokerage.application;
 
-import com.cc.brokerage.domain.AccountNotFoundException;
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.MarketPrice;
@@ -51,7 +52,7 @@ public class GetPortfolioService implements GetPortfolioUseCase {
     public Portfolio getPortfolio(String accountNumber) {
         String account = InputText.account(accountNumber);
         User user = users.findByAccountNumber(account)
-                .orElseThrow(AccountNotFoundException::new);
+                .orElseThrow(() -> new DomainException(DomainErrorCodes.ACCOUNT_NOT_FOUND));
         List<Order> userOrders = orders.findByUserId(user.id());
         Set<Long> instrumentIds = userOrders.stream().map(Order::instrumentId).collect(Collectors.toSet());
         Map<Long, Instrument> instrumentMap = new HashMap<>();

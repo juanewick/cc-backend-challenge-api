@@ -15,8 +15,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class HardenTextIT extends IntegrationTestBase {
 
     private static final String ORDERS = API_V1 + "/accounts/10001/orders";
-    private static final String INVALID_ACCOUNT = "La cuenta no es válida";
-    private static final String INVALID_TICKER = "El ticker no es válido";
+    private static final String INVALID_ACCOUNT = "The account is not valid.";
+    private static final String INVALID_TICKER = "The ticker is not valid.";
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -68,10 +68,10 @@ class HardenTextIT extends IntegrationTestBase {
         MvcResult result = mockMvc.perform(get(API_V1 + "/accounts/{accountNumber}/portfolio", "99999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.type").value("/v3/api-docs#/components/schemas/NotFound"))
-                .andExpect(jsonPath("$.title").value("No encontrado"))
+                .andExpect(jsonPath("$.title").value("Not found"))
                 .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.code").value("ACCOUNT_NOT_FOUND"))
-                .andExpect(jsonPath("$.detail").value("La cuenta no existe"))
+                .andExpect(jsonPath("$.code").value("BRK-004"))
+                .andExpect(jsonPath("$.detail").value("Account not found."))
                 .andExpect(jsonPath("$.invalid_params").doesNotExist())
                 .andReturn();
 
@@ -86,8 +86,8 @@ class HardenTextIT extends IntegrationTestBase {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(order("ZZZZ")))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("INSTRUMENT_NOT_FOUND"))
-                .andExpect(jsonPath("$.detail").value("El activo no existe"))
+                .andExpect(jsonPath("$.code").value("BRK-002"))
+                .andExpect(jsonPath("$.detail").value("Instrument not found."))
                 .andReturn();
 
         assertThat(result.getResponse().getContentAsString()).doesNotContain("ZZZZ");
@@ -115,7 +115,7 @@ class HardenTextIT extends IntegrationTestBase {
 
         MvcResult portfolio = mockMvc.perform(get(API_V1 + "/accounts/{accountNumber}/portfolio", account))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_ACCOUNT"))
+                .andExpect(jsonPath("$.code").value("BRK-008"))
                 .andExpect(jsonPath("$.detail").value(INVALID_ACCOUNT))
                 .andReturn();
         assertThat(portfolio.getResponse().getContentAsString()).doesNotContain(account);
@@ -125,12 +125,12 @@ class HardenTextIT extends IntegrationTestBase {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(order("GGAL")))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_ACCOUNT"))
+                .andExpect(jsonPath("$.code").value("BRK-008"))
                 .andExpect(jsonPath("$.detail").value(INVALID_ACCOUNT));
 
         mockMvc.perform(post(API_V1 + "/accounts/{accountNumber}/orders/5/cancellation", account))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_ACCOUNT"))
+                .andExpect(jsonPath("$.code").value("BRK-008"))
                 .andExpect(jsonPath("$.detail").value(INVALID_ACCOUNT));
 
         assertThat(orderCount()).isEqualTo(before);
@@ -145,9 +145,9 @@ class HardenTextIT extends IntegrationTestBase {
                         .content(order(ticker)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value("/v3/api-docs#/components/schemas/InvalidParameters"))
-                .andExpect(jsonPath("$.title").value("Parámetros inválidos"))
+                .andExpect(jsonPath("$.title").value("Invalid parameters"))
                 .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.code").value("INVALID_TICKER"))
+                .andExpect(jsonPath("$.code").value("BRK-009"))
                 .andExpect(jsonPath("$.detail").value(INVALID_TICKER))
                 .andExpect(jsonPath("$.invalid_params[0].field").value("ticker"))
                 .andExpect(jsonPath("$.invalid_params[0].message").value(INVALID_TICKER))

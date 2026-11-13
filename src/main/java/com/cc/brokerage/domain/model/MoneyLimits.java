@@ -1,5 +1,7 @@
 package com.cc.brokerage.domain.model;
 
+import com.cc.brokerage.domain.DomainErrorCodes;
+
 import java.math.BigDecimal;
 
 public record MoneyLimits(
@@ -16,20 +18,20 @@ public record MoneyLimits(
 
     public MoneyLimits {
         if (scale < 0) {
-            throw new IllegalArgumentException("La escala del importe no puede ser negativa");
+            throw new IllegalArgumentException("The money scale cannot be negative");
         }
         if (minAmount == null || maxAmount == null) {
-            throw new IllegalArgumentException("Los límites de importe son obligatorios");
+            throw new IllegalArgumentException("Money limits are required");
         }
         if (maxAmount.compareTo(minAmount) <= 0) {
-            throw new IllegalArgumentException("El importe máximo debe ser mayor que el mínimo");
+            throw new IllegalArgumentException("The maximum amount must be greater than the minimum");
         }
         if (minShares < 1 || maxShares < minShares || maxShares > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("La cantidad debe entrar entre 1 y " + Integer.MAX_VALUE);
+            throw new IllegalArgumentException("Size must be between 1 and " + Integer.MAX_VALUE);
         }
     }
 
     public String sharesRangeMessage() {
-        return "La cantidad debe ser un entero de " + minShares + " a " + maxShares;
+        return DomainErrorCodes.INVALID_SIZE.message().formatted(minShares, maxShares);
     }
 }
