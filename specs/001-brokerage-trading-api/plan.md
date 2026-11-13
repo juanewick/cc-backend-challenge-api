@@ -26,7 +26,7 @@ Una cuenta de inversión en pesos se consulta, se buscan activos por ticker o no
 
 **Performance Goals**: La búsqueda sobre el catálogo de referencia responde en menos de 1 segundo. El resto de las operaciones de la spec se resuelven en la misma petición.
 
-**Constraints**: Sin autenticación. Sin simulación de mercado. Sin fracciones de acciones. Sin ingresos ni egresos nuevos. Esquema de base fijo. Precios en pesos. Decisiones de diseño no fijadas por la spec se escriben en `README.txt`.
+**Constraints**: Sin autenticación. Sin simulación de mercado. Sin fracciones de acciones. Sin ingresos ni egresos nuevos. Esquema de base fijo. Precios en pesos. Decisiones de diseño no fijadas por la spec se escriben en `README.md`.
 
 **Scale/Scope**: 4 cuentas, 66 instrumentos y dos días de precios. Una transacción por cuenta alcanza para no gastar dos veces el mismo disponible.
 
@@ -60,7 +60,7 @@ cc-backend-challenge/
 ├── pom.xml
 ├── Dockerfile
 ├── compose.yaml
-├── README.txt
+├── README.md
 ├── src/main/java/com/cc/brokerage/
 │   ├── BrokerageApplication.java
 │   ├── domain/
