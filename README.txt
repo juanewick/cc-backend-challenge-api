@@ -15,7 +15,7 @@ Se usó arquitectura hexagonal. El dominio no conoce HTTP ni JPA: los casos de u
     adapter.out.persistence             PersistenceAdapter implementa los puertos de salida.
     adapter.out.persistence.entity      Tablas JPA.
     adapter.out.persistence.repository  JpaRepository.
-    config                              Beans de Spring.
+    config                              Beans de Spring. El prefijo HTTP de los RestController sale de application.yml.
 
 Funcionalidades
 ---------------
@@ -70,7 +70,7 @@ Los *IT.java comparten un PostgreSQL y un LocalStack arrancados una sola vez. Un
 El Dockerfile de compilación usa maven:3.9.11-eclipse-temurin-25 para no instalar Maven aparte en la etapa de build.
 Antes de cada escenario de integración se recrean las órdenes de referencia con TRUNCATE, para que un test no deje saldo a otro.
 El banner y el nombre de la aplicación son brokerage-api.
-La ruta base es /api/brokerage-api. Cada controller versiona con /v1, para poder agregar /v2 más adelante sin mover la base. Ejemplos:
+La ruta base es brokerage.api.base-path en application.yml, hoy /api/brokerage-api. ApiConfig la aplica como prefijo de Spring MVC a los @RestController de la aplicación. Actuator y el contrato OpenAPI no lo reciben. Cada controller versiona con /v1, para poder agregar /v2 más adelante sin mover la base. Ejemplos:
   GET  /api/brokerage-api/v1/accounts/{accountNumber}/portfolio
   GET  /api/brokerage-api/v1/instruments
   POST /api/brokerage-api/v1/accounts/{accountNumber}/orders

@@ -12,7 +12,7 @@ class OrderQueryIT extends IntegrationTestBase {
 
     @Test
     void listsOrdersFromOldestToNewest() throws Exception {
-        mockMvc.perform(get(API_V1 + "/accounts/10001/orders"))
+        mockMvc.perform(get(apiV1() + "/accounts/10001/orders"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(11))
                 .andExpect(jsonPath("$[0].id").value(1))
@@ -30,7 +30,7 @@ class OrderQueryIT extends IntegrationTestBase {
 
     @Test
     void getsAnOrderOfTheSameAccountWithoutTheRejectionReason() throws Exception {
-        mockMvc.perform(get(API_V1 + "/accounts/10001/orders/5"))
+        mockMvc.perform(get(apiV1() + "/accounts/10001/orders/5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.ticker").value("LOMA"))
@@ -41,7 +41,7 @@ class OrderQueryIT extends IntegrationTestBase {
 
     @Test
     void otherAccountCannotReadTheOrder() throws Exception {
-        mockMvc.perform(get(API_V1 + "/accounts/10002/orders/5"))
+        mockMvc.perform(get(apiV1() + "/accounts/10002/orders/5"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("BRK-001"))
                 .andExpect(jsonPath("$.detail").value("The order does not belong to this account."));
@@ -49,7 +49,7 @@ class OrderQueryIT extends IntegrationTestBase {
 
     @Test
     void missingOrderDoesNotEchoTheId() throws Exception {
-        MvcResult result = mockMvc.perform(get(API_V1 + "/accounts/10001/orders/999"))
+        MvcResult result = mockMvc.perform(get(apiV1() + "/accounts/10001/orders/999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("BRK-003"))
                 .andExpect(jsonPath("$.detail").value("Order not found."))

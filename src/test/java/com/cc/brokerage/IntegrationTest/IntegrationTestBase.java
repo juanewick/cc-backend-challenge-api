@@ -1,6 +1,6 @@
 package com.cc.brokerage.IntegrationTest;
 
-import com.cc.brokerage.adapter.in.web.api.ApiBase;
+import com.cc.brokerage.config.ApiProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -23,9 +23,6 @@ import javax.sql.DataSource;
 @Testcontainers(disabledWithoutDocker = true)
 public abstract class IntegrationTestBase {
 
-    protected static final String BASE_PATH = ApiBase.PATH;
-    protected static final String API_V1 = BASE_PATH + "/v1";
-
     public static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:18.6")
             .withDatabaseName("brokerage")
             .withUsername("brokerage")
@@ -41,6 +38,17 @@ public abstract class IntegrationTestBase {
 
     @Autowired
     protected MockMvc mockMvc;
+
+    @Autowired
+    private ApiProperties api;
+
+    protected String basePath() {
+        return api.basePath();
+    }
+
+    protected String apiV1() {
+        return api.basePath() + "/v1";
+    }
 
     @Autowired
     private DataSource dataSource;

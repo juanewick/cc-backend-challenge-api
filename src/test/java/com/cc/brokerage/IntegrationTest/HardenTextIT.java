@@ -14,7 +14,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class HardenTextIT extends IntegrationTestBase {
 
-    private static final String ORDERS = API_V1 + "/accounts/10001/orders";
+    private String orders() {
+        return apiV1() + "/accounts/10001/orders";
+    }
+
     private static final String INVALID_ACCOUNT = "The account is not valid.";
     private static final String INVALID_TICKER = "The ticker is not valid.";
 
@@ -65,7 +68,7 @@ class HardenTextIT extends IntegrationTestBase {
 
     @Test
     void unknownAccountDoesNotEchoTheNumber() throws Exception {
-        MvcResult result = mockMvc.perform(get(API_V1 + "/accounts/{accountNumber}/portfolio", "99999"))
+        MvcResult result = mockMvc.perform(get(apiV1() + "/accounts/{accountNumber}/portfolio", "99999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.type").value("/v3/api-docs#/components/schemas/NotFound"))
                 .andExpect(jsonPath("$.title").value("Not found"))
@@ -82,7 +85,7 @@ class HardenTextIT extends IntegrationTestBase {
     void unknownTickerDoesNotEchoTheSymbol() throws Exception {
         Integer before = orderCount();
 
-        MvcResult result = mockMvc.perform(post(ORDERS)
+        MvcResult result = mockMvc.perform(post(orders())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(order("ZZZZ")))
                 .andExpect(status().isNotFound())
@@ -96,7 +99,7 @@ class HardenTextIT extends IntegrationTestBase {
 
     @Test
     void referenceAccountStillReturnsThePortfolio() throws Exception {
-        mockMvc.perform(get(API_V1 + "/accounts/10001/portfolio"))
+        mockMvc.perform(get(apiV1() + "/accounts/10001/portfolio"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accountNumber").value("10001"))
                 .andExpect(jsonPath("$.availableCash").value("627500.00"));
@@ -104,7 +107,7 @@ class HardenTextIT extends IntegrationTestBase {
 
     @Test
     void referenceSearchStillReturnsPamp() throws Exception {
-        mockMvc.perform(get(API_V1 + "/instruments").param("q", "PAMP"))
+        mockMvc.perform(get(apiV1() + "/instruments").param("q", "PAMP"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].ticker").value("PAMP"))
                 .andExpect(jsonPath("$[0].lastPrice").value("925.85"));
@@ -113,7 +116,7 @@ class HardenTextIT extends IntegrationTestBase {
     private void rejectAccount(String account) throws Exception {
         Integer before = orderCount();
 
-        MvcResult portfolio = mockMvc.perform(get(API_V1 + "/accounts/{accountNumber}/portfolio", account))
+        MvcResult portfolio = mockMvc.perform(get(apiV1() + "/accounts/{accountNumber}/portfolio", account))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BRK-008"))
                 .andExpect(jsonPath("$.detail").value(INVALID_ACCOUNT))
@@ -121,14 +124,14 @@ class HardenTextIT extends IntegrationTestBase {
         assertThat(portfolio.getResponse().getContentAsString()).doesNotContain(account);
         assertThat(portfolio.getResponse().getContentAsString()).doesNotContain("627500.00");
 
-        mockMvc.perform(post(API_V1 + "/accounts/{accountNumber}/orders", account)
+        mockMvc.perform(post(apiV1() + "/accounts/{accountNumber}/orders", account)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(order("GGAL")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BRK-008"))
                 .andExpect(jsonPath("$.detail").value(INVALID_ACCOUNT));
 
-        mockMvc.perform(post(API_V1 + "/accounts/{accountNumber}/orders/5/cancellation", account))
+        mockMvc.perform(post(apiV1() + "/accounts/{accountNumber}/orders/5/cancellation", account))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BRK-008"))
                 .andExpect(jsonPath("$.detail").value(INVALID_ACCOUNT));
@@ -140,7 +143,7 @@ class HardenTextIT extends IntegrationTestBase {
     private void rejectTicker(String ticker) throws Exception {
         Integer before = orderCount();
 
-        MvcResult result = mockMvc.perform(post(ORDERS)
+        MvcResult result = mockMvc.perform(post(orders())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(order(ticker)))
                 .andExpect(status().isBadRequest())

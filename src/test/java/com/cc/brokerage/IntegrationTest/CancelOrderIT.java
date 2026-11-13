@@ -11,20 +11,20 @@ class CancelOrderIT extends IntegrationTestBase {
 
     @Test
     void cancellingSeedLomaOrderReleasesCash() throws Exception {
-        mockMvc.perform(post(API_V1 + "/accounts/10001/orders/5/cancellation"))
+        mockMvc.perform(post(apiV1() + "/accounts/10001/orders/5/cancellation"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ticker").value("LOMA"))
                 .andExpect(jsonPath("$.status").value("CANCELLED"))
                 .andExpect(jsonPath("$.rejectionReason").doesNotExist());
 
-        mockMvc.perform(get(API_V1 + "/accounts/10001/portfolio"))
+        mockMvc.perform(get(apiV1() + "/accounts/10001/portfolio"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.availableCash").value("663000.00"));
     }
 
     @Test
     void filledOrderCannotBeCancelled() throws Exception {
-        mockMvc.perform(post(API_V1 + "/accounts/10001/orders/2/cancellation"))
+        mockMvc.perform(post(apiV1() + "/accounts/10001/orders/2/cancellation"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.type").value("/v3/api-docs#/components/schemas/Conflict"))
                 .andExpect(jsonPath("$.title").value("Conflict"))
@@ -36,7 +36,7 @@ class CancelOrderIT extends IntegrationTestBase {
 
     @Test
     void otherAccountCannotCancel() throws Exception {
-        mockMvc.perform(post(API_V1 + "/accounts/10002/orders/5/cancellation"))
+        mockMvc.perform(post(apiV1() + "/accounts/10002/orders/5/cancellation"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("BRK-001"))
                 .andExpect(jsonPath("$.detail").value("The order does not belong to this account."));
@@ -44,7 +44,7 @@ class CancelOrderIT extends IntegrationTestBase {
 
     @Test
     void missingOrderIsNotFound() throws Exception {
-        mockMvc.perform(post(API_V1 + "/accounts/10001/orders/999/cancellation"))
+        mockMvc.perform(post(apiV1() + "/accounts/10001/orders/999/cancellation"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("BRK-003"))
                 .andExpect(jsonPath("$.detail").value("Order not found."));

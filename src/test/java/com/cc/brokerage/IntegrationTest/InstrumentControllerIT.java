@@ -10,7 +10,7 @@ class InstrumentControllerIT extends IntegrationTestBase {
 
     @Test
     void bancoReturnsFourBanksInTickerOrder() throws Exception {
-        mockMvc.perform(get(API_V1 + "/instruments").param("q", "banco"))
+        mockMvc.perform(get(apiV1() + "/instruments").param("q", "banco"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(4))
                 .andExpect(jsonPath("$[0].ticker").value("BBAR"))
@@ -21,7 +21,7 @@ class InstrumentControllerIT extends IntegrationTestBase {
 
     @Test
     void pampReturnsSingleQuoteWithPriceAndDailyReturn() throws Exception {
-        mockMvc.perform(get(API_V1 + "/instruments").param("q", "pamp"))
+        mockMvc.perform(get(apiV1() + "/instruments").param("q", "pamp"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].ticker").value("PAMP"))
@@ -31,28 +31,28 @@ class InstrumentControllerIT extends IntegrationTestBase {
 
     @Test
     void ypfMatchesTickerSubstring() throws Exception {
-        mockMvc.perform(get(API_V1 + "/instruments").param("q", "YPF"))
+        mockMvc.perform(get(apiV1() + "/instruments").param("q", "YPF"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.ticker == 'YPFD')]").exists());
     }
 
     @Test
     void unknownTextReturnsEmptyList() throws Exception {
-        mockMvc.perform(get(API_V1 + "/instruments").param("q", "zzzz"))
+        mockMvc.perform(get(apiV1() + "/instruments").param("q", "zzzz"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
     void pesosAndArsAreNotTradable() throws Exception {
-        mockMvc.perform(get(API_V1 + "/instruments").param("q", "PESOS"))
+        mockMvc.perform(get(apiV1() + "/instruments").param("q", "PESOS"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
-        mockMvc.perform(get(API_V1 + "/instruments").param("q", "ARS"))
+        mockMvc.perform(get(apiV1() + "/instruments").param("q", "ARS"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
 
-        var currency = mockMvc.perform(get(API_V1 + "/instruments/ARS"))
+        var currency = mockMvc.perform(get(apiV1() + "/instruments/ARS"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value("/v3/api-docs#/components/schemas/BadRequest"))
                 .andExpect(jsonPath("$.status").value(400))
@@ -65,7 +65,7 @@ class InstrumentControllerIT extends IntegrationTestBase {
 
     @Test
     void quoteByTickerUsesTheLatestClose() throws Exception {
-        mockMvc.perform(get(API_V1 + "/instruments/PAMP"))
+        mockMvc.perform(get(apiV1() + "/instruments/PAMP"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ticker").value("PAMP"))
                 .andExpect(jsonPath("$.lastPrice").value("925.85"))
@@ -74,7 +74,7 @@ class InstrumentControllerIT extends IntegrationTestBase {
 
     @Test
     void unknownTickerQuoteIsNotFound() throws Exception {
-        var missing = mockMvc.perform(get(API_V1 + "/instruments/ZZZZ"))
+        var missing = mockMvc.perform(get(apiV1() + "/instruments/ZZZZ"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("BRK-002"))
                 .andExpect(jsonPath("$.detail").value("Instrument not found."))
@@ -84,7 +84,7 @@ class InstrumentControllerIT extends IntegrationTestBase {
 
     @Test
     void blankQueryIsRejected() throws Exception {
-        mockMvc.perform(get(API_V1 + "/instruments").param("q", "   "))
+        mockMvc.perform(get(apiV1() + "/instruments").param("q", "   "))
                 .andExpect(status().isBadRequest());
     }
 }

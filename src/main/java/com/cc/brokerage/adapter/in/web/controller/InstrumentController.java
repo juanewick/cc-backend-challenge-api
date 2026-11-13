@@ -1,6 +1,5 @@
 package com.cc.brokerage.adapter.in.web.controller;
 
-import com.cc.brokerage.adapter.in.web.api.ApiBase;
 import com.cc.brokerage.adapter.in.web.api.ApiProblemModels;
 import com.cc.brokerage.adapter.in.web.api.InstrumentQuoteResponse;
 import com.cc.brokerage.domain.port.in.GetInstrumentQuoteUseCase;
@@ -20,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping(ApiBase.PATH + "/v1/instruments")
+@RequestMapping("/v1/instruments")
 public class InstrumentController {
 
     private final SearchInstrumentsUseCase searchInstruments;

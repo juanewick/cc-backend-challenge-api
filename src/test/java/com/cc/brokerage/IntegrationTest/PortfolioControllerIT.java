@@ -10,7 +10,7 @@ class PortfolioControllerIT extends IntegrationTestBase {
 
     @Test
     void account10001MatchesOracle() throws Exception {
-        mockMvc.perform(get(API_V1 + "/accounts/10001/portfolio"))
+        mockMvc.perform(get(apiV1() + "/accounts/10001/portfolio"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accountNumber").value("10001"))
                 .andExpect(jsonPath("$.settledCash").value("753000.00"))
@@ -36,7 +36,7 @@ class PortfolioControllerIT extends IntegrationTestBase {
 
     @Test
     void accountWithoutOrdersIsZero() throws Exception {
-        mockMvc.perform(get(API_V1 + "/accounts/10002/portfolio"))
+        mockMvc.perform(get(apiV1() + "/accounts/10002/portfolio"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.settledCash").value("0.00"))
                 .andExpect(jsonPath("$.reservedCash").value("0.00"))
@@ -47,7 +47,7 @@ class PortfolioControllerIT extends IntegrationTestBase {
 
     @Test
     void unknownAccountIsNotFound() throws Exception {
-        mockMvc.perform(get(API_V1 + "/accounts/99999/portfolio"))
+        mockMvc.perform(get(apiV1() + "/accounts/99999/portfolio"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("BRK-004"))
                 .andExpect(jsonPath("$.detail").value("Account not found."));

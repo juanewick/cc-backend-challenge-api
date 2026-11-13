@@ -20,13 +20,13 @@ class PlaceMarketOrderIT extends IntegrationTestBase {
 
     @Test
     void marketBuyOfOneGgalIsFilledAndUpdatesPortfolio() throws Exception {
-        mockMvc.perform(post(API_V1 + "/accounts/10001/orders")
+        mockMvc.perform(post(apiV1() + "/accounts/10001/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"ticker":"GGAL","side":"BUY","type":"MARKET","size":1}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", containsString("/api/brokerage-api/v1/accounts/10001/orders/")))
+                .andExpect(header().string("Location", containsString(apiV1() + "/accounts/10001/orders/")))
                 .andExpect(jsonPath("$.ticker").value("GGAL"))
                 .andExpect(jsonPath("$.status").value("FILLED"))
                 .andExpect(jsonPath("$.size").value(1))
@@ -34,7 +34,7 @@ class PlaceMarketOrderIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.amount").value("885.80"))
                 .andExpect(jsonPath("$.rejectionReason").doesNotExist());
 
-        mockMvc.perform(get(API_V1 + "/accounts/10001/portfolio"))
+        mockMvc.perform(get(apiV1() + "/accounts/10001/portfolio"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.availableCash").value("626614.20"))
                 .andExpect(jsonPath("$.positions[?(@.ticker == 'GGAL')].quantity").value(1));
@@ -42,7 +42,7 @@ class PlaceMarketOrderIT extends IntegrationTestBase {
 
     @Test
     void amountConvertsToWholeShares() throws Exception {
-        mockMvc.perform(post(API_V1 + "/accounts/10001/orders")
+        mockMvc.perform(post(apiV1() + "/accounts/10001/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"ticker":"GGAL","side":"BUY","type":"MARKET","amount":"2000"}
@@ -57,7 +57,7 @@ class PlaceMarketOrderIT extends IntegrationTestBase {
     void invalidPayloadDoesNotInsertAnOrder() throws Exception {
         Integer before = jdbcTemplate.queryForObject("select count(*) from orders", Integer.class);
 
-        mockMvc.perform(post(API_V1 + "/accounts/10001/orders")
+        mockMvc.perform(post(apiV1() + "/accounts/10001/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"ticker":"GGAL","side":"BUY","type":"MARKET","size":1,"amount":"2000"}
@@ -70,7 +70,7 @@ class PlaceMarketOrderIT extends IntegrationTestBase {
 
     @Test
     void unknownAccountIsNotFound() throws Exception {
-        mockMvc.perform(post(API_V1 + "/accounts/99999/orders")
+        mockMvc.perform(post(apiV1() + "/accounts/99999/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"ticker":"GGAL","side":"BUY","type":"MARKET","size":1}
@@ -81,7 +81,7 @@ class PlaceMarketOrderIT extends IntegrationTestBase {
 
     @Test
     void lowercaseTickerUsesCatalogSymbol() throws Exception {
-        mockMvc.perform(post(API_V1 + "/accounts/10001/orders")
+        mockMvc.perform(post(apiV1() + "/accounts/10001/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"ticker":"ggal","side":"BUY","type":"MARKET","size":1}
@@ -94,7 +94,7 @@ class PlaceMarketOrderIT extends IntegrationTestBase {
 
     @Test
     void marketBuyOfOnePampUsesTheSameCloseAsTheQuote() throws Exception {
-        mockMvc.perform(post(API_V1 + "/accounts/10001/orders")
+        mockMvc.perform(post(apiV1() + "/accounts/10001/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"ticker":"PAMP","side":"BUY","type":"MARKET","size":1}

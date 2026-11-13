@@ -13,7 +13,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class HardenDocumentIT extends IntegrationTestBase {
 
-    private static final String ORDERS = API_V1 + "/accounts/10001/orders";
+    private String orders() {
+        return apiV1() + "/accounts/10001/orders";
+    }
+
     private static final String UNREADABLE = "The request cannot be read.";
 
     @Autowired
@@ -84,7 +87,7 @@ class HardenDocumentIT extends IntegrationTestBase {
     private void reject(MediaType contentType, String body, String message, String absent) throws Exception {
         Integer before = jdbcTemplate.queryForObject("select count(*) from orders", Integer.class);
 
-        MvcResult result = mockMvc.perform(post(ORDERS)
+        MvcResult result = mockMvc.perform(post(orders())
                         .contentType(contentType)
                         .content(body))
                 .andExpect(status().isBadRequest())

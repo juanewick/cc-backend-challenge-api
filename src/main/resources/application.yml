@@ -43,6 +43,8 @@ info:
     name: ${spring.application.name}
 
 brokerage:
+  api:
+    base-path: /api/brokerage-api
   money:
     scale: ${BROKERAGE_MONEY_SCALE:2}
     min-amount: ${BROKERAGE_MONEY_MIN_AMOUNT:0}

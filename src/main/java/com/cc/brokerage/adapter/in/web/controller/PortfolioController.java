@@ -1,6 +1,5 @@
 package com.cc.brokerage.adapter.in.web.controller;
 
-import com.cc.brokerage.adapter.in.web.api.ApiBase;
 import com.cc.brokerage.adapter.in.web.api.ApiProblemModels;
 import com.cc.brokerage.adapter.in.web.api.PortfolioResponse;
 import com.cc.brokerage.domain.port.in.GetPortfolioUseCase;
@@ -15,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping(ApiBase.PATH + "/v1/accounts/{accountNumber}/portfolio")
+@RequestMapping("/v1/accounts/{accountNumber}/portfolio")
 public class PortfolioController {
 
     private final GetPortfolioUseCase getPortfolio;

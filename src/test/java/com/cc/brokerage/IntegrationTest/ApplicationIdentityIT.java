@@ -30,7 +30,7 @@ class ApplicationIdentityIT extends IntegrationTestBase {
     void operationsWithoutBasePathOrVersionAreNotServed() throws Exception {
         mockMvc.perform(get("/api/accounts/10001/portfolio"))
                 .andExpect(status().isNotFound());
-        mockMvc.perform(get(BASE_PATH + "/accounts/10001/portfolio"))
+        mockMvc.perform(get(basePath() + "/accounts/10001/portfolio"))
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/instruments").param("q", "pamp"))
                 .andExpect(status().isNotFound());

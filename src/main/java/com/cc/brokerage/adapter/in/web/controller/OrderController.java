@@ -1,6 +1,5 @@
 package com.cc.brokerage.adapter.in.web.controller;
 
-import com.cc.brokerage.adapter.in.web.api.ApiBase;
 import com.cc.brokerage.adapter.in.web.api.ApiProblemModels;
 import com.cc.brokerage.adapter.in.web.api.MoneyFormats;
 import com.cc.brokerage.adapter.in.web.api.OrderResponse;
@@ -31,12 +30,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping(ApiBase.PATH + "/v1/accounts/{accountNumber}/orders")
+@RequestMapping("/v1/accounts/{accountNumber}/orders")
 public class OrderController {
 
     private final PlaceOrderUseCase placeOrder;
@@ -107,7 +107,10 @@ public class OrderController {
         Order order = outcome.order();
         String ticker = tickerOf(order);
         OrderResponse body = OrderResponse.placed(order, accountNumber, ticker, outcome.amount(), outcome.rejectionReason());
-        URI location = URI.create(ApiBase.PATH + "/v1/accounts/" + accountNumber + "/orders/" + order.id());
+        URI location = URI.create(ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{orderId}")
+                .buildAndExpand(order.id())
+                .getPath());
         return ResponseEntity.created(location).body(body);
     }
 

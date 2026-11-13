@@ -12,7 +12,7 @@ class RejectOrderIT extends IntegrationTestBase {
 
     @Test
     void oversizedMarketBuyIsRejectedAndLeavesPortfolioUnchanged() throws Exception {
-        mockMvc.perform(post(API_V1 + "/accounts/10001/orders")
+        mockMvc.perform(post(apiV1() + "/accounts/10001/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"ticker":"GGAL","side":"BUY","type":"MARKET","size":1000000}
@@ -27,7 +27,7 @@ class RejectOrderIT extends IntegrationTestBase {
 
     @Test
     void oversizedMarketSellIsRejectedAndLeavesPortfolioUnchanged() throws Exception {
-        mockMvc.perform(post(API_V1 + "/accounts/10001/orders")
+        mockMvc.perform(post(apiV1() + "/accounts/10001/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"ticker":"PAMP","side":"SELL","type":"MARKET","size":100}
@@ -37,7 +37,7 @@ class RejectOrderIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.rejectionReason").value("INSUFFICIENT_SHARES"))
                 .andExpect(jsonPath("$.amount").value("92585.00"));
 
-        mockMvc.perform(get(API_V1 + "/accounts/10001/portfolio"))
+        mockMvc.perform(get(apiV1() + "/accounts/10001/portfolio"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.availableCash").value("627500.00"))
                 .andExpect(jsonPath("$.totalValue").value("889756.00"))
@@ -46,7 +46,7 @@ class RejectOrderIT extends IntegrationTestBase {
 
     @Test
     void amountThatYieldsZeroSharesIsRejected() throws Exception {
-        mockMvc.perform(post(API_V1 + "/accounts/10001/orders")
+        mockMvc.perform(post(apiV1() + "/accounts/10001/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"ticker":"GGAL","side":"BUY","type":"MARKET","amount":"100"}
@@ -61,7 +61,7 @@ class RejectOrderIT extends IntegrationTestBase {
 
     @Test
     void reservedCashIsNotReusedAndOrderIsNotDownsized() throws Exception {
-        mockMvc.perform(post(API_V1 + "/accounts/10001/orders")
+        mockMvc.perform(post(apiV1() + "/accounts/10001/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"ticker":"GGAL","side":"BUY","type":"MARKET","size":850}
@@ -77,7 +77,7 @@ class RejectOrderIT extends IntegrationTestBase {
 
     @Test
     void secondOrderThatExceedsRemainingAvailableIsRejected() throws Exception {
-        mockMvc.perform(post(API_V1 + "/accounts/10001/orders")
+        mockMvc.perform(post(apiV1() + "/accounts/10001/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":400,"price":"800.00"}
@@ -85,7 +85,7 @@ class RejectOrderIT extends IntegrationTestBase {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("NEW"));
 
-        mockMvc.perform(post(API_V1 + "/accounts/10001/orders")
+        mockMvc.perform(post(apiV1() + "/accounts/10001/orders")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":400,"price":"800.00"}
@@ -95,14 +95,14 @@ class RejectOrderIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.rejectionReason").value("INSUFFICIENT_CASH"))
                 .andExpect(jsonPath("$.amount").value("320000.00"));
 
-        mockMvc.perform(get(API_V1 + "/accounts/10001/portfolio"))
+        mockMvc.perform(get(apiV1() + "/accounts/10001/portfolio"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.availableCash").value("307500.00"))
                 .andExpect(jsonPath("$.totalValue").value("889756.00"));
     }
 
     private void assertReferencePortfolio() throws Exception {
-        mockMvc.perform(get(API_V1 + "/accounts/10001/portfolio"))
+        mockMvc.perform(get(apiV1() + "/accounts/10001/portfolio"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.availableCash").value("627500.00"))
                 .andExpect(jsonPath("$.totalValue").value("889756.00"));

@@ -15,7 +15,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class HardenNumbersIT extends IntegrationTestBase {
 
-    private static final String ORDERS = API_V1 + "/accounts/10001/orders";
+    private String orders() {
+        return apiV1() + "/accounts/10001/orders";
+    }
+
     private static final String INVALID_ORDER = "The order is not valid.";
 
     @Autowired
@@ -46,7 +49,7 @@ class HardenNumbersIT extends IntegrationTestBase {
     void maximumSizeIsNotRejectedForSize() throws Exception {
         Integer before = orderCount();
 
-        mockMvc.perform(post(ORDERS)
+        mockMvc.perform(post(orders())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":%d,"price":"0.01"}
@@ -115,7 +118,7 @@ class HardenNumbersIT extends IntegrationTestBase {
 
     @Test
     void missingOrderDoesNotEchoTheId() throws Exception {
-        MvcResult result = mockMvc.perform(post(ORDERS + "/999/cancellation"))
+        MvcResult result = mockMvc.perform(post(orders() + "/999/cancellation"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.detail").value("Order not found."))
                 .andReturn();
@@ -127,7 +130,7 @@ class HardenNumbersIT extends IntegrationTestBase {
     private void rejectOrder(String body) throws Exception {
         Integer before = orderCount();
 
-        mockMvc.perform(post(ORDERS)
+        mockMvc.perform(post(orders())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isBadRequest());
@@ -138,7 +141,7 @@ class HardenNumbersIT extends IntegrationTestBase {
     private void rejectCancellation(String orderId) throws Exception {
         Integer before = orderCount();
 
-        mockMvc.perform(post(ORDERS + "/" + orderId + "/cancellation"))
+        mockMvc.perform(post(orders() + "/" + orderId + "/cancellation"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value(INVALID_ORDER));
 
