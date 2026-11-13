@@ -12,7 +12,7 @@
 
 ### Session 2026-11-12
 
-- Q: ¿Cómo se calcula el rendimiento total de cada posición? → A: (Valor de mercado − capital neto de compras y ventas ejecutadas) / valor absoluto de ese capital
+- Q: ¿Cómo se calcula el rendimiento total de cada posición? → A: (Último cierre − costo promedio de las acciones que siguen en cartera) / costo promedio. Revisado el 2026-11-13: la primera respuesta, sobre el capital neto, inflaba el resultado tras ventas parciales y perdía sentido si las ventas superaban las compras.
 - Q: ¿Las órdenes que siguen abiertas reservan el dinero o las acciones disponibles? → A: Las compras abiertas reservan pesos y las ventas abiertas reservan acciones
 - Q: ¿Se pueden registrar ingresos y egresos de pesos nuevos, o el portfolio solo usa los que ya vienen cargados? → A: No se registran nuevos; el portfolio solo usa los ingresos y egresos ya cargados
 - Q: ¿Qué activos devuelve una búsqueda? → A: Los activos cuyo ticker o nombre contienen el texto, sin distinguir mayúsculas
@@ -37,9 +37,9 @@ Una persona indica el número de cuenta y obtiene el estado de esa cuenta: cuán
 
    | Ticker | Cantidad | Valor de mercado | Rendimiento total | Rendimiento diario |
    |--------|----------|------------------|-------------------|--------------------|
-   | BMA    | -10      | -15028.00        | 0.48%             | -1.15%             |
+   | BMA    | -10      | -15028.00        | 1.78%             | -1.15%             |
    | METR   | 500      | 114750.00        | -8.20%            | -1.08%             |
-   | PAMP   | 40       | 37034.00         | -0.18%            | 0.44%              |
+   | PAMP   | 40       | 37034.00         | -0.45%            | 0.44%              |
 
 2. **Given** una cuenta existente sin órdenes, **When** se consulta su portfolio, **Then** el valor total es `0.00`, los pesos disponibles son `0.00` y el listado de posiciones está vacío.
 3. **Given** un número de cuenta que no existe, **When** se consulta el portfolio, **Then** no hay resultado de portfolio y se informa que la cuenta no existe.
@@ -182,7 +182,8 @@ Quien va a operar, o quien acaba de cambiar la configuración, consulta dos ruta
 - La moneda en pesos no es una posición, aunque sus movimientos sean órdenes.
 - Un activo sin último cierre se lista con su cantidad y con valor de mercado y rendimiento no disponibles, y no suma al valor total de la cuenta.
 - Si el cierre anterior es cero o no existe, el rendimiento diario queda no disponible.
-- Si el capital neto invertido es cero y la cantidad neta no es cero, el rendimiento total queda no disponible.
+- Si no hay compras `FILLED` en una posición larga, o ventas `FILLED` en una corta, no hay costo promedio y el rendimiento total queda no disponible.
+- Una venta parcial no cambia el costo promedio de las acciones que quedan, así que no altera el rendimiento total.
 - Una orden de mercado sobre un activo sin último cierre se guarda `REJECTED` y no cambia la cuenta.
 - El sobrante de un monto que no completa otra acción permanece como pesos; no se compran fracciones.
 - Una orden rechazada o cancelada no cambia tenencias, efectivo liquidado ni reservas.
@@ -203,8 +204,8 @@ Quien va a operar, o quien acaba de cambiar la configuración, consulta dos ruta
 - **FR-004**: Todos los precios y valores monetarios MUST expresarse en pesos.
 - **FR-005**: La cantidad neta de un activo MUST ser la suma de las cantidades de sus compras `FILLED` menos la suma de las cantidades de sus ventas `FILLED`.
 - **FR-006**: El valor de mercado de una posición MUST ser la cantidad neta multiplicada por el cierre más reciente de ese activo.
-- **FR-007**: El capital neto invertido de un activo MUST ser la suma de cantidad por precio de sus compras `FILLED` menos la suma de cantidad por precio de sus ventas `FILLED`.
-- **FR-008**: El rendimiento total MUST ser `(valor de mercado − capital neto invertido) / valor absoluto del capital neto invertido`, expresado en porcentaje, usando solo órdenes `FILLED` de ese activo.
+- **FR-007**: El costo promedio de un activo MUST ser la suma de cantidad por precio de sus compras `FILLED` dividida por la suma de sus cantidades. En una posición corta se usa, del mismo modo, el precio promedio de sus ventas `FILLED`.
+- **FR-008**: El rendimiento total MUST ser, en una posición larga, `(cierre − costo promedio) / costo promedio`, donde el costo promedio es la suma de cantidad por precio de las compras `FILLED` dividida por la suma de sus cantidades; en una posición corta, `(precio promedio de venta − cierre) / precio promedio de venta`, con el promedio de las ventas `FILLED`, expresado en porcentaje.
 - **FR-009**: El rendimiento diario MUST ser `(cierre − cierre anterior) / cierre anterior`, expresado en porcentaje, a partir del precio más reciente.
 - **FR-010**: El precio vigente de un activo MUST ser el cierre de su fecha más reciente. Si hay más de un precio en esa fecha, MUST usarse el registrado en último lugar.
 - **FR-011**: El efectivo liquidado MUST sumar los ingresos `FILLED`, restar los egresos `FILLED`, restar el importe de las compras `FILLED` y sumar el importe de las ventas `FILLED`. El importe de una compra o venta es cantidad por precio.

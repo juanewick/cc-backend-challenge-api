@@ -73,7 +73,11 @@ public class OrderPersistenceAdapter implements OrderRepository {
                 row.getNetInvested(),
                 row.getReservedSellQuantity(),
                 row.getReservedBuyAmount(),
-                row.getCashFlow()
+                row.getCashFlow(),
+                row.getBoughtQuantity(),
+                row.getBoughtAmount(),
+                row.getSoldQuantity(),
+                row.getSoldAmount()
         );
     }
 

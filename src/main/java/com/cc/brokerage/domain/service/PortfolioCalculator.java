@@ -10,6 +10,7 @@ import com.cc.brokerage.domain.model.Position;
 import com.cc.brokerage.domain.model.User;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -74,9 +75,7 @@ public class PortfolioCalculator {
             if (price != null && price.close() != null) {
                 marketValue = money.notional(snapshot.netQuantity(), price.close());
                 marketTotal = marketTotal.add(marketValue);
-                if (snapshot.netInvested().compareTo(BigDecimal.ZERO) != 0) {
-                    totalReturn = money.percent(marketValue.subtract(snapshot.netInvested()), snapshot.netInvested().abs());
-                }
+                totalReturn = totalReturn(snapshot, price.close());
                 dailyReturn = money.percent(price.close().subtract(nullToZero(price.previousClose())), price.previousClose());
             }
             positions.add(new Position(
@@ -106,6 +105,27 @@ public class PortfolioCalculator {
             return 0;
         }
         return position.netQuantity() - position.reservedSellQuantity();
+    }
+
+    /**
+     * Return of the shares still held against their average cost. A long position compares the close with the
+     * average price of every FILLED buy; a short one compares the average price of every FILLED sell with the
+     * close, so a falling price is a gain. Without such orders there is no cost and the return is null.
+     */
+    private BigDecimal totalReturn(InstrumentHoldings snapshot, BigDecimal close) {
+        if (snapshot.netQuantity() > 0) {
+            BigDecimal averageCost = average(snapshot.boughtAmount(), snapshot.boughtQuantity());
+            return averageCost == null ? null : money.percent(close.subtract(averageCost), averageCost);
+        }
+        BigDecimal averageSale = average(snapshot.soldAmount(), snapshot.soldQuantity());
+        return averageSale == null ? null : money.percent(averageSale.subtract(close), averageSale);
+    }
+
+    private static BigDecimal average(BigDecimal amount, long quantity) {
+        if (quantity <= 0 || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+        return amount.divide(BigDecimal.valueOf(quantity), MathContext.DECIMAL128);
     }
 
     private static BigDecimal nullToZero(BigDecimal value) {

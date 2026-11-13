@@ -32,9 +32,13 @@ public final class HoldingsOf {
             if (filled && order.side() == OrderSide.BUY) {
                 totals.netQuantity += order.size();
                 totals.netInvested = totals.netInvested.add(notional);
+                totals.boughtQuantity += order.size();
+                totals.boughtAmount = totals.boughtAmount.add(notional);
             } else if (filled && order.side() == OrderSide.SELL) {
                 totals.netQuantity -= order.size();
                 totals.netInvested = totals.netInvested.subtract(notional);
+                totals.soldQuantity += order.size();
+                totals.soldAmount = totals.soldAmount.add(notional);
             } else if (filled && order.side() == OrderSide.CASH_IN) {
                 totals.cashFlow = totals.cashFlow.add(notional);
             } else if (filled && order.side() == OrderSide.CASH_OUT) {
@@ -47,7 +51,8 @@ public final class HoldingsOf {
         }
         List<InstrumentHoldings> rows = new ArrayList<>();
         byInstrument.forEach((id, totals) -> rows.add(new InstrumentHoldings(
-                id, totals.netQuantity, totals.netInvested, totals.reservedSellQuantity, totals.reservedBuyAmount, totals.cashFlow)));
+                id, totals.netQuantity, totals.netInvested, totals.reservedSellQuantity, totals.reservedBuyAmount, totals.cashFlow,
+                totals.boughtQuantity, totals.boughtAmount, totals.soldQuantity, totals.soldAmount)));
         return rows;
     }
 
@@ -57,5 +62,9 @@ public final class HoldingsOf {
         private long reservedSellQuantity;
         private BigDecimal reservedBuyAmount = BigDecimal.ZERO;
         private BigDecimal cashFlow = BigDecimal.ZERO;
+        private long boughtQuantity;
+        private BigDecimal boughtAmount = BigDecimal.ZERO;
+        private long soldQuantity;
+        private BigDecimal soldAmount = BigDecimal.ZERO;
     }
 }

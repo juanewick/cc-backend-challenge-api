@@ -47,6 +47,10 @@ public interface OrderJpaRepository extends JpaRepository<OrderEntity, Long> {
                    COALESCE(SUM(CASE WHEN o.status = 'NEW' AND o.side = 'BUY' THEN o.size * o.price END), 0) AS "reservedBuyAmount",
                    COALESCE(SUM(CASE WHEN o.status = 'FILLED' AND o.side = 'CASH_IN' THEN o.size * o.price
                                      WHEN o.status = 'FILLED' AND o.side = 'CASH_OUT' THEN -(o.size * o.price) END), 0) AS "cashFlow",
+                   COALESCE(SUM(CASE WHEN o.status = 'FILLED' AND o.side = 'BUY' THEN o.size END), 0) AS "boughtQuantity",
+                   COALESCE(SUM(CASE WHEN o.status = 'FILLED' AND o.side = 'BUY' THEN o.size * o.price END), 0) AS "boughtAmount",
+                   COALESCE(SUM(CASE WHEN o.status = 'FILLED' AND o.side = 'SELL' THEN o.size END), 0) AS "soldQuantity",
+                   COALESCE(SUM(CASE WHEN o.status = 'FILLED' AND o.side = 'SELL' THEN o.size * o.price END), 0) AS "soldAmount",
                    COUNT(*) FILTER (WHERE o.price IS NULL) AS "unpricedOrders"
             FROM orders o
             WHERE o.userid = :userId AND o.status IN ('FILLED', 'NEW')
@@ -66,6 +70,14 @@ public interface OrderJpaRepository extends JpaRepository<OrderEntity, Long> {
         BigDecimal getReservedBuyAmount();
 
         BigDecimal getCashFlow();
+
+        Long getBoughtQuantity();
+
+        BigDecimal getBoughtAmount();
+
+        Long getSoldQuantity();
+
+        BigDecimal getSoldAmount();
 
         Long getUnpricedOrders();
     }

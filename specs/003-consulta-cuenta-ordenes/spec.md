@@ -96,7 +96,7 @@ Portfolio, búsqueda, cotización y orden de mercado toman el mismo último cier
 
 1. **Given** un activo con más de un cierre, **When** se consulta el portfolio, se busca, se pide la cotización o se envía una orden de mercado, **Then** las cuatro usan el cierre de la observación más reciente. A igual fecha, manda la observación más nueva.
 2. **Given** un alta o una cancelación de un activo que existe, **When** se lee la respuesta, **Then** el ticker es el del activo. No viene vacío.
-3. **Given** la cuenta `10001` antes de órdenes nuevas, **When** se consulta el portfolio, **Then** cantidades, valores y rendimientos de `BMA`, `METR` y `PAMP` siguen siendo los de la consulta ya entregada.
+3. **Given** la cuenta `10001` antes de órdenes nuevas, **When** se consulta el portfolio, **Then** cantidades, valores y rendimientos de `BMA`, `METR` y `PAMP` siguen siendo los de la consulta ya entregada, con el rendimiento total sobre costo promedio.
 
 ---
 
@@ -105,7 +105,7 @@ Portfolio, búsqueda, cotización y orden de mercado toman el mismo último cier
 - Una posición cuya cantidad neta es cero no se muestra. La posición corta de `BMA` sigue mostrándose, con cantidad y valor de mercado negativos.
 - Un activo sin último cierre sigue en la posición con valor y rendimientos no disponibles, y no suma al valor total.
 - Si el cierre anterior es cero o no existe, el rendimiento diario queda no disponible.
-- Si el capital neto invertido es cero y la cantidad neta no es cero, el rendimiento total queda no disponible.
+- Si no hay costo promedio (sin compras `FILLED` en una larga, sin ventas `FILLED` en una corta), el rendimiento total queda no disponible.
 - La moneda sigue sin ser una posición.
 - Quien conoce el número de cuenta opera. Esta feature no agrega sesiones, permisos ni un límite de intentos.
 - Los tipos ya definidos para la cantidad de la orden y para su fecha no se cambian. No se agrega una fecha de cancelación.

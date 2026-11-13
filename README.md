@@ -92,7 +92,7 @@ mvn verify
 - **Montos como texto.** `amount` y `price` se leen como `BigDecimal`. Se envían como texto (`"800.00"`), igual que todos los montos que devuelve la API, y también se aceptan como número JSON. Un valor que no es número responde `BRK-020` o `BRK-023`.
 - **Campos repetidos.** Un `RequestBodyAdvice` recorre los tokens del cuerpo y rechaza una propiedad repetida en el mismo objeto antes de leerlo. No depende del texto de los mensajes de Jackson.
 - **`MoneyMath` es un bean.** Se construye con los límites de `application.yml` y se inyecta. No hay estado estático.
-- **El portfolio se suma en la base.** Una consulta agrupa por instrumento las órdenes `FILLED` y `NEW` del usuario (cantidad neta, capital neto, reservas y movimientos de pesos). El servicio no carga el historial de órdenes, ni para el portfolio ni al validar una orden nueva con la cuenta bloqueada. La suma de cantidades es `BIGINT`, así que no desborda aunque cada orden sea `INT`.
+- **El portfolio se suma en la base.** Una consulta agrupa por instrumento las órdenes `FILLED` y `NEW` del usuario (cantidad neta, capital neto, compras y ventas ejecutadas para el costo promedio, reservas y movimientos de pesos). El servicio no carga el historial de órdenes, ni para el portfolio ni al validar una orden nueva con la cuenta bloqueada. La suma de cantidades es `BIGINT`, así que no desborda aunque cada orden sea `INT`.
 - **Último precio en la base.** `DISTINCT ON (instrumentid)` devuelve una fila por instrumento: la fecha más reciente y, si empatan, el id más alto. Es una consulta de PostgreSQL, la base del challenge.
 - **Búsqueda en la base.** Busca el texto dentro del ticker o del nombre, sin distinguir mayúsculas, con `%` y `_` tomados literalmente. Devuelve hasta 50 activos ordenados por ticker.
 - **Listado de órdenes por páginas.** `GET /orders` acepta `status`, `page` (desde 0) y `pageSize` (1 a 100, por defecto 20). Responde `{content, page, pageSize, totalElements, totalPages}`, de la orden más antigua a la más nueva. Antes devolvía un arreglo con todas las órdenes; es un cambio de contrato.
@@ -102,11 +102,13 @@ mvn verify
 
 ### ¿Cómo se calcula el rendimiento total de cada posición?
 
-- **A: (Valor de mercado − capital neto de compras y ventas ejecutadas) / valor absoluto de ese capital** ← seleccionada
-- B: (Último cierre − costo promedio de las acciones que siguen en cartera) / costo promedio
+- A: (Valor de mercado − capital neto de compras y ventas ejecutadas) / valor absoluto de ese capital
+- **B: (Último cierre − costo promedio de las acciones que siguen en cartera) / costo promedio** ← seleccionada
 - C: (Cierre − cierre anterior) / cierre anterior
 
-**Respuesta: A.** El rendimiento total es la ganancia o pérdida acumulada de las órdenes ejecutadas, dividida por el valor absoluto del capital neto invertido. No es el rendimiento diario.
+**Respuesta: B.** El costo promedio es lo pagado en las compras ejecutadas dividido por las acciones compradas. En una posición corta se usa el precio promedio de las ventas ejecutadas, y la ganancia es que el cierre baje. Sin compras (o sin ventas, en una corta) el rendimiento total sale vacío. El promedio usa todas las compras ejecutadas del activo, también las de una posición que se cerró y se volvió a abrir. No es el rendimiento diario.
+
+Primero se eligió A. Se cambió porque el capital neto se achica con cada venta con ganancia: comprar 10 a 100 y vender 5 a 150 daba 200 % con el cierre en 150, cuando las acciones que quedan ganan 50 %. Si las ventas superaban las compras, el capital neto quedaba negativo y el resultado perdía sentido. Con B, una venta parcial no cambia el rendimiento de lo que queda en cartera. Es la cifra que muestra un broker.
 
 ### ¿Las órdenes que siguen abiertas reservan el dinero o las acciones disponibles?
 

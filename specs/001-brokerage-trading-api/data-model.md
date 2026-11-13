@@ -82,9 +82,10 @@ Solo participan las filas ya guardadas.
 - Pesos disponibles = efectivo liquidado − reserva de pesos.
 - Cantidad neta = suma de `size` de `BUY FILLED` − suma de `size` de `SELL FILLED`, por activo, sin incluir `MONEDA`.
 - Acciones disponibles = cantidad neta − suma de `size` de `SELL NEW` de ese activo.
-- Capital neto = suma de `size * price` de `BUY FILLED` − suma de `size * price` de `SELL FILLED`.
+- Costo promedio = suma de `size * price` de `BUY FILLED` / suma de `size` de `BUY FILLED`.
+- Precio promedio de venta = suma de `size * price` de `SELL FILLED` / suma de `size` de `SELL FILLED`.
 - Valor de mercado = cantidad neta × cierre vigente.
-- Rendimiento total, en porcentaje = `(valor de mercado − capital neto) / |capital neto| × 100`, con dos decimales, half-up. Si el capital neto es 0, el rendimiento total es nulo.
+- Rendimiento total, en porcentaje, con dos decimales, half-up: si la cantidad neta es positiva, `(cierre − costo promedio) / costo promedio × 100`; si es negativa, `(precio promedio de venta − cierre) / precio promedio de venta × 100`. Sin compras (o sin ventas, en una corta) es nulo.
 - Rendimiento diario, en porcentaje = `(cierre − cierre anterior) / cierre anterior × 100`, con la misma escala. Si el cierre anterior es nulo o 0, es nulo.
 - Valor total = efectivo liquidado + valor de mercado de las posiciones que tienen cierre. Una posición sin cierre se lista con cantidad y con valores nulos, y no suma al total.
 - Se omiten las posiciones de cantidad neta 0 y la moneda. El resto se ordena por ticker. La cantidad negativa se conserva.

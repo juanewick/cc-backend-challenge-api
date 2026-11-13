@@ -20,7 +20,7 @@ class PortfolioControllerIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.positions[0].ticker").value("BMA"))
                 .andExpect(jsonPath("$.positions[0].quantity").value(-10))
                 .andExpect(jsonPath("$.positions[0].marketValue").value("-15028.00"))
-                .andExpect(jsonPath("$.positions[0].totalReturnPercent").value("0.48"))
+                .andExpect(jsonPath("$.positions[0].totalReturnPercent").value("1.78"))
                 .andExpect(jsonPath("$.positions[0].dailyReturnPercent").value("-1.15"))
                 .andExpect(jsonPath("$.positions[1].ticker").value("METR"))
                 .andExpect(jsonPath("$.positions[1].quantity").value(500))
@@ -30,7 +30,7 @@ class PortfolioControllerIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.positions[2].ticker").value("PAMP"))
                 .andExpect(jsonPath("$.positions[2].quantity").value(40))
                 .andExpect(jsonPath("$.positions[2].marketValue").value("37034.00"))
-                .andExpect(jsonPath("$.positions[2].totalReturnPercent").value("-0.18"))
+                .andExpect(jsonPath("$.positions[2].totalReturnPercent").value("-0.45"))
                 .andExpect(jsonPath("$.positions[2].dailyReturnPercent").value("0.44"));
     }
 

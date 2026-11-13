@@ -11,6 +11,10 @@ import java.math.BigDecimal;
  * @param reservedSellQuantity shares held by open (NEW) sells
  * @param reservedBuyAmount    pesos held by open (NEW) buys
  * @param cashFlow             pesos deposited minus pesos withdrawn, FILLED CASH_IN and CASH_OUT only
+ * @param boughtQuantity       shares bought, FILLED only
+ * @param boughtAmount         pesos paid for those shares, FILLED only
+ * @param soldQuantity         shares sold, FILLED only
+ * @param soldAmount           pesos received for those shares, FILLED only
  */
 public record InstrumentHoldings(
         Long instrumentId,
@@ -18,6 +22,10 @@ public record InstrumentHoldings(
         BigDecimal netInvested,
         long reservedSellQuantity,
         BigDecimal reservedBuyAmount,
-        BigDecimal cashFlow
+        BigDecimal cashFlow,
+        long boughtQuantity,
+        BigDecimal boughtAmount,
+        long soldQuantity,
+        BigDecimal soldAmount
 ) {
 }

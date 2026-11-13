@@ -60,13 +60,13 @@
 
 **Goal**: Consultar una cuenta y obtener valor total, pesos disponibles y posiciones con cantidad, valor de mercado, rendimiento total y rendimiento diario
 
-**Independent Test**: `GET /api/accounts/10001/portfolio` devuelve disponible `627500.00`, total `889756.00`, y las posiciones BMA (−10, `-15028.00`, `0.48`, `-1.15`), METR (500, `114750.00`, `-8.20`, `-1.08`) y PAMP (40, `37034.00`, `-0.18`, `0.44`)
+**Independent Test**: `GET /api/accounts/10001/portfolio` devuelve disponible `627500.00`, total `889756.00`, y las posiciones BMA (−10, `-15028.00`, `1.78`, `-1.15`), METR (500, `114750.00`, `-8.20`, `-1.08`) y PAMP (40, `37034.00`, `-0.45`, `0.44`)
 
 ### Tests for User Story 1 ⚠️
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [x] T018 [P] [US1] Crear `src/test/java/com/cc/brokerage/domain/service/PortfolioCalculatorTest.java` con la cuenta `10001`: efectivo liquidado `753000.00`, disponible `627500.00`, total `889756.00`, posiciones ordenadas por ticker, moneda `ARS` excluida y cantidad neta cero omitida. El rendimiento total es `(valor de mercado − capital neto) / |capital neto| × 100`. El rendimiento diario es `(cierre − cierre anterior) / cierre anterior × 100`. Ambos con dos decimales, half-up
+- [x] T018 [P] [US1] Crear `src/test/java/com/cc/brokerage/domain/service/PortfolioCalculatorTest.java` con la cuenta `10001`: efectivo liquidado `753000.00`, disponible `627500.00`, total `889756.00`, posiciones ordenadas por ticker, moneda `ARS` excluida y cantidad neta cero omitida. El rendimiento total es `(cierre − costo promedio) / costo promedio × 100` en una posición larga y `(precio promedio de venta − cierre) / precio promedio de venta × 100` en una corta. El rendimiento diario es `(cierre − cierre anterior) / cierre anterior × 100`. Ambos con dos decimales, half-up
 - [x] T019 [P] [US1] Crear `src/test/java/com/cc/brokerage/application/GetPortfolioServiceTest.java` con Mockito sobre los puertos: cuenta inexistente no devuelve portfolio; cuenta sin órdenes devuelve total `0.00`, disponible `0.00` y posiciones vacías
 - [x] T020 [P] [US1] Crear `src/test/java/com/cc/brokerage/adapter/in/web/PortfolioControllerIT.java`, que extienda `IntegrationTestBase`, para `GET /api/accounts/10001/portfolio` (200 con el oráculo), una cuenta sin órdenes (200 en cero) y una cuenta inexistente (404, sin portfolio)
 
