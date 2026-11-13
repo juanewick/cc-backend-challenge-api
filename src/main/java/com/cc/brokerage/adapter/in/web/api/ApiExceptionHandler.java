@@ -21,6 +21,7 @@ import tools.jackson.databind.exc.MismatchedInputException;
 import tools.jackson.databind.exc.UnrecognizedPropertyException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @RestControllerAdvice
@@ -31,15 +32,19 @@ public class ApiExceptionHandler {
     private static final String INTERNAL = "The request could not be processed.";
     private static final String UNREADABLE = "The request cannot be read.";
     private static final String UNKNOWN_FIELD = "The request contains a field that is not allowed.";
-    private static final String DUPLICATE_PREFIX = "Duplicate Object property \"";
+    private static final String DUPLICATE_UNKNOWN_FIELD = "The request contains a duplicated field.";
     private static final Set<String> FIELDS = Set.of("ticker", "side", "type", "size", "amount", "price");
+    private static final Map<String, DomainErrorCodes> NOT_A_NUMBER = Map.of(
+            "amount", DomainErrorCodes.AMOUNT_NOT_A_NUMBER,
+            "price", DomainErrorCodes.PRICE_NOT_A_NUMBER
+    );
 
     @ExceptionHandler(DomainException.class)
     ResponseEntity<ApiError> domain(DomainException exception) {
         DomainErrorCodes error = exception.error();
         log.debug("Request rejected with {}: {}", error.code(), exception.getMessage());
         return problem(
-                HttpStatus.valueOf(error.status()),
+                statusOf(error),
                 error.code(),
                 exception.getMessage(),
                 error.description(),
@@ -62,20 +67,44 @@ public class ApiExceptionHandler {
         return domain(new DomainException(DomainErrorCodes.SEARCH_EMPTY));
     }
 
+    @ExceptionHandler(DuplicateFieldException.class)
+    ResponseEntity<ApiError> duplicateField(DuplicateFieldException exception) {
+        if (!FIELDS.contains(exception.field())) {
+            return problem(HttpStatus.BAD_REQUEST, "DUPLICATE_FIELD", DUPLICATE_UNKNOWN_FIELD, List.of());
+        }
+        String message = "The " + exception.field() + " field is duplicated.";
+        return problem(HttpStatus.BAD_REQUEST, "DUPLICATE_FIELD", message,
+                List.of(new ApiError.InvalidParam(exception.field(), message)));
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ApiError> unreadable(HttpMessageNotReadableException exception) {
-        String code = codeFor(exception);
-        String message = messageFor(exception);
-        String field = "UNKNOWN_FIELD".equals(code) ? null : fieldFor(exception);
-        List<ApiError.InvalidParam> params = "UNKNOWN_FIELD".equals(code) || field != null
-                ? List.of(new ApiError.InvalidParam(field, message))
-                : List.of();
-        return problem(HttpStatus.BAD_REQUEST, code, message, params);
+        if (unrecognized(exception)) {
+            return problem(HttpStatus.BAD_REQUEST, "UNKNOWN_FIELD", UNKNOWN_FIELD,
+                    List.of(new ApiError.InvalidParam(null, UNKNOWN_FIELD)));
+        }
+        String field = mismatchedField(exception);
+        if (field == null) {
+            return problem(HttpStatus.BAD_REQUEST, "UNREADABLE", UNREADABLE, List.of());
+        }
+        if (NOT_A_NUMBER.containsKey(field)) {
+            return domain(new DomainException(NOT_A_NUMBER.get(field)));
+        }
+        String message = "The " + field + " field is not valid.";
+        return problem(HttpStatus.BAD_REQUEST, "INVALID_FIELD", message, List.of(new ApiError.InvalidParam(field, message)));
     }
 
     @ExceptionHandler({HttpMediaTypeNotSupportedException.class, MethodArgumentTypeMismatchException.class})
     ResponseEntity<ApiError> unreadableRequest() {
         return problem(HttpStatus.BAD_REQUEST, "UNREADABLE", UNREADABLE, List.of());
+    }
+
+    private static HttpStatus statusOf(DomainErrorCodes error) {
+        return switch (error.category()) {
+            case INVALID_INPUT -> HttpStatus.BAD_REQUEST;
+            case NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case CONFLICT -> HttpStatus.CONFLICT;
+        };
     }
 
     private static ResponseEntity<ApiError> problem(
@@ -99,80 +128,22 @@ public class ApiExceptionHandler {
                 .body(ApiError.of(status, code, detail, paramKey, params));
     }
 
-    private static String codeFor(Throwable exception) {
+    private static boolean unrecognized(Throwable exception) {
         for (Throwable current = exception; current != null; current = current.getCause()) {
             if (current instanceof UnrecognizedPropertyException) {
-                return "UNKNOWN_FIELD";
+                return true;
             }
         }
-        for (Throwable current = exception; current != null; current = current.getCause()) {
-            if (!(current instanceof JacksonException jackson)) {
-                continue;
-            }
-            if (repeatedField(jackson) != null) {
-                return "DUPLICATE_FIELD";
-            }
-            if (current instanceof MismatchedInputException || current instanceof InputCoercionException) {
-                if (ourField(jackson) != null) {
-                    return "INVALID_FIELD";
-                }
-            }
-        }
-        return "UNREADABLE";
+        return false;
     }
 
-    private static String messageFor(Throwable exception) {
+    /**
+     * The request property whose value had the wrong type, when it is one of ours; null otherwise.
+     */
+    private static String mismatchedField(Throwable exception) {
         for (Throwable current = exception; current != null; current = current.getCause()) {
-            if (current instanceof UnrecognizedPropertyException) {
-                return UNKNOWN_FIELD;
-            }
-        }
-        for (Throwable current = exception; current != null; current = current.getCause()) {
-            if (!(current instanceof JacksonException jackson)) {
-                continue;
-            }
-            String repeated = repeatedField(jackson);
-            if (repeated != null) {
-                return "The " + repeated + " field is duplicated.";
-            }
-            if (current instanceof MismatchedInputException || current instanceof InputCoercionException) {
-                String field = ourField(jackson);
-                if (field != null) {
-                    return "The " + field + " field is not valid.";
-                }
-            }
-        }
-        return UNREADABLE;
-    }
-
-    private static String repeatedField(JacksonException exception) {
-        String original = exception.getOriginalMessage();
-        if (original == null || !original.startsWith(DUPLICATE_PREFIX)) {
-            return null;
-        }
-        int end = original.indexOf('"', DUPLICATE_PREFIX.length());
-        if (end < 0) {
-            return null;
-        }
-        String property = original.substring(DUPLICATE_PREFIX.length(), end);
-        return FIELDS.contains(property) ? property : null;
-    }
-
-    private static String fieldFor(Throwable exception) {
-        for (Throwable current = exception; current != null; current = current.getCause()) {
-            if (current instanceof UnrecognizedPropertyException unrecognized && unrecognized.getPropertyName() != null) {
-                return unrecognized.getPropertyName();
-            }
-        }
-        for (Throwable current = exception; current != null; current = current.getCause()) {
-            if (!(current instanceof JacksonException jackson)) {
-                continue;
-            }
-            String repeated = repeatedField(jackson);
-            if (repeated != null) {
-                return repeated;
-            }
-            if (current instanceof MismatchedInputException || current instanceof InputCoercionException) {
+            if (current instanceof JacksonException jackson
+                    && (current instanceof MismatchedInputException || current instanceof InputCoercionException)) {
                 String field = ourField(jackson);
                 if (field != null) {
                     return field;

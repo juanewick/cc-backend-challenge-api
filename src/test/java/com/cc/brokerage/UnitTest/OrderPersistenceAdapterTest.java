@@ -1,6 +1,6 @@
 package com.cc.brokerage.UnitTest;
 
-import com.cc.brokerage.adapter.out.persistence.PersistenceAdapter;
+import com.cc.brokerage.adapter.out.persistence.OrderPersistenceAdapter;
 import com.cc.brokerage.adapter.out.persistence.repository.OrderJpaRepository;
 import com.cc.brokerage.domain.model.OrderSide;
 import com.cc.brokerage.domain.model.OrderStatus;
@@ -12,12 +12,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-class PersistenceAdapterTest {
+class OrderPersistenceAdapterTest {
 
     @Test
     void orderWithAPlaceholderValueIsNeverStored() {
         OrderJpaRepository orders = mock(OrderJpaRepository.class);
-        PersistenceAdapter adapter = new PersistenceAdapter(null, null, null, orders);
+        OrderPersistenceAdapter adapter = new OrderPersistenceAdapter(orders);
 
         assertThatThrownBy(() -> adapter.save(Account10001Fixture.order(
                 5L, 45L, 50, "710", OrderSide.UNKNOWN, OrderStatus.CANCELLED, OrderType.LIMIT, "2023-07-12T15:14:20")))

@@ -64,6 +64,22 @@ class HardenDocumentIT extends IntegrationTestBase {
     }
 
     @Test
+    void duplicateUnknownFieldIsRejectedWithoutNamingIt() throws Exception {
+        String body = """
+                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"price":"1.00","campoAjeno":1,"campoAjeno":2}
+                """;
+        reject(MediaType.APPLICATION_JSON, body, "The request contains a duplicated field.", "campoAjeno");
+    }
+
+    @Test
+    void sameNameInDifferentObjectsIsNotADuplicate() throws Exception {
+        String body = """
+                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"price":"1.00","extra":{"ticker":"X"}}
+                """;
+        reject(MediaType.APPLICATION_JSON, body, "The request contains a field that is not allowed.", "extra");
+    }
+
+    @Test
     void numericTickerIsRejected() throws Exception {
         String body = """
                 {"ticker":12345,"side":"BUY","type":"LIMIT","size":1,"price":"1.00"}

@@ -6,6 +6,9 @@ import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.ListedOrder;
 import com.cc.brokerage.domain.model.Order;
+import com.cc.brokerage.domain.model.OrderStatus;
+import com.cc.brokerage.domain.model.PageQuery;
+import com.cc.brokerage.domain.model.PageResult;
 import com.cc.brokerage.domain.model.User;
 import com.cc.brokerage.domain.port.in.ListOrdersUseCase;
 import com.cc.brokerage.domain.port.out.InstrumentRepository;
@@ -14,8 +17,8 @@ import com.cc.brokerage.domain.port.out.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
-import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class ListOrdersService implements ListOrdersUseCase {
@@ -32,19 +35,23 @@ public class ListOrdersService implements ListOrdersUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ListedOrder> list(String accountNumber) {
+    public PageResult<ListedOrder> list(String accountNumber, OrderStatus status, PageQuery page) {
         String account = InputText.account(accountNumber);
         User user = users.findByAccountNumber(account).orElseThrow(() -> new DomainException(DomainErrorCodes.ACCOUNT_NOT_FOUND));
-        return orders.findByUserId(user.id()).stream()
-                .sorted(Comparator.comparing(Order::datetime, Comparator.nullsLast(Comparator.naturalOrder()))
-                        .thenComparing(Order::id, Comparator.nullsLast(Comparator.naturalOrder())))
-                .map(order -> new ListedOrder(order, tickerOf(order)))
-                .toList();
+        PageResult<Order> found = orders.findPageByUserId(user.id(), status, page);
+        Map<Long, Instrument> byId = instruments.findByIds(found.content().stream()
+                .map(Order::instrumentId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList());
+        return found.map(order -> new ListedOrder(order, tickerOf(order, byId)));
     }
 
-    private String tickerOf(Order order) {
-        return instruments.findInstrumentById(order.instrumentId())
-                .map(Instrument::ticker)
-                .orElseThrow(() -> new DomainException(DomainErrorCodes.INSTRUMENT_NOT_FOUND));
+    private static String tickerOf(Order order, Map<Long, Instrument> byId) {
+        Instrument instrument = order.instrumentId() == null ? null : byId.get(order.instrumentId());
+        if (instrument == null) {
+            throw new DomainException(DomainErrorCodes.INSTRUMENT_NOT_FOUND);
+        }
+        return instrument.ticker();
     }
 }

@@ -28,7 +28,7 @@ public record OrderResponse(
         @Schema(description = "Motivo del rechazo. Solo en el alta cuando el estado es REJECTED. No se guarda.")
         RejectionReason rejectionReason
 ) {
-    public static OrderResponse from(Order order, String accountNumber, String ticker) {
+    public static OrderResponse from(Order order, String accountNumber, String ticker, MoneyFormatter money) {
         return new OrderResponse(
                 order.id(),
                 accountNumber,
@@ -36,7 +36,7 @@ public record OrderResponse(
                 order.side(),
                 order.type(),
                 order.size(),
-                MoneyFormats.money(order.price()),
+                money.format(order.price()),
                 order.status(),
                 order.datetime() == null ? null : DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(order.datetime()),
                 null,
@@ -44,8 +44,8 @@ public record OrderResponse(
         );
     }
 
-    public static OrderResponse placed(Order order, String accountNumber, String ticker, BigDecimal amount, RejectionReason reason) {
-        OrderResponse response = from(order, accountNumber, ticker);
+    public static OrderResponse placed(Order order, String accountNumber, String ticker, BigDecimal amount, RejectionReason reason, MoneyFormatter money) {
+        OrderResponse response = from(order, accountNumber, ticker, money);
         return new OrderResponse(
                 response.id(),
                 response.accountNumber(),
@@ -56,7 +56,7 @@ public record OrderResponse(
                 response.price(),
                 response.status(),
                 response.datetime(),
-                MoneyFormats.money(amount),
+                money.format(amount),
                 reason
         );
     }

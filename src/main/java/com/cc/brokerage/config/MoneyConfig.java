@@ -12,8 +12,11 @@ public class MoneyConfig {
 
     @Bean
     MoneyLimits moneyLimits(MoneyProperties properties) {
-        MoneyLimits limits = properties.toLimits();
-        MoneyMath.configure(limits);
-        return limits;
+        return properties.toLimits();
+    }
+
+    @Bean
+    MoneyMath moneyMath(MoneyLimits limits) {
+        return new MoneyMath(limits);
     }
 }

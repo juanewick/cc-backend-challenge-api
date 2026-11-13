@@ -7,7 +7,6 @@ import com.cc.brokerage.domain.model.Order;
 import com.cc.brokerage.domain.model.OrderSide;
 import com.cc.brokerage.domain.model.OrderStatus;
 import com.cc.brokerage.domain.model.OrderType;
-import com.cc.brokerage.domain.model.MoneyMath;
 import com.cc.brokerage.domain.model.PlaceOrderCommand;
 import com.cc.brokerage.support.MoneyBounds;
 import com.cc.brokerage.domain.port.out.InstrumentRepository;
@@ -16,6 +15,7 @@ import com.cc.brokerage.domain.port.out.OrderRepository;
 import com.cc.brokerage.domain.port.out.UserRepository;
 import com.cc.brokerage.domain.service.PortfolioCalculator;
 import com.cc.brokerage.support.Account10001Fixture;
+import com.cc.brokerage.support.HoldingsOf;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,7 +55,8 @@ class PlaceMarketOrderServiceTest {
                 instruments,
                 prices,
                 orders,
-                new PortfolioCalculator()
+                new PortfolioCalculator(MoneyBounds.DEFAULT_MONEY),
+                MoneyBounds.DEFAULT_MONEY
         );
     }
 
@@ -85,7 +86,7 @@ class PlaceMarketOrderServiceTest {
         verify(orders).save(captor.capture());
         assertThat(captor.getValue().size()).isEqualTo(2);
         assertThat(captor.getValue().price()).isEqualByComparingTo("885.80");
-        assertThat(captor.getValue().notional()).isEqualByComparingTo("1771.60");
+        assertThat(MoneyBounds.DEFAULT_MONEY.notional(captor.getValue().size(), captor.getValue().price())).isEqualByComparingTo("1771.60");
         assertThat(captor.getValue().status()).isEqualTo(OrderStatus.FILLED);
     }
 
@@ -93,7 +94,7 @@ class PlaceMarketOrderServiceTest {
     void marketSellUsesCloseAndIgnoresSubmittedPrice() {
         stubAccount();
         when(instruments.findByTicker("PAMP")).thenReturn(Optional.of(Account10001Fixture.PAMP));
-        when(prices.findByInstrumentIds(java.util.Set.of(47L))).thenReturn(java.util.List.of(Account10001Fixture.latestPrices().get(47L)));
+        when(prices.findLatestByInstrumentIds(java.util.Set.of(47L))).thenReturn(java.util.Map.of(47L, Account10001Fixture.latestPrices().get(47L)));
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Order placed = service.place(new PlaceOrderCommand(
@@ -148,7 +149,7 @@ class PlaceMarketOrderServiceTest {
         stubAccountAndGgalLenient();
         BigDecimal close = Account10001Fixture.latestPrices().get(Account10001Fixture.GGAL.id()).close();
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, close.multiply(MoneyBounds.oneSharePastMax()), null)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, close.multiply(MoneyBounds.DEFAULTS.oneSharePastMax()), null)))
                 .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
@@ -157,7 +158,7 @@ class PlaceMarketOrderServiceTest {
     void amountThatRoundsPastTheMaximumDoesNotSave() {
         stubAccountAndGgalLenient();
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, MoneyBounds.justPastMax(), null)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, MoneyBounds.DEFAULTS.justPastMax(), null)))
                 .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
@@ -165,10 +166,10 @@ class PlaceMarketOrderServiceTest {
     @Test
     void nonPositiveAmountDoesNotSave() {
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, MoneyMath.minAmount(), null)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, MoneyBounds.DEFAULT_MONEY.minAmount(), null)))
                 .isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, MoneyBounds.belowMinAmount(), null)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, MoneyBounds.DEFAULTS.belowMinAmount(), null)))
                 .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
@@ -177,7 +178,7 @@ class PlaceMarketOrderServiceTest {
     void amountThatBuysNoSharesIsSavedRejected() {
         when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
         when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
-        when(prices.findByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.List.of(Account10001Fixture.latestPrices().get(34L)));
+        when(prices.findLatestByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.Map.of(34L, Account10001Fixture.latestPrices().get(34L)));
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Order placed = service.place(new PlaceOrderCommand(
@@ -192,7 +193,7 @@ class PlaceMarketOrderServiceTest {
     void marketWithoutCloseIsSavedRejected() {
         when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
         when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
-        when(prices.findByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.List.of());
+        when(prices.findLatestByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.Map.of());
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Order placed = service.place(new PlaceOrderCommand(
@@ -222,19 +223,19 @@ class PlaceMarketOrderServiceTest {
 
     private void stubAccount() {
         when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
-        when(orders.findByUserId(1L)).thenReturn(Account10001Fixture.orders());
+        when(orders.summarizeHoldings(1L)).thenReturn(HoldingsOf.orders(Account10001Fixture.orders()));
     }
 
     private void stubAccountAndGgal() {
         stubAccount();
         when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
-        when(prices.findByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.List.of(Account10001Fixture.latestPrices().get(34L)));
+        when(prices.findLatestByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.Map.of(34L, Account10001Fixture.latestPrices().get(34L)));
     }
 
     private void stubAccountAndGgalLenient() {
         lenient().when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
-        lenient().when(orders.findByUserId(1L)).thenReturn(Account10001Fixture.orders());
+        lenient().when(orders.summarizeHoldings(1L)).thenReturn(HoldingsOf.orders(Account10001Fixture.orders()));
         lenient().when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
-        lenient().when(prices.findByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.List.of(Account10001Fixture.latestPrices().get(34L)));
+        lenient().when(prices.findLatestByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.Map.of(34L, Account10001Fixture.latestPrices().get(34L)));
     }
 }

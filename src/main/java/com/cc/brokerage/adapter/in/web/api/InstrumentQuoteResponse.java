@@ -10,13 +10,13 @@ public record InstrumentQuoteResponse(
         @Schema(description = "Último precio a dos decimales, como texto.") String lastPrice,
         @Schema(description = "Rendimiento diario a dos decimales. 0.48 es 0,48 %, no 48 %.") String dailyReturnPercent
 ) {
-    public static InstrumentQuoteResponse from(InstrumentQuote quote) {
+    public static InstrumentQuoteResponse from(InstrumentQuote quote, MoneyFormatter money) {
         return new InstrumentQuoteResponse(
                 quote.ticker(),
                 quote.name(),
                 quote.type(),
-                MoneyFormats.money(quote.lastPrice()),
-                MoneyFormats.money(quote.dailyReturnPercent())
+                money.format(quote.lastPrice()),
+                money.format(quote.dailyReturnPercent())
         );
     }
 }

@@ -57,6 +57,35 @@ public final class InputText {
         return id.longValue();
     }
 
+    public static OrderStatus orderStatus(String value) {
+        if (value == null) {
+            return null;
+        }
+        for (OrderStatus status : OrderStatus.values()) {
+            if (status != OrderStatus.UNKNOWN && status.name().equals(value)) {
+                return status;
+            }
+        }
+        throw new DomainException(DomainErrorCodes.INVALID_STATUS);
+    }
+
+    public static PageQuery page(String page, String size) {
+        int number = page == null ? 0 : boundedInt(page, PageQuery.MAX_PAGE, DomainErrorCodes.INVALID_PAGE, 0);
+        int rows = size == null ? PageQuery.DEFAULT_SIZE : boundedInt(size, PageQuery.MAX_SIZE, DomainErrorCodes.INVALID_PAGE_SIZE, 1);
+        return new PageQuery(number, rows);
+    }
+
+    private static int boundedInt(String value, int max, DomainErrorCodes error, int min) {
+        if (!value.matches("[0-9]{1,9}")) {
+            throw new DomainException(error, max);
+        }
+        int parsed = Integer.parseInt(value);
+        if (parsed < min || parsed > max) {
+            throw new DomainException(error, max);
+        }
+        return parsed;
+    }
+
     private static String trimEnds(String value) {
         int start = 0;
         int end = value.length();

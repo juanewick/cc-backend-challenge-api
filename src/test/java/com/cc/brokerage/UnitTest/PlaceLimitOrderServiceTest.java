@@ -6,7 +6,6 @@ import com.cc.brokerage.domain.model.Order;
 import com.cc.brokerage.domain.model.OrderSide;
 import com.cc.brokerage.domain.model.OrderStatus;
 import com.cc.brokerage.domain.model.OrderType;
-import com.cc.brokerage.domain.model.MoneyMath;
 import com.cc.brokerage.domain.model.PlaceOrderCommand;
 import com.cc.brokerage.support.MoneyBounds;
 import com.cc.brokerage.domain.port.out.InstrumentRepository;
@@ -15,6 +14,7 @@ import com.cc.brokerage.domain.port.out.OrderRepository;
 import com.cc.brokerage.domain.port.out.UserRepository;
 import com.cc.brokerage.domain.service.PortfolioCalculator;
 import com.cc.brokerage.support.Account10001Fixture;
+import com.cc.brokerage.support.HoldingsOf;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,7 +47,7 @@ class PlaceLimitOrderServiceTest {
     @Mock
     private OrderRepository orders;
 
-    private final PortfolioCalculator calculator = new PortfolioCalculator();
+    private final PortfolioCalculator calculator = new PortfolioCalculator(MoneyBounds.DEFAULT_MONEY);
     private PlaceOrderService service;
 
     @BeforeEach
@@ -57,7 +57,8 @@ class PlaceLimitOrderServiceTest {
                 instruments,
                 prices,
                 orders,
-                calculator
+                calculator,
+                MoneyBounds.DEFAULT_MONEY
         );
     }
 
@@ -75,10 +76,10 @@ class PlaceLimitOrderServiceTest {
         assertThat(saved.status()).isEqualTo(OrderStatus.NEW);
         assertThat(saved.size()).isEqualTo(10);
         assertThat(saved.price()).isEqualByComparingTo("800.00");
-        assertThat(saved.notional()).isEqualByComparingTo("8000.00");
+        assertThat(MoneyBounds.DEFAULT_MONEY.notional(saved.size(), saved.price())).isEqualByComparingTo("8000.00");
 
-        var before = calculator.summarize(Account10001Fixture.orders());
-        var after = calculator.summarize(withSaved(saved));
+        var before = calculator.summarize(HoldingsOf.orders(Account10001Fixture.orders()));
+        var after = calculator.summarize(HoldingsOf.orders(withSaved(saved)));
         assertThat(after.settledCash()).isEqualByComparingTo(before.settledCash());
         assertThat(after.availableCash()).isEqualByComparingTo(before.availableCash().subtract(new BigDecimal("8000.00")));
     }
@@ -94,10 +95,10 @@ class PlaceLimitOrderServiceTest {
     @Test
     void nonPositiveLimitPriceDoesNotSave() {
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 10, null, MoneyMath.minAmount())))
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 10, null, MoneyBounds.DEFAULT_MONEY.minAmount())))
                 .isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 10, null, MoneyBounds.belowMinAmount())))
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 10, null, MoneyBounds.DEFAULTS.belowMinAmount())))
                 .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
@@ -115,10 +116,10 @@ class PlaceLimitOrderServiceTest {
         Order saved = captor.getValue();
         assertThat(saved.status()).isEqualTo(OrderStatus.NEW);
         assertThat(saved.size()).isEqualTo(3);
-        assertThat(saved.notional()).isEqualByComparingTo("2400.00");
+        assertThat(MoneyBounds.DEFAULT_MONEY.notional(saved.size(), saved.price())).isEqualByComparingTo("2400.00");
 
-        var before = calculator.summarize(Account10001Fixture.orders());
-        var after = calculator.summarize(withSaved(saved));
+        var before = calculator.summarize(HoldingsOf.orders(Account10001Fixture.orders()));
+        var after = calculator.summarize(HoldingsOf.orders(withSaved(saved)));
         assertThat(after.availableCash()).isEqualByComparingTo(before.availableCash().subtract(new BigDecimal("2400.00")));
     }
 
@@ -139,7 +140,7 @@ class PlaceLimitOrderServiceTest {
     void limitAmountWhoseShareCountOverflowsDoesNotSave() {
         stubAccountAndGgalLenient();
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, MoneyBounds.oneSharePastMax(), BigDecimal.ONE)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, MoneyBounds.DEFAULTS.oneSharePastMax(), BigDecimal.ONE)))
                 .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
@@ -148,7 +149,7 @@ class PlaceLimitOrderServiceTest {
     void limitAmountThatRoundsPastTheMaximumDoesNotSave() {
         stubAccountAndGgalLenient();
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, MoneyBounds.justPastMax(), BigDecimal.ONE)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, MoneyBounds.DEFAULTS.justPastMax(), BigDecimal.ONE)))
                 .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
@@ -157,7 +158,7 @@ class PlaceLimitOrderServiceTest {
     void limitPriceThatRoundsPastTheMaximumDoesNotSave() {
         stubAccountAndGgalLenient();
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 1, null, MoneyBounds.justPastMax())))
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 1, null, MoneyBounds.DEFAULTS.justPastMax())))
                 .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
@@ -165,10 +166,10 @@ class PlaceLimitOrderServiceTest {
     @Test
     void nonPositiveLimitAmountDoesNotSave() {
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, MoneyMath.minAmount(), BigDecimal.ONE)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, MoneyBounds.DEFAULT_MONEY.minAmount(), BigDecimal.ONE)))
                 .isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
-                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, MoneyBounds.belowMinAmount(), BigDecimal.ONE)))
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, MoneyBounds.DEFAULTS.belowMinAmount(), BigDecimal.ONE)))
                 .isInstanceOf(DomainException.class);
         verify(orders, never()).save(any());
     }
@@ -186,8 +187,8 @@ class PlaceLimitOrderServiceTest {
         assertThat(placed.size()).isEqualTo(10);
         assertThat(placed.price()).isEqualByComparingTo("1000.00");
 
-        var before = calculator.summarize(Account10001Fixture.orders());
-        var after = calculator.summarize(withSaved(placed));
+        var before = calculator.summarize(HoldingsOf.orders(Account10001Fixture.orders()));
+        var after = calculator.summarize(HoldingsOf.orders(withSaved(placed)));
         assertThat(after.settledCash()).isEqualByComparingTo(before.settledCash());
         assertThat(after.availableCash()).isEqualByComparingTo(before.availableCash());
         assertThat(calculator.availableShares(after, Account10001Fixture.PAMP.id()))
@@ -196,7 +197,7 @@ class PlaceLimitOrderServiceTest {
 
     private void stubAccount() {
         when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
-        when(orders.findByUserId(1L)).thenReturn(Account10001Fixture.orders());
+        when(orders.summarizeHoldings(1L)).thenReturn(HoldingsOf.orders(Account10001Fixture.orders()));
     }
 
     private void stubAccountAndGgal() {
@@ -206,7 +207,7 @@ class PlaceLimitOrderServiceTest {
 
     private void stubAccountAndGgalLenient() {
         lenient().when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
-        lenient().when(orders.findByUserId(1L)).thenReturn(Account10001Fixture.orders());
+        lenient().when(orders.summarizeHoldings(1L)).thenReturn(HoldingsOf.orders(Account10001Fixture.orders()));
         lenient().when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
     }
 

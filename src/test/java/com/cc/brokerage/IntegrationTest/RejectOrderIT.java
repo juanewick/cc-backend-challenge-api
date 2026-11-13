@@ -133,6 +133,20 @@ class RejectOrderIT extends IntegrationTestBase {
     }
 
     @Test
+    void ordersWithASideOrStatusUnknownToTheServiceAreLeftOutOfThePortfolio() throws Exception {
+        jdbc.update("INSERT INTO orders (instrumentId, userId, size, price, side, status, type, datetime) "
+                + "VALUES (47, 1, 7, 900, 'DIVIDEND', 'FILLED', 'MARKET', '2023-07-14 10:00:00')");
+        jdbc.update("INSERT INTO orders (instrumentId, userId, size, price, side, status, type, datetime) "
+                + "VALUES (47, 1, 7, 900, 'BUY', 'PARTIAL', 'MARKET', '2023-07-14 10:01:00')");
+
+        assertReferencePortfolio();
+        mockMvc.perform(get(apiV1() + "/accounts/10001/orders").param("pageSize", "100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[11].side").value("UNKNOWN"))
+                .andExpect(jsonPath("$.content[12].status").value("UNKNOWN"));
+    }
+
+    @Test
     void instrumentTypeUnknownToTheServiceDoesNotBreakReads() throws Exception {
         jdbc.update("INSERT INTO instruments (ticker, name, type) VALUES ('ZZBOND', 'Bono de prueba', 'BONOS')");
         try {

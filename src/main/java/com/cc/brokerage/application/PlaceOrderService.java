@@ -20,7 +20,6 @@ import com.cc.brokerage.domain.port.out.InstrumentRepository;
 import com.cc.brokerage.domain.port.out.MarketPriceRepository;
 import com.cc.brokerage.domain.port.out.OrderRepository;
 import com.cc.brokerage.domain.port.out.UserRepository;
-import com.cc.brokerage.domain.service.LatestPrices;
 import com.cc.brokerage.domain.service.PortfolioCalculator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,19 +36,22 @@ public class PlaceOrderService implements PlaceOrderUseCase {
     private final MarketPriceRepository prices;
     private final OrderRepository orders;
     private final PortfolioCalculator calculator;
+    private final MoneyMath money;
 
     public PlaceOrderService(
             UserRepository users,
             InstrumentRepository instruments,
             MarketPriceRepository prices,
             OrderRepository orders,
-            PortfolioCalculator calculator
+            PortfolioCalculator calculator,
+            MoneyMath money
     ) {
         this.users = users;
         this.instruments = instruments;
         this.prices = prices;
         this.orders = orders;
         this.calculator = calculator;
+        this.money = money;
     }
 
     @Override
@@ -57,13 +59,11 @@ public class PlaceOrderService implements PlaceOrderUseCase {
     public PlaceOrderOutcome place(PlaceOrderCommand command) {
         String accountNumber = InputText.account(command.accountNumber());
         String ticker = InputText.ticker(command.ticker());
-        validateShape(command);
+        validate(command);
         User user = users.lockByAccountNumber(accountNumber);
         Instrument instrument = instruments.findByTicker(ticker)
                 .orElseThrow(() -> new DomainException(DomainErrorCodes.INSTRUMENT_NOT_FOUND));
-        if (instrument.type() == InstrumentType.MONEDA
-                || command.side() == OrderSide.CASH_IN
-                || command.side() == OrderSide.CASH_OUT) {
+        if (instrument.type() == InstrumentType.MONEDA) {
             throw new DomainException(DomainErrorCodes.CASH_MOVEMENT);
         }
 
@@ -75,17 +75,20 @@ public class PlaceOrderService implements PlaceOrderUseCase {
                 instrument.id(),
                 user.id(),
                 size,
-                MoneyMath.scaled(price),
+                money.scaled(price),
                 command.type(),
                 command.side(),
                 decision.status(),
                 LocalDateTime.now()
         );
-        BigDecimal amount = price == null ? null : MoneyMath.notional(size, price);
-        return new PlaceOrderOutcome(orders.save(order), amount, decision.reason());
+        BigDecimal amount = price == null ? null : money.notional(size, price);
+        return new PlaceOrderOutcome(orders.save(order), instrument.ticker(), amount, decision.reason());
     }
 
-    private void validateShape(PlaceOrderCommand command) {
+    /**
+     * Every rule about the shape of an order request lives here, so the HTTP adapter only has to read JSON.
+     */
+    private void validate(PlaceOrderCommand command) {
         if (command.side() != OrderSide.BUY && command.side() != OrderSide.SELL) {
             throw new DomainException(DomainErrorCodes.INVALID_SIDE);
         }
@@ -97,49 +100,36 @@ public class PlaceOrderService implements PlaceOrderUseCase {
         if (hasSize == hasAmount) {
             throw new DomainException(DomainErrorCodes.EXCLUSIVE_QUANTITY);
         }
-        if (hasSize && (command.size() < MoneyMath.minShares() || command.size() > MoneyMath.maxShares())) {
-            throw new DomainException(DomainErrorCodes.INVALID_SIZE, MoneyMath.minShares(), MoneyMath.maxShares());
+        if (hasSize && (command.size() < money.minShares() || command.size() > money.maxShares())) {
+            throw new DomainException(DomainErrorCodes.INVALID_SIZE, money.minShares(), money.maxShares());
         }
         if (hasAmount) {
-            acceptAmount(command.amount());
+            acceptMoney(command.amount(), DomainErrorCodes.AMOUNT_NOT_POSITIVE, DomainErrorCodes.AMOUNT_ABOVE_MAXIMUM);
         }
         if (command.type() == OrderType.LIMIT) {
             if (command.price() == null) {
                 throw new DomainException(DomainErrorCodes.PRICE_NOT_POSITIVE);
             }
-            acceptPrice(command.price());
+            acceptMoney(command.price(), DomainErrorCodes.PRICE_NOT_POSITIVE, DomainErrorCodes.PRICE_ABOVE_MAXIMUM);
         }
     }
 
-    private static void acceptAmount(BigDecimal value) {
-        acceptMoney(value, DomainErrorCodes.AMOUNT_NOT_POSITIVE, DomainErrorCodes.AMOUNT_ABOVE_MAXIMUM);
-    }
-
-    private static void acceptPrice(BigDecimal value) {
-        acceptMoney(value, DomainErrorCodes.PRICE_NOT_POSITIVE, DomainErrorCodes.PRICE_ABOVE_MAXIMUM);
-    }
-
-    private static void acceptMoney(BigDecimal value, DomainErrorCodes notPositive, DomainErrorCodes aboveMaximum) {
-        BigDecimal rounded = rounded(value);
-        if (rounded.compareTo(MoneyMath.minAmount()) <= 0) {
+    private void acceptMoney(BigDecimal value, DomainErrorCodes notPositive, DomainErrorCodes aboveMaximum) {
+        BigDecimal rounded = money.round(value);
+        if (rounded.compareTo(money.minAmount()) <= 0) {
             throw new DomainException(notPositive);
         }
-        if (rounded.compareTo(MoneyMath.maxAmount()) > 0) {
+        if (rounded.compareTo(money.maxAmount()) > 0) {
             throw new DomainException(aboveMaximum);
         }
     }
 
-    private static BigDecimal rounded(BigDecimal value) {
-        return value.setScale(MoneyMath.scale(), MoneyMath.ROUNDING);
-    }
-
     private BigDecimal resolvePrice(PlaceOrderCommand command, Instrument instrument) {
         if (command.type() == OrderType.LIMIT) {
-            return rounded(command.price());
+            return money.round(command.price());
         }
-        return LatestPrices.one(prices.findByInstrumentIds(Set.of(instrument.id())))
-                .map(MarketPrice::close)
-                .orElse(null);
+        MarketPrice latest = prices.findLatestByInstrumentIds(Set.of(instrument.id())).get(instrument.id());
+        return latest == null ? null : latest.close();
     }
 
     private int resolveSize(PlaceOrderCommand command, BigDecimal price) {
@@ -149,7 +139,7 @@ public class PlaceOrderService implements PlaceOrderUseCase {
         if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
             return 0;
         }
-        return MoneyMath.sharesFromAmount(rounded(command.amount()), price);
+        return money.sharesFromAmount(money.round(command.amount()), price);
     }
 
     private Decision decideStatus(PlaceOrderCommand command, User user, Instrument instrument, int size, BigDecimal price) {
@@ -159,8 +149,8 @@ public class PlaceOrderService implements PlaceOrderUseCase {
         if (size < 1) {
             return new Decision(OrderStatus.REJECTED, RejectionReason.ZERO_SHARES);
         }
-        var holdings = calculator.summarize(orders.findByUserId(user.id()));
-        BigDecimal cost = MoneyMath.notional(size, price);
+        var holdings = calculator.summarize(orders.summarizeHoldings(user.id()));
+        BigDecimal cost = money.notional(size, price);
         if (command.side() == OrderSide.BUY && cost.compareTo(holdings.availableCash()) > 0) {
             return new Decision(OrderStatus.REJECTED, RejectionReason.INSUFFICIENT_CASH);
         }

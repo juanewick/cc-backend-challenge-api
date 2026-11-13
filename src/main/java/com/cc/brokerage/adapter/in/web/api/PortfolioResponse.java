@@ -13,14 +13,14 @@ public record PortfolioResponse(
         @Schema(description = "Efectivo reservado por compras abiertas, a dos decimales. No se guarda.") String reservedCash,
         List<PositionResponse> positions
 ) {
-    public static PortfolioResponse from(Portfolio portfolio) {
+    public static PortfolioResponse from(Portfolio portfolio, MoneyFormatter money) {
         return new PortfolioResponse(
                 portfolio.accountNumber(),
-                MoneyFormats.money(portfolio.totalValue()),
-                MoneyFormats.money(portfolio.availableCash()),
-                MoneyFormats.money(portfolio.settledCash()),
-                MoneyFormats.money(portfolio.reservedCash()),
-                portfolio.positions().stream().map(PositionResponse::from).toList()
+                money.format(portfolio.totalValue()),
+                money.format(portfolio.availableCash()),
+                money.format(portfolio.settledCash()),
+                money.format(portfolio.reservedCash()),
+                portfolio.positions().stream().map(position -> PositionResponse.from(position, money)).toList()
         );
     }
 }

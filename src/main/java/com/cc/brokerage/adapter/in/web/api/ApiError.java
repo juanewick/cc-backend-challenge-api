@@ -47,6 +47,9 @@ public record ApiError(
             case "INVALID_SIZE" -> one("size", detail);
             case "INVALID_AMOUNT" -> one("amount", detail);
             case "INVALID_PRICE" -> one("price", detail);
+            case "INVALID_STATUS" -> one("status", detail);
+            case "INVALID_PAGE" -> one("page", detail);
+            case "INVALID_PAGE_SIZE" -> one("pageSize", detail);
             case "EXCLUSIVE_QUANTITY" -> List.of(new InvalidParam("size", detail), new InvalidParam("amount", detail));
             default -> List.of();
         };

@@ -9,7 +9,7 @@ import com.cc.brokerage.domain.model.InstrumentType;
 import com.cc.brokerage.domain.port.in.GetInstrumentQuoteUseCase;
 import com.cc.brokerage.domain.port.out.InstrumentRepository;
 import com.cc.brokerage.domain.port.out.MarketPriceRepository;
-import com.cc.brokerage.domain.service.LatestPrices;
+import com.cc.brokerage.domain.service.QuoteCalculator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,10 +20,12 @@ public class GetInstrumentQuoteService implements GetInstrumentQuoteUseCase {
 
     private final InstrumentRepository instruments;
     private final MarketPriceRepository prices;
+    private final QuoteCalculator quotes;
 
-    public GetInstrumentQuoteService(InstrumentRepository instruments, MarketPriceRepository prices) {
+    public GetInstrumentQuoteService(InstrumentRepository instruments, MarketPriceRepository prices, QuoteCalculator quotes) {
         this.instruments = instruments;
         this.prices = prices;
+        this.quotes = quotes;
     }
 
     @Override
@@ -34,7 +36,6 @@ public class GetInstrumentQuoteService implements GetInstrumentQuoteUseCase {
         if (instrument.type() == InstrumentType.MONEDA) {
             throw new DomainException(DomainErrorCodes.INSTRUMENT_NOT_TRADABLE);
         }
-        var latest = LatestPrices.one(prices.findByInstrumentIds(Set.of(instrument.id()))).orElse(null);
-        return SearchInstrumentsService.toQuote(instrument, latest);
+        return quotes.quote(instrument, prices.findLatestByInstrumentIds(Set.of(instrument.id())).get(instrument.id()));
     }
 }

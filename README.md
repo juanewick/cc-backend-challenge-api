@@ -8,14 +8,14 @@ Se usó arquitectura hexagonal. El dominio no conoce HTTP ni JPA: los casos de u
 
 | Paquete (`com.cc.brokerage`) | Contenido |
 |---|---|
-| `domain` | Modelo, reglas y errores. `port.in` son los casos de uso. `port.out` son los repositorios. `service` calcula el portfolio y elige el precio vigente. |
+| `domain` | Modelo, reglas y errores. `port.in` son los casos de uso. `port.out` son los repositorios. `service` calcula el portfolio y las cotizaciones. Los errores llevan una categoría (entrada inválida, inexistente, conflicto), no un status HTTP. |
 | `application` | Implementa los casos de uso. |
 | `adapter.in.web.controller` | Rutas HTTP. |
-| `adapter.in.web.api` | Pedidos, respuestas y errores. |
-| `adapter.out.persistence` | `PersistenceAdapter` implementa los puertos de salida. |
+| `adapter.in.web.api` | Pedidos, respuestas y errores. Traduce cada categoría de error a su status HTTP. |
+| `adapter.out.persistence` | Un adapter por agregado (`User`, `Instrument`, `MarketPrice`, `Order`) implementa cada puerto de salida. |
 | `adapter.out.persistence.entity` | Tablas JPA. |
-| `adapter.out.persistence.repository` | `JpaRepository`. |
-| `config` | Beans de Spring. El prefijo HTTP de los `RestController` sale de `application.yml`. |
+| `adapter.out.persistence.repository` | `JpaRepository` y las consultas que agregan en la base. |
+| `config` | Beans de Spring. El prefijo HTTP de los `RestController` y los límites de montos salen de `application.yml`. |
 
 ## Funcionalidades
 
@@ -24,6 +24,7 @@ Se usó arquitectura hexagonal. El dominio no conoce HTTP ni JPA: los casos de u
 - Enviar órdenes `MARKET` (se ejecutan al cierre vigente) o `LIMIT` (quedan abiertas y reservan pesos o acciones).
 - Guardar como `REJECTED` la orden que no entra por fondos o acciones insuficientes.
 - Cancelar una orden abierta `NEW` y devolver la reserva.
+- Listar las órdenes de una cuenta por páginas, opcionalmente filtradas por estado.
 
 ## Arranque local con Docker
 
@@ -42,6 +43,7 @@ Ejemplos:
 ```bash
 curl -s http://localhost:8080/api/brokerage-api/v1/accounts/10001/portfolio
 curl -s "http://localhost:8080/api/brokerage-api/v1/instruments?q=banco"
+curl -s "http://localhost:8080/api/brokerage-api/v1/accounts/10001/orders?status=NEW&page=0&pageSize=20"
 ```
 
 Hay una colección de ejemplo en [`postman/brokerage.postman_collection.json`](postman/brokerage.postman_collection.json).
@@ -83,6 +85,18 @@ mvn verify
 - Antes de cada escenario de integración se recrean las órdenes de referencia con `TRUNCATE`, para que un test no deje saldo a otro.
 - Actuator publica solo health e info, en `/actuator`. Health no muestra componentes. Info repite el nombre `brokerage-api`.
 - El contrato OpenAPI lo genera springdoc-openapi 3.2.0 (`springdoc-openapi-starter-webmvc-ui`).
+
+## Decisiones de diseño
+
+- **Validación en un solo lugar.** El controller solo lee el JSON. Las reglas de una orden nueva (lado, tipo, cantidad o monto, rangos, precio de una LIMIT) están en `PlaceOrderService`. Se quitó `spring-boot-starter-validation`: los límites de montos son configurables y con anotaciones habría quedado una segunda copia de las mismas reglas.
+- **Montos como texto.** `amount` y `price` se leen como `BigDecimal`. Se envían como texto (`"800.00"`), igual que todos los montos que devuelve la API, y también se aceptan como número JSON. Un valor que no es número responde `BRK-020` o `BRK-023`.
+- **Campos repetidos.** Un `RequestBodyAdvice` recorre los tokens del cuerpo y rechaza una propiedad repetida en el mismo objeto antes de leerlo. No depende del texto de los mensajes de Jackson.
+- **`MoneyMath` es un bean.** Se construye con los límites de `application.yml` y se inyecta. No hay estado estático.
+- **El portfolio se suma en la base.** Una consulta agrupa por instrumento las órdenes `FILLED` y `NEW` del usuario (cantidad neta, capital neto, reservas y movimientos de pesos). El servicio no carga el historial de órdenes, ni para el portfolio ni al validar una orden nueva con la cuenta bloqueada. La suma de cantidades es `BIGINT`, así que no desborda aunque cada orden sea `INT`.
+- **Último precio en la base.** `DISTINCT ON (instrumentid)` devuelve una fila por instrumento: la fecha más reciente y, si empatan, el id más alto. Es una consulta de PostgreSQL, la base del challenge.
+- **Búsqueda en la base.** Busca el texto dentro del ticker o del nombre, sin distinguir mayúsculas, con `%` y `_` tomados literalmente. Devuelve hasta 50 activos ordenados por ticker.
+- **Listado de órdenes por páginas.** `GET /orders` acepta `status`, `page` (desde 0) y `pageSize` (1 a 100, por defecto 20). Responde `{content, page, pageSize, totalElements, totalPages}`, de la orden más antigua a la más nueva. Antes devolvía un arreglo con todas las órdenes; es un cambio de contrato.
+- **Valores desconocidos en la base.** Un tipo, lado o estado que el servicio no conoce se lee como `UNKNOWN` y se registra un aviso. Las órdenes con lado o estado `UNKNOWN` no cuentan en el portfolio y nunca se vuelven a grabar.
 
 ## Decisiones de la especificación
 
@@ -138,6 +152,6 @@ La aplicación se levanta standalone con Docker, junto con la base de datos y lo
 
 Estas mejoras tocan el modelo entregado por Cocos. No se hicieron: no queríamos tocarlo para no salirnos de alcance. Podemos tener una charla técnica para ver estos puntos.
 
-- **Cantidad de la orden y de la posición.** La columna `orders.size` es `INT`. La entidad de la orden y la cantidad acumulada de cada posición usan ese mismo entero, con tope 2147483647. Varias órdenes grandes pueden desbordar la suma y la tenencia deja de coincidir con las órdenes guardadas. Corregirlo cambia el tipo en la tabla y en las entidades, por un entero más ancho.
+- **Cantidad de la orden.** La columna `orders.size` es `INT`, con tope 2147483647 por orden. La tenencia ya no desborda: se suma en la base como `BIGINT`. Admitir órdenes más grandes cambia el tipo en la tabla y en la entidad, por un entero más ancho.
 - **Fecha y hora de la orden.** La columna `orders.datetime` es `TIMESTAMP` sin zona horaria. La entidad la representa como fecha local y la guarda con la zona del proceso. El mismo instante puede verse distinto según dónde corre el servicio, y la respuesta no trae offset. Corregirlo cambia el tipo en la tabla y en la entidad, por un instante con zona horaria.
 - **Idempotencia del alta.** No la implementamos: no queremos tocar el modelo base. Si no fuera así, agregaríamos una columna para guardar el idempotency-key y una caché para dar alta disponibilidad.

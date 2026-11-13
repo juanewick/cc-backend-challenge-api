@@ -3,11 +3,13 @@ package com.cc.brokerage.UnitTest;
 import com.cc.brokerage.application.CancelOrderService;
 import com.cc.brokerage.domain.DomainErrorCodes;
 import com.cc.brokerage.domain.DomainException;
+import com.cc.brokerage.domain.model.ListedOrder;
 import com.cc.brokerage.domain.model.Order;
 import com.cc.brokerage.domain.model.OrderSide;
 import com.cc.brokerage.domain.model.OrderStatus;
 import com.cc.brokerage.domain.model.OrderType;
 import com.cc.brokerage.domain.model.User;
+import com.cc.brokerage.domain.port.out.InstrumentRepository;
 import com.cc.brokerage.domain.port.out.OrderRepository;
 import com.cc.brokerage.domain.port.out.UserRepository;
 import com.cc.brokerage.support.Account10001Fixture;
@@ -33,6 +35,8 @@ class CancelOrderServiceTest {
     private UserRepository users;
     @Mock
     private OrderRepository orders;
+    @Mock
+    private InstrumentRepository instruments;
     @InjectMocks
     private CancelOrderService service;
 
@@ -42,8 +46,12 @@ class CancelOrderServiceTest {
         when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
         when(orders.findOrderById(5L)).thenReturn(Optional.of(open));
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(instruments.findInstrumentById(45L)).thenReturn(Optional.of(Account10001Fixture.LOMA));
 
-        Order cancelled = service.cancel("10001", 5L);
+        ListedOrder result = service.cancel("10001", 5L);
+        Order cancelled = result.order();
+
+        assertThat(result.ticker()).isEqualTo("LOMA");
 
         assertThat(cancelled.status()).isEqualTo(OrderStatus.CANCELLED);
         assertThat(cancelled.size()).isEqualTo(50);
@@ -91,8 +99,9 @@ class CancelOrderServiceTest {
         when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
         when(orders.findOrderById(20L)).thenReturn(Optional.of(openSell));
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(instruments.findInstrumentById(47L)).thenReturn(Optional.of(Account10001Fixture.PAMP));
 
-        Order cancelled = service.cancel("10001", 20L);
+        Order cancelled = service.cancel("10001", 20L).order();
 
         assertThat(cancelled.status()).isEqualTo(OrderStatus.CANCELLED);
         assertThat(cancelled.side()).isEqualTo(OrderSide.SELL);

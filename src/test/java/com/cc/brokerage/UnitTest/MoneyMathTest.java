@@ -12,32 +12,35 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MoneyMathTest {
 
+    private final MoneyMath money = MoneyBounds.DEFAULT_MONEY;
+    private final MoneyBounds bounds = MoneyBounds.DEFAULTS;
+
     @Test
     void amountAtTheMaximumStaysAfterHalfUp() {
-        assertThat(MoneyMath.scaled(MoneyBounds.justWithinMax())).isEqualByComparingTo(MoneyMath.maxAmount());
+        assertThat(money.scaled(bounds.justWithinMax())).isEqualByComparingTo(money.maxAmount());
     }
 
     @Test
     void roundingPastTheMaximumIsRejected() {
-        assertThatThrownBy(() -> MoneyMath.scaled(MoneyBounds.justPastMax()))
+        assertThatThrownBy(() -> money.scaled(bounds.justPastMax()))
                 .isInstanceOf(DomainException.class);
     }
 
     @Test
     void shareCountAboveTheMaximumIsNotTruncated() {
-        assertThatThrownBy(() -> MoneyMath.sharesFromAmount(MoneyBounds.oneSharePastMax(), BigDecimal.ONE))
+        assertThatThrownBy(() -> money.sharesFromAmount(bounds.oneSharePastMax(), BigDecimal.ONE))
                 .isInstanceOf(DomainException.class)
-                .hasMessage(MoneyMath.sharesRangeMessage());
+                .hasMessage(money.sharesRangeMessage());
     }
 
     @Test
     void zeroSharesStayZero() {
-        assertThat(MoneyMath.sharesFromAmount(new BigDecimal("1"), new BigDecimal("10"))).isZero();
+        assertThat(money.sharesFromAmount(new BigDecimal("1"), new BigDecimal("10"))).isZero();
     }
 
     @Test
     void maximumSharesAreAccepted() {
-        assertThat(MoneyMath.sharesFromAmount(BigDecimal.valueOf(MoneyMath.maxShares()), BigDecimal.ONE))
-                .isEqualTo(Math.toIntExact(MoneyMath.maxShares()));
+        assertThat(money.sharesFromAmount(BigDecimal.valueOf(money.maxShares()), BigDecimal.ONE))
+                .isEqualTo(Math.toIntExact(money.maxShares()));
     }
 }

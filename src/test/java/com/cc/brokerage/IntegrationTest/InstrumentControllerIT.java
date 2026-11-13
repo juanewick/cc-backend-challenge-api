@@ -83,6 +83,34 @@ class InstrumentControllerIT extends IntegrationTestBase {
     }
 
     @Test
+    void searchIgnoresCaseAndSurroundingSpaces() throws Exception {
+        mockMvc.perform(get(apiV1() + "/instruments").param("q", "  BaNcO  "))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(4));
+    }
+
+    @Test
+    void likeWildcardsAndQuotesAreMatchedLiterally() throws Exception {
+        mockMvc.perform(get(apiV1() + "/instruments").param("q", "%"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(get(apiV1() + "/instruments").param("q", "_"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(get(apiV1() + "/instruments").param("q", "pamp' OR 1=1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void broadSearchIsCappedAndSorted() throws Exception {
+        mockMvc.perform(get(apiV1() + "/instruments").param("q", "a"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(50))
+                .andExpect(jsonPath("$[0].ticker").value("AGRO"));
+    }
+
+    @Test
     void blankQueryIsRejected() throws Exception {
         mockMvc.perform(get(apiV1() + "/instruments").param("q", "   "))
                 .andExpect(status().isBadRequest());

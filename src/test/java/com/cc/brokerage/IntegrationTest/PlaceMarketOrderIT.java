@@ -19,6 +19,20 @@ class PlaceMarketOrderIT extends IntegrationTestBase {
     private JdbcTemplate jdbcTemplate;
 
     @Test
+    void amountIsAcceptedAsTextOrAsJsonNumber() throws Exception {
+        for (String amount : new String[]{"\"2000\"", "2000", "2000.00"}) {
+            mockMvc.perform(post(apiV1() + "/accounts/10001/orders")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"ticker":"GGAL","side":"BUY","type":"MARKET","amount":%s}
+                                    """.formatted(amount)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.size").value(2))
+                    .andExpect(jsonPath("$.status").value("FILLED"));
+        }
+    }
+
+    @Test
     void marketBuyOfOneGgalIsFilledAndUpdatesPortfolio() throws Exception {
         mockMvc.perform(post(apiV1() + "/accounts/10001/orders")
                         .contentType(MediaType.APPLICATION_JSON)

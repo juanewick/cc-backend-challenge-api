@@ -1,6 +1,7 @@
 package com.cc.brokerage.adapter.in.web.controller;
 
 import com.cc.brokerage.adapter.in.web.api.ApiProblemModels;
+import com.cc.brokerage.adapter.in.web.api.MoneyFormatter;
 import com.cc.brokerage.adapter.in.web.api.PortfolioResponse;
 import com.cc.brokerage.domain.port.in.GetPortfolioUseCase;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,9 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class PortfolioController {
 
     private final GetPortfolioUseCase getPortfolio;
+    private final MoneyFormatter money;
 
-    public PortfolioController(GetPortfolioUseCase getPortfolio) {
+    public PortfolioController(GetPortfolioUseCase getPortfolio, MoneyFormatter money) {
         this.getPortfolio = getPortfolio;
+        this.money = money;
     }
 
     @GetMapping
@@ -31,6 +34,6 @@ public class PortfolioController {
             @ApiResponse(responseCode = "404", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ApiProblemModels.NotFound.class)))
     })
     public PortfolioResponse get(@PathVariable String accountNumber) {
-        return PortfolioResponse.from(getPortfolio.getPortfolio(accountNumber));
+        return PortfolioResponse.from(getPortfolio.getPortfolio(accountNumber), money);
     }
 }

@@ -2,6 +2,7 @@ package com.cc.brokerage.adapter.in.web.controller;
 
 import com.cc.brokerage.adapter.in.web.api.ApiProblemModels;
 import com.cc.brokerage.adapter.in.web.api.InstrumentQuoteResponse;
+import com.cc.brokerage.adapter.in.web.api.MoneyFormatter;
 import com.cc.brokerage.domain.port.in.GetInstrumentQuoteUseCase;
 import com.cc.brokerage.domain.port.in.SearchInstrumentsUseCase;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,20 +25,22 @@ public class InstrumentController {
 
     private final SearchInstrumentsUseCase searchInstruments;
     private final GetInstrumentQuoteUseCase quotes;
+    private final MoneyFormatter money;
 
-    public InstrumentController(SearchInstrumentsUseCase searchInstruments, GetInstrumentQuoteUseCase quotes) {
+    public InstrumentController(SearchInstrumentsUseCase searchInstruments, GetInstrumentQuoteUseCase quotes, MoneyFormatter money) {
         this.searchInstruments = searchInstruments;
         this.quotes = quotes;
+        this.money = money;
     }
 
     @GetMapping
-    @Operation(summary = "Busca activos por ticker o nombre. No devuelve la moneda.")
+    @Operation(summary = "Busca activos por ticker o nombre, ordenados por ticker. Devuelve hasta 50. No devuelve la moneda.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", content = @Content(array = @ArraySchema(schema = @Schema(implementation = InstrumentQuoteResponse.class)))),
             @ApiResponse(responseCode = "400", content = @Content(mediaType = "application/problem+json", schema = @Schema(oneOf = {ApiProblemModels.InvalidParameters.class, ApiProblemModels.BadRequest.class})))
     })
     public List<InstrumentQuoteResponse> search(@RequestParam("q") String query) {
-        return searchInstruments.search(query).stream().map(InstrumentQuoteResponse::from).toList();
+        return searchInstruments.search(query).stream().map(quote -> InstrumentQuoteResponse.from(quote, money)).toList();
     }
 
     @GetMapping("/{ticker}")
@@ -48,6 +51,6 @@ public class InstrumentController {
             @ApiResponse(responseCode = "404", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ApiProblemModels.NotFound.class)))
     })
     public InstrumentQuoteResponse quote(@PathVariable String ticker) {
-        return InstrumentQuoteResponse.from(quotes.quote(ticker));
+        return InstrumentQuoteResponse.from(quotes.quote(ticker), money);
     }
 }

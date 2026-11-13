@@ -9,6 +9,8 @@ import tools.jackson.databind.cfg.MutableCoercionConfig;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.type.LogicalType;
 
+import java.math.BigDecimal;
+
 @Configuration
 public class JsonMapperConfig {
 
@@ -49,6 +51,9 @@ public class JsonMapperConfig {
                     CoercionInputShape.EmptyArray,
                     CoercionInputShape.EmptyObject,
                     CoercionInputShape.EmptyString);
+            // Amounts and prices travel as JSON strings ("800.00"), like every amount the API returns, so a
+            // decimal can be read from text. Only BigDecimal gets this: other numbers stay strict.
+            builder.withCoercionConfig(BigDecimal.class, config -> config.setCoercion(CoercionInputShape.String, CoercionAction.TryConvert));
         };
     }
 

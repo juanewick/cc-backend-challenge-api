@@ -1,29 +1,24 @@
 package com.cc.brokerage.adapter.in.web.api;
 
-import com.cc.brokerage.domain.DomainErrorCodes;
-import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.OrderSide;
 import com.cc.brokerage.domain.model.OrderType;
-
+import com.cc.brokerage.domain.model.PlaceOrderCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 
+/**
+ * The JSON body of a new order. It only carries what was sent: the rules live in the use case.
+ */
 public record PlaceOrderRequest(
         String ticker,
         @Schema(allowableValues = {"BUY", "SELL"}) OrderSide side,
         @Schema(allowableValues = {"MARKET", "LIMIT"}) OrderType type,
-        Integer size,
-        String amount,
-        String price
+        @Schema(description = "Cantidad de acciones. Se envía esto o amount.") Integer size,
+        @Schema(type = "string", example = "2500.00", description = "Monto en pesos, como texto. Se envía esto o size.") BigDecimal amount,
+        @Schema(type = "string", example = "800.00", description = "Precio límite, como texto. Obligatorio en LIMIT.") BigDecimal price
 ) {
-    public void requireLimitPrice() {
-        if (type != OrderType.LIMIT) {
-            return;
-        }
-        BigDecimal parsed = MoneyFormats.parse(price, DomainErrorCodes.PRICE_NOT_A_NUMBER);
-        if (parsed == null || parsed.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new DomainException(DomainErrorCodes.PRICE_NOT_POSITIVE);
-        }
+    public PlaceOrderCommand toCommand(String accountNumber) {
+        return new PlaceOrderCommand(accountNumber, ticker, side, type, size, amount, price);
     }
 }

@@ -10,6 +10,7 @@ import com.cc.brokerage.domain.port.out.MarketPriceRepository;
 import com.cc.brokerage.domain.port.out.OrderRepository;
 import com.cc.brokerage.domain.port.out.UserRepository;
 import com.cc.brokerage.domain.service.PortfolioCalculator;
+import com.cc.brokerage.support.MoneyBounds;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,7 +37,7 @@ class GetPortfolioServiceTest {
     @Mock
     private MarketPriceRepository prices;
     @Spy
-    private PortfolioCalculator calculator = new PortfolioCalculator();
+    private PortfolioCalculator calculator = new PortfolioCalculator(MoneyBounds.DEFAULT_MONEY);
     @InjectMocks
     private GetPortfolioService service;
 
@@ -54,7 +55,7 @@ class GetPortfolioServiceTest {
     void accountWithoutOrdersReturnsZeros() {
         User user = new User(2L, "jose@test.com", "10002");
         when(users.findByAccountNumber("10002")).thenReturn(Optional.of(user));
-        when(orders.findByUserId(2L)).thenReturn(List.of());
+        when(orders.summarizeHoldings(2L)).thenReturn(List.of());
 
         Portfolio portfolio = service.getPortfolio("10002");
 

@@ -12,6 +12,8 @@ import com.cc.brokerage.domain.port.out.OrderRepository;
 import com.cc.brokerage.domain.port.out.UserRepository;
 import com.cc.brokerage.domain.service.PortfolioCalculator;
 import com.cc.brokerage.support.Account10001Fixture;
+import com.cc.brokerage.support.HoldingsOf;
+import com.cc.brokerage.support.MoneyBounds;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,7 +43,7 @@ class RejectOrderServiceTest {
     @Mock
     private OrderRepository orders;
 
-    private final PortfolioCalculator calculator = new PortfolioCalculator();
+    private final PortfolioCalculator calculator = new PortfolioCalculator(MoneyBounds.DEFAULT_MONEY);
     private PlaceOrderService service;
 
     @BeforeEach
@@ -51,7 +53,8 @@ class RejectOrderServiceTest {
                 instruments,
                 prices,
                 orders,
-                calculator
+                calculator,
+                MoneyBounds.DEFAULT_MONEY
         );
     }
 
@@ -71,7 +74,7 @@ class RejectOrderServiceTest {
     void oversizedMarketSellIsRejected() {
         stubAccount();
         when(instruments.findByTicker("PAMP")).thenReturn(Optional.of(Account10001Fixture.PAMP));
-        when(prices.findByInstrumentIds(java.util.Set.of(47L))).thenReturn(java.util.List.of(Account10001Fixture.latestPrices().get(47L)));
+        when(prices.findLatestByInstrumentIds(java.util.Set.of(47L))).thenReturn(java.util.Map.of(47L, Account10001Fixture.latestPrices().get(47L)));
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Order placed = service.place(new PlaceOrderCommand(
@@ -79,7 +82,7 @@ class RejectOrderServiceTest {
 
         assertThat(placed.status()).isEqualTo(OrderStatus.REJECTED);
         assertUnchangedHoldings(placed);
-        var after = calculator.summarize(withSaved(placed));
+        var after = calculator.summarize(HoldingsOf.orders(withSaved(placed)));
         assertThat(calculator.availableShares(after, Account10001Fixture.PAMP.id())).isEqualTo(40);
     }
 
@@ -87,7 +90,7 @@ class RejectOrderServiceTest {
     void amountThatYieldsZeroSharesIsSavedRejected() {
         when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
         when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
-        when(prices.findByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.List.of(Account10001Fixture.latestPrices().get(34L)));
+        when(prices.findLatestByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.Map.of(34L, Account10001Fixture.latestPrices().get(34L)));
         ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -111,7 +114,7 @@ class RejectOrderServiceTest {
 
         assertThat(placed.status()).isEqualTo(OrderStatus.REJECTED);
         assertThat(placed.size()).isEqualTo(850);
-        assertThat(placed.notional()).isEqualByComparingTo("752930.00");
+        assertThat(MoneyBounds.DEFAULT_MONEY.notional(placed.size(), placed.price())).isEqualByComparingTo("752930.00");
         assertUnchangedHoldings(placed);
     }
 
@@ -124,7 +127,7 @@ class RejectOrderServiceTest {
                 "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 400, null, new BigDecimal("800.00"))).order();
         assertThat(first.status()).isEqualTo(OrderStatus.NEW);
 
-        when(orders.findByUserId(1L)).thenReturn(withSaved(first));
+        when(orders.summarizeHoldings(1L)).thenReturn(HoldingsOf.orders(withSaved(first)));
 
         Order second = service.place(new PlaceOrderCommand(
                 "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 400, null, new BigDecimal("800.00"))).order();
@@ -133,12 +136,12 @@ class RejectOrderServiceTest {
         List<Order> afterBoth = new ArrayList<>(Account10001Fixture.orders());
         afterBoth.add(first);
         afterBoth.add(second);
-        assertThat(calculator.summarize(afterBoth).availableCash()).isEqualByComparingTo("307500.00");
+        assertThat(calculator.summarize(HoldingsOf.orders(afterBoth)).availableCash()).isEqualByComparingTo("307500.00");
     }
 
     private void stubAccount() {
         when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
-        when(orders.findByUserId(1L)).thenReturn(Account10001Fixture.orders());
+        when(orders.summarizeHoldings(1L)).thenReturn(HoldingsOf.orders(Account10001Fixture.orders()));
     }
 
     private void stubAccountAndGgal() {
@@ -148,12 +151,12 @@ class RejectOrderServiceTest {
 
     private void stubAccountAndGgalWithClose() {
         stubAccountAndGgal();
-        when(prices.findByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.List.of(Account10001Fixture.latestPrices().get(34L)));
+        when(prices.findLatestByInstrumentIds(java.util.Set.of(34L))).thenReturn(java.util.Map.of(34L, Account10001Fixture.latestPrices().get(34L)));
     }
 
     private void assertUnchangedHoldings(Order saved) {
-        var before = calculator.summarize(Account10001Fixture.orders());
-        var after = calculator.summarize(withSaved(saved));
+        var before = calculator.summarize(HoldingsOf.orders(Account10001Fixture.orders()));
+        var after = calculator.summarize(HoldingsOf.orders(withSaved(saved)));
         assertThat(after.settledCash()).isEqualByComparingTo(before.settledCash());
         assertThat(after.availableCash()).isEqualByComparingTo(before.availableCash());
     }
