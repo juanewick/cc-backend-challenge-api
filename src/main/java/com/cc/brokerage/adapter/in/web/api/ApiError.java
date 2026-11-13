@@ -1,4 +1,4 @@
-package com.cc.brokerage.adapter.in.web;
+package com.cc.brokerage.adapter.in.web.api;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;

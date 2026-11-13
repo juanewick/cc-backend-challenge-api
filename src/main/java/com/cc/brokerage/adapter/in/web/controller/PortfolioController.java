@@ -1,5 +1,8 @@
-package com.cc.brokerage.adapter.in.web;
+package com.cc.brokerage.adapter.in.web.controller;
 
+import com.cc.brokerage.adapter.in.web.api.ApiBase;
+import com.cc.brokerage.adapter.in.web.api.ApiProblemModels;
+import com.cc.brokerage.adapter.in.web.api.PortfolioResponse;
 import com.cc.brokerage.domain.port.in.GetPortfolioUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

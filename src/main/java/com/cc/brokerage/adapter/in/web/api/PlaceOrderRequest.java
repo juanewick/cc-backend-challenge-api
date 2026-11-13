@@ -1,4 +1,4 @@
-package com.cc.brokerage.adapter.in.web;
+package com.cc.brokerage.adapter.in.web.api;
 
 import com.cc.brokerage.domain.DomainErrorCodes;
 import com.cc.brokerage.domain.DomainException;
@@ -15,7 +15,7 @@ public record PlaceOrderRequest(
         String amount,
         String price
 ) {
-    void requireLimitPrice() {
+    public void requireLimitPrice() {
         if (type != OrderType.LIMIT) {
             return;
         }

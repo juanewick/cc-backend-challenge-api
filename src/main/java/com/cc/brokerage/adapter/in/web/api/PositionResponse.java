@@ -1,4 +1,4 @@
-package com.cc.brokerage.adapter.in.web;
+package com.cc.brokerage.adapter.in.web.api;
 
 import com.cc.brokerage.domain.model.Position;
 import io.swagger.v3.oas.annotations.media.Schema;

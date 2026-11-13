@@ -1,4 +1,4 @@
-package com.cc.brokerage.adapter.in.web;
+package com.cc.brokerage.adapter.in.web.api;
 
 import com.cc.brokerage.domain.model.Order;
 import com.cc.brokerage.domain.model.OrderSide;
@@ -28,7 +28,7 @@ public record OrderResponse(
         @Schema(description = "Motivo del rechazo. Solo en el alta cuando el estado es REJECTED. No se guarda.")
         RejectionReason rejectionReason
 ) {
-    static OrderResponse from(Order order, String accountNumber, String ticker) {
+    public static OrderResponse from(Order order, String accountNumber, String ticker) {
         return new OrderResponse(
                 order.id(),
                 accountNumber,
@@ -44,7 +44,7 @@ public record OrderResponse(
         );
     }
 
-    static OrderResponse placed(Order order, String accountNumber, String ticker, BigDecimal amount, RejectionReason reason) {
+    public static OrderResponse placed(Order order, String accountNumber, String ticker, BigDecimal amount, RejectionReason reason) {
         OrderResponse response = from(order, accountNumber, ticker);
         return new OrderResponse(
                 response.id(),

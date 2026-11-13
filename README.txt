@@ -1,7 +1,21 @@
-brokerage-api
-=============
+brokerage-api breakdown
+=======================
 
 API HTTP de una cuenta de inversión en pesos. Se consulta el portfolio, se buscan activos por ticker o nombre, y se envían o cancelan órdenes de compra y venta. No hay autenticación. El conjunto de cuentas, precios y órdenes de referencia se carga con la base.
+
+Arquitectura
+------------
+Se usó arquitectura hexagonal. El dominio no conoce HTTP ni JPA: los casos de uso entran por puertos y la persistencia sale por otros. Los adapters traducen.
+
+  com.cc.brokerage
+    domain                              Modelo, reglas y errores. port.in son los casos de uso. port.out son los repositorios. service calcula el portfolio y elige el precio vigente.
+    application                         Implementa los casos de uso.
+    adapter.in.web.controller           Rutas HTTP.
+    adapter.in.web.api                  Pedidos, respuestas y errores.
+    adapter.out.persistence             PersistenceAdapter implementa los puertos de salida.
+    adapter.out.persistence.entity      Tablas JPA.
+    adapter.out.persistence.repository  JpaRepository.
+    config                              Beans de Spring.
 
 Funcionalidades
 ---------------

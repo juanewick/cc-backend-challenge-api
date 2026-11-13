@@ -1,4 +1,4 @@
-package com.cc.brokerage.adapter.out.persistence;
+package com.cc.brokerage.adapter.out.persistence.entity;
 
 import com.cc.brokerage.domain.model.OrderSide;
 import com.cc.brokerage.domain.model.OrderStatus;

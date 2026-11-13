@@ -1,4 +1,4 @@
-package com.cc.brokerage.adapter.in.web;
+package com.cc.brokerage.adapter.in.web.api;
 
 import com.cc.brokerage.domain.model.Portfolio;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -13,7 +13,7 @@ public record PortfolioResponse(
         @Schema(description = "Efectivo reservado por compras abiertas, a dos decimales. No se guarda.") String reservedCash,
         List<PositionResponse> positions
 ) {
-    static PortfolioResponse from(Portfolio portfolio) {
+    public static PortfolioResponse from(Portfolio portfolio) {
         return new PortfolioResponse(
                 portfolio.accountNumber(),
                 MoneyFormats.money(portfolio.totalValue()),

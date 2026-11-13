@@ -1,5 +1,13 @@
 package com.cc.brokerage.adapter.out.persistence;
 
+import com.cc.brokerage.adapter.out.persistence.entity.InstrumentEntity;
+import com.cc.brokerage.adapter.out.persistence.entity.MarketPriceEntity;
+import com.cc.brokerage.adapter.out.persistence.entity.OrderEntity;
+import com.cc.brokerage.adapter.out.persistence.entity.UserEntity;
+import com.cc.brokerage.adapter.out.persistence.repository.InstrumentJpaRepository;
+import com.cc.brokerage.adapter.out.persistence.repository.MarketPriceJpaRepository;
+import com.cc.brokerage.adapter.out.persistence.repository.OrderJpaRepository;
+import com.cc.brokerage.adapter.out.persistence.repository.UserJpaRepository;
 import com.cc.brokerage.domain.DomainErrorCodes;
 import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.Instrument;

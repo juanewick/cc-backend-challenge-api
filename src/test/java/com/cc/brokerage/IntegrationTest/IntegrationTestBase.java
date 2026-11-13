@@ -1,6 +1,6 @@
 package com.cc.brokerage.IntegrationTest;
 
-import com.cc.brokerage.adapter.in.web.ApiBase;
+import com.cc.brokerage.adapter.in.web.api.ApiBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;

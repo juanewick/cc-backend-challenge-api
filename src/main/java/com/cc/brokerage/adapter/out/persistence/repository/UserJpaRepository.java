@@ -1,5 +1,6 @@
-package com.cc.brokerage.adapter.out.persistence;
+package com.cc.brokerage.adapter.out.persistence.repository;
 
+import com.cc.brokerage.adapter.out.persistence.entity.UserEntity;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
