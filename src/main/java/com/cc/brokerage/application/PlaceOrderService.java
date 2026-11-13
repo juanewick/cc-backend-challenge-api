@@ -89,7 +89,7 @@ public class PlaceOrderService implements PlaceOrderUseCase {
         if (command.side() != OrderSide.BUY && command.side() != OrderSide.SELL) {
             throw new DomainException(DomainErrorCodes.INVALID_SIDE);
         }
-        if (command.type() == null) {
+        if (command.type() != OrderType.MARKET && command.type() != OrderType.LIMIT) {
             throw new DomainException(DomainErrorCodes.INVALID_TYPE);
         }
         boolean hasSize = command.size() != null;

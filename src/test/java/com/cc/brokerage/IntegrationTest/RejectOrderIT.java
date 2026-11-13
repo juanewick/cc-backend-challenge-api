@@ -1,7 +1,9 @@
 package com.cc.brokerage.IntegrationTest;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -9,6 +11,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class RejectOrderIT extends IntegrationTestBase {
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     @Test
     void oversizedMarketBuyIsRejectedAndLeavesPortfolioUnchanged() throws Exception {
@@ -99,6 +104,45 @@ class RejectOrderIT extends IntegrationTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.availableCash").value("307500.00"))
                 .andExpect(jsonPath("$.totalValue").value("889756.00"));
+    }
+
+    @Test
+    void marketOrderWithoutMarketPriceIsRejectedAndTheAccountKeepsWorking() throws Exception {
+        mockMvc.perform(post(apiV1() + "/accounts/10001/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"ticker":"PGR","side":"BUY","type":"MARKET","size":5}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.rejectionReason").value("NO_MARKET_PRICE"))
+                .andExpect(jsonPath("$.price").doesNotExist());
+
+        assertReferencePortfolio();
+
+        mockMvc.perform(get(apiV1() + "/accounts/10001/orders"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post(apiV1() + "/accounts/10001/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"ticker":"GGAL","side":"BUY","type":"MARKET","size":1}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("FILLED"));
+    }
+
+    @Test
+    void instrumentTypeUnknownToTheServiceDoesNotBreakReads() throws Exception {
+        jdbc.update("INSERT INTO instruments (ticker, name, type) VALUES ('ZZBOND', 'Bono de prueba', 'BONOS')");
+        try {
+            mockMvc.perform(get(apiV1() + "/instruments").param("q", "ZZBOND"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].ticker").value("ZZBOND"))
+                    .andExpect(jsonPath("$[0].type").value("UNKNOWN"));
+        } finally {
+            jdbc.update("DELETE FROM instruments WHERE ticker = 'ZZBOND'");
+        }
     }
 
     private void assertReferencePortfolio() throws Exception {

@@ -1,10 +1,10 @@
 package com.cc.brokerage.adapter.out.persistence.entity;
 
 import com.cc.brokerage.domain.model.InstrumentType;
+import com.cc.brokerage.adapter.out.persistence.converter.InstrumentTypeConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -24,7 +24,7 @@ public class InstrumentEntity {
     @Column(name = "name")
     private String name;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = InstrumentTypeConverter.class)
     @Column(name = "type", length = 10)
     private InstrumentType type;
 

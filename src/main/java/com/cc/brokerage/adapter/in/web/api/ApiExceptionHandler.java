@@ -2,10 +2,14 @@ package com.cc.brokerage.adapter.in.web.api;
 
 import com.cc.brokerage.domain.DomainErrorCodes;
 import com.cc.brokerage.domain.DomainException;
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,6 +26,9 @@ import java.util.Set;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
+    private static final String INTERNAL = "The request could not be processed.";
     private static final String UNREADABLE = "The request cannot be read.";
     private static final String UNKNOWN_FIELD = "The request contains a field that is not allowed.";
     private static final String DUPLICATE_PREFIX = "Duplicate Object property \"";
@@ -30,6 +37,7 @@ public class ApiExceptionHandler {
     @ExceptionHandler(DomainException.class)
     ResponseEntity<ApiError> domain(DomainException exception) {
         DomainErrorCodes error = exception.error();
+        log.debug("Request rejected with {}: {}", error.code(), exception.getMessage());
         return problem(
                 HttpStatus.valueOf(error.status()),
                 error.code(),
@@ -39,9 +47,14 @@ public class ApiExceptionHandler {
         );
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    ResponseEntity<ApiError> illegalArgument(IllegalArgumentException exception) {
-        return problem(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", exception.getMessage(), List.of());
+    @ExceptionHandler(Exception.class)
+    ResponseEntity<ApiError> unexpected(Exception exception, HttpServletRequest request) throws Exception {
+        if (exception instanceof ErrorResponse) {
+            // Spring's own 4xx (405, 406, unknown path...): rethrowing hands it back to the default resolvers.
+            throw exception;
+        }
+        log.error("Unexpected failure on {} {}", request.getMethod(), request.getRequestURI(), exception);
+        return problem(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", INTERNAL, List.of());
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)

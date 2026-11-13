@@ -3,10 +3,12 @@ package com.cc.brokerage.adapter.out.persistence.entity;
 import com.cc.brokerage.domain.model.OrderSide;
 import com.cc.brokerage.domain.model.OrderStatus;
 import com.cc.brokerage.domain.model.OrderType;
+import com.cc.brokerage.adapter.out.persistence.converter.OrderTypeConverter;
+import com.cc.brokerage.adapter.out.persistence.converter.OrderSideConverter;
+import com.cc.brokerage.adapter.out.persistence.converter.OrderStatusConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -35,15 +37,15 @@ public class OrderEntity {
     @Column(name = "price", precision = 10, scale = 2)
     private BigDecimal price;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = OrderTypeConverter.class)
     @Column(name = "type", length = 10)
     private OrderType type;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = OrderSideConverter.class)
     @Column(name = "side", length = 10)
     private OrderSide side;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = OrderStatusConverter.class)
     @Column(name = "status", length = 20)
     private OrderStatus status;
 

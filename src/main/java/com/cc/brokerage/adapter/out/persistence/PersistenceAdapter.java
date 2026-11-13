@@ -13,6 +13,9 @@ import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.MarketPrice;
 import com.cc.brokerage.domain.model.Order;
+import com.cc.brokerage.domain.model.OrderSide;
+import com.cc.brokerage.domain.model.OrderStatus;
+import com.cc.brokerage.domain.model.OrderType;
 import com.cc.brokerage.domain.model.User;
 import com.cc.brokerage.domain.port.out.InstrumentRepository;
 import com.cc.brokerage.domain.port.out.MarketPriceRepository;
@@ -96,6 +99,10 @@ public class PersistenceAdapter implements UserRepository, InstrumentRepository,
 
     @Override
     public Order save(Order order) {
+        if (order.side() == OrderSide.UNKNOWN || order.type() == OrderType.UNKNOWN || order.status() == OrderStatus.UNKNOWN) {
+            // The placeholder stands for a value this service could not read; storing it would overwrite the original.
+            throw new IllegalStateException("Refusing to store order " + order.id() + " with a placeholder side, type or status");
+        }
         OrderEntity entity = toEntity(order);
         return toDomain(orders.save(entity));
     }

@@ -26,9 +26,17 @@ public class PortfolioCalculator {
         Map<Long, MutablePosition> positions = new HashMap<>();
 
         for (Order order : orders) {
+            if (order.status() != OrderStatus.FILLED && order.status() != OrderStatus.NEW) {
+                continue;
+            }
+            if (order.price() == null) {
+                throw new IllegalStateException("Order " + order.id() + " is " + order.status() + " but has no price");
+            }
             BigDecimal notional = order.notional();
             if (order.status() == OrderStatus.FILLED) {
                 switch (order.side()) {
+                    case UNKNOWN -> {
+                    }
                     case CASH_IN -> cash = cash.add(notional);
                     case CASH_OUT -> cash = cash.subtract(notional);
                     case BUY -> {

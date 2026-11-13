@@ -4,5 +4,6 @@ public enum OrderSide {
     BUY,
     SELL,
     CASH_IN,
-    CASH_OUT
+    CASH_OUT,
+    UNKNOWN
 }

@@ -63,6 +63,9 @@ public record ApiError(
         if (httpStatus == HttpStatus.CONFLICT) {
             return new Kind(ProblemTypes.CONFLICT, "Conflict");
         }
+        if (httpStatus.is5xxServerError()) {
+            return new Kind(ProblemTypes.BLANK, httpStatus.getReasonPhrase());
+        }
         if (validation) {
             return new Kind(ProblemTypes.INVALID_PARAMETERS, "Invalid parameters");
         }

@@ -210,6 +210,16 @@ class PlaceMarketOrderServiceTest {
         verify(orders, never()).save(any());
     }
 
+    @Test
+    void placeholderTypeIsRejectedWithoutSaving() {
+        assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
+                "10001", "GGAL", OrderSide.BUY, OrderType.UNKNOWN, 5, null, null)))
+                .isInstanceOf(DomainException.class)
+                .extracting(thrown -> ((DomainException) thrown).error())
+                .isEqualTo(DomainErrorCodes.INVALID_TYPE);
+        verify(orders, never()).save(any());
+    }
+
     private void stubAccount() {
         when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
         when(orders.findByUserId(1L)).thenReturn(Account10001Fixture.orders());
