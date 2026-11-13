@@ -54,7 +54,7 @@ public final class ApiProblemModels {
             @Schema(example = "Conflict") String title,
             @Schema(example = "409") int status,
             @Schema(example = "The order does not belong to this account.") String detail,
-            @Schema(example = "BRK-001") String code
+            @Schema(example = "BRK-005") String code
     ) {
     }
 }

@@ -1,7 +1,6 @@
 package com.cc.brokerage.domain;
 
 public enum DomainErrorCodes {
-    ORDER_NOT_OWNED("BRK-001", "ORDER_NOT_OWNED", ErrorCategory.CONFLICT, "The order does not belong to this account."),
     INSTRUMENT_NOT_FOUND("BRK-002", "INSTRUMENT_NOT_FOUND", ErrorCategory.NOT_FOUND, "Instrument not found."),
     ORDER_NOT_FOUND("BRK-003", "ORDER_NOT_FOUND", ErrorCategory.NOT_FOUND, "Order not found."),
     ACCOUNT_NOT_FOUND("BRK-004", "ACCOUNT_NOT_FOUND", ErrorCategory.NOT_FOUND, "Account not found."),

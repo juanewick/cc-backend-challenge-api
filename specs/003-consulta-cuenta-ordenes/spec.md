@@ -22,7 +22,7 @@ Una persona consulta una cuenta y ve, además del portfolio, las órdenes que es
 
 1. **Given** la cuenta `10001` y sus órdenes de referencia, **When** se listan sus órdenes, **Then** aparecen todas, de la más antigua a la más nueva y, a igual momento, por identificador creciente. La compra límite abierta de 50 `LOMA` a `710.00` está en el listado, con su ticker, lado, tipo, cantidad, precio, estado y fecha.
 2. **Given** ese listado, **When** se consulta esa orden dentro de la cuenta `10001`, **Then** el resultado es esa misma orden.
-3. **Given** una orden de la cuenta `10001`, **When** la consulta otra cuenta, **Then** no se muestra y el problema informa que no pertenece a esa cuenta. La orden no cambia.
+3. **Given** una orden de la cuenta `10001`, **When** la consulta otra cuenta, **Then** no se muestra y el problema es el mismo que el de una orden inexistente (`404`, `BRK-003`), para no revelar que el identificador existe. La orden no cambia.
 4. **Given** un identificador que no existe, **When** se consulta, **Then** el problema informa que la orden no existe, sin repetir el identificador.
 5. **Given** la cuenta `10001` antes de cualquier orden nueva, **When** se consulta el portfolio, **Then** el valor total sigue en `889756.00`, el disponible en `627500.00`, el efectivo liquidado es `753000.00` y el reservado es `125500.00`.
 6. **Given** un alta aceptada, **When** se mira la respuesta, **Then** indica cómo consultar esa orden, y esa consulta devuelve la orden recién creada.
@@ -75,8 +75,8 @@ Quien integra la cuenta distingue un rechazo por un código `BRK-xxx` y por el t
 
 1. **Given** un parámetro de la API que no cumple la validación, **When** se rechaza la operación, **Then** la respuesta es un problema con `type` igual a la URI del esquema `InvalidParameters` de la definición OpenAPI, `title` "Invalid parameters", `status` igual al HTTP `400`, `detail` en inglés, `code` `BRK-xxx` y `invalid_params`. Cada ítem de `invalid_params` trae `field` y `message`. Ni `detail` ni `message` repiten el valor enviado. El código no cambia si se ajusta la redacción.
 2. **Given** un ticker inválido, **When** se rechaza el alta, **Then** el problema es el de parámetros inválidos, `code` es `BRK-009` e `invalid_params` señala el campo `ticker` con el detalle "The ticker is not valid.".
-3. **Given** una cuenta, un activo o una orden que no existe, **When** se rechaza la consulta, **Then** `type` es la URI del esquema `NotFound`, `title` es "Not found", `status` es `404`, `code` es `BRK-004`, `BRK-002` o `BRK-003` según el recurso, y `invalid_params` no viene.
-4. **Given** una orden de otra cuenta o una orden que no está abierta, **When** se rechaza la operación, **Then** `type` es la URI del esquema `Conflict`, `title` es "Conflict", `status` es `409`, `code` es `BRK-001` o `BRK-005`, y `invalid_params` no viene.
+3. **Given** una cuenta, un activo o una orden que no existe, o una orden de otra cuenta, **When** se rechaza la consulta, **Then** `type` es la URI del esquema `NotFound`, `title` es "Not found", `status` es `404`, `code` es `BRK-004`, `BRK-002` o `BRK-003` según el recurso, y `invalid_params` no viene.
+4. **Given** una orden que no está abierta, **When** se rechaza la cancelación, **Then** `type` es la URI del esquema `Conflict`, `title` es "Conflict", `status` es `409`, `code` es `BRK-005`, y `invalid_params` no viene.
 5. **Given** una regla de negocio que no es una validación de parámetros, como operar la moneda o registrar un ingreso o un egreso nuevo, **When** se rechaza, **Then** `type` es la URI del esquema `BadRequest`, `title` es "Bad request", `status` es `400`, `code` es `BRK-006` o `BRK-007`, y `invalid_params` no viene.
 6. **Given** un cuerpo con un campo que no corresponde, **When** se rechaza, **Then** es una validación de la API y trae `invalid_params`, pero no nombra ese campo ni cita el cuerpo.
 7. **Given** el contrato publicado por la aplicación, **When** se lee, **Then** publica los esquemas `InvalidParameters`, `BadRequest`, `NotFound` y `Conflict`, describe los rechazos de estas operaciones, presenta los importes como texto a dos decimales y deja explícito que un rendimiento de `0.48` significa 0,48 %. El `type` de cada problema es la URI de su esquema en esa definición.
@@ -117,7 +117,7 @@ Portfolio, búsqueda, cotización y orden de mercado toman el mismo último cier
 
 ### Functional Requirements
 
-- **FR-001**: El sistema MUST listar las órdenes de una cuenta existente y MUST permitir consultar una por su identificador. Una orden de otra cuenta MUST NOT mostrarse. Una orden inexistente MUST informarse sin repetir el identificador.
+- **FR-001**: El sistema MUST listar las órdenes de una cuenta existente y MUST permitir consultar una por su identificador. Una orden de otra cuenta MUST NOT mostrarse y MUST responder igual que una orden inexistente. Una orden inexistente MUST informarse sin repetir el identificador.
 - **FR-002**: El listado MUST incluir ticker, lado, tipo, cantidad, precio, estado y fecha, ordenado de la más antigua a la más nueva y, a igual momento, por identificador creciente.
 - **FR-003**: El portfolio MUST informar el valor total, el efectivo liquidado, el efectivo reservado y el disponible. El liquidado y el reservado MUST calcularse con las órdenes ya guardadas y MUST NOT guardarse de nuevo. El reservado MUST ser la suma de las compras abiertas. Las ventas abiertas MUST seguir reservando acciones.
 - **FR-004**: El alta aceptada o rechazada y guardada MUST indicar cómo consultar esa orden. Esa consulta MUST devolver la misma orden.

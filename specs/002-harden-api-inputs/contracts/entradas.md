@@ -9,7 +9,7 @@ Las cuatro operaciones son las ya publicadas:
 - `POST /api/brokerage-api/v1/accounts/{accountNumber}/orders`
 - `POST /api/brokerage-api/v1/accounts/{accountNumber}/orders/{orderId}/cancellation`
 
-Un dato inválido responde 400. Una cuenta, un activo o una orden que no existen responden 404. Una orden de otra cuenta, o una orden que no está abierta, sigue en 409. Nada de esto graba una orden nueva, salvo el rechazo de negocio que ya existía (fondos o acciones insuficientes, cantidad resultante cero, orden de mercado sin cierre).
+Un dato inválido responde 400. Una cuenta, un activo o una orden que no existen responden 404, y una orden de otra cuenta responde igual que una inexistente. Una orden que no está abierta sigue en 409. Nada de esto graba una orden nueva, salvo el rechazo de negocio que ya existía (fondos o acciones insuficientes, cantidad resultante cero, orden de mercado sin cierre).
 
 ## Pedido de alta
 

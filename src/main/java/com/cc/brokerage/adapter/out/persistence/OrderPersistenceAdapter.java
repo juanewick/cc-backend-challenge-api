@@ -49,8 +49,8 @@ public class OrderPersistenceAdapter implements OrderRepository {
     }
 
     @Override
-    public Optional<Order> findOrderById(Long id) {
-        return orders.findById(id).map(OrderPersistenceAdapter::toDomain);
+    public Optional<Order> findOrderOfUser(Long id, Long userId) {
+        return orders.findByIdAndUserId(id, userId).map(OrderPersistenceAdapter::toDomain);
     }
 
     @Override

@@ -54,7 +54,7 @@
 
 - [x] T006 [US1] Publicar `settledCash` y `reservedCash` calculados en `src/main/java/com/cc/brokerage/domain/model/Portfolio.java`, `src/main/java/com/cc/brokerage/domain/service/PortfolioCalculator.java` y `src/main/java/com/cc/brokerage/adapter/in/web/PortfolioResponse.java`. No guardarlos
 - [x] T007 [US1] Usar `LatestPrices` en `src/main/java/com/cc/brokerage/application/GetPortfolioService.java`
-- [x] T008 [US1] Agregar `src/main/java/com/cc/brokerage/application/ListOrdersService.java` y `src/main/java/com/cc/brokerage/application/GetOrderService.java`, ordenando por fecha de alta e id ascendente, y exponer `GET` en `src/main/java/com/cc/brokerage/adapter/in/web/OrderController.java`. Orden ajena: `ORDER_NOT_OWNED`. Inexistente: `ORDER_NOT_FOUND`
+- [x] T008 [US1] Agregar `src/main/java/com/cc/brokerage/application/ListOrdersService.java` y `src/main/java/com/cc/brokerage/application/GetOrderService.java`, ordenando por fecha de alta e id ascendente, y exponer `GET` en `src/main/java/com/cc/brokerage/adapter/in/web/OrderController.java`. La orden se busca por id y cuenta a la vez: ajena o inexistente responden `ORDER_NOT_FOUND`
 
 **Checkpoint**: User Story 1 se prueba sola
 

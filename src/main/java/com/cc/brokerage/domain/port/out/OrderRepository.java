@@ -22,7 +22,11 @@ public interface OrderRepository {
      */
     List<InstrumentHoldings> summarizeHoldings(Long userId);
 
-    Optional<Order> findOrderById(Long id);
+    /**
+     * The order with this id, only if it belongs to the user. An order of another user is reported as missing,
+     * so callers cannot tell it apart from an id that does not exist.
+     */
+    Optional<Order> findOrderOfUser(Long id, Long userId);
 
     Order save(Order order);
 }

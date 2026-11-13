@@ -135,7 +135,7 @@ Una persona cancela una orden que todavía está abierta. La orden pasa a cancel
 
 1. **Given** la cuenta `10001` y su compra límite `NEW` de 50 `LOMA` a `710.00`, **When** el titular la cancela, **Then** el estado pasa a `CANCELLED`, el efectivo liquidado no cambia y los pesos disponibles aumentan `35500.00`, hasta `663000.00`.
 2. **Given** una orden `FILLED`, `REJECTED` o `CANCELLED`, **When** se intenta cancelar, **Then** el estado no cambia y se informa que solo se cancelan órdenes abiertas.
-3. **Given** una orden abierta de la cuenta `10001`, **When** la cancela otra cuenta, **Then** el estado no cambia y se informa que la orden no pertenece a esa cuenta.
+3. **Given** una orden abierta de la cuenta `10001`, **When** la cancela otra cuenta, **Then** el estado no cambia y se informa que la orden no existe, igual que con un identificador inexistente.
 4. **Given** una orden que no existe, **When** se intenta cancelar, **Then** se informa que la orden no existe.
 5. **Given** una venta LIMIT `NEW` de 10 `PAMP`, **When** el titular la cancela, **Then** el estado pasa a `CANCELLED` y las acciones disponibles de `PAMP` vuelven a incluir esas 10. El efectivo no cambia.
 

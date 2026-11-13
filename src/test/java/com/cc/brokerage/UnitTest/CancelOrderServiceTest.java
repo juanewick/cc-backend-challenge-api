@@ -44,7 +44,7 @@ class CancelOrderServiceTest {
     void cancellingOpenLomaBuyReleasesReservation() {
         Order open = Account10001Fixture.orders().get(4);
         when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
-        when(orders.findOrderById(5L)).thenReturn(Optional.of(open));
+        when(orders.findOrderOfUser(5L, 1L)).thenReturn(Optional.of(open));
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(instruments.findInstrumentById(45L)).thenReturn(Optional.of(Account10001Fixture.LOMA));
 
@@ -61,7 +61,7 @@ class CancelOrderServiceTest {
     @Test
     void filledRejectedOrCancelledCannotBeCancelled() {
         when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
-        when(orders.findOrderById(2L)).thenReturn(Optional.of(Account10001Fixture.orders().get(1)));
+        when(orders.findOrderOfUser(2L, 1L)).thenReturn(Optional.of(Account10001Fixture.orders().get(1)));
 
         assertThatThrownBy(() -> service.cancel("10001", 2L))
                 .isInstanceOf(DomainException.class)
@@ -71,20 +71,21 @@ class CancelOrderServiceTest {
     }
 
     @Test
-    void otherAccountCannotCancel() {
+    void orderOfAnotherAccountIsNotFound() {
         when(users.lockByAccountNumber("10002")).thenReturn(new User(2L, "jose@test.com", "10002"));
-        when(orders.findOrderById(5L)).thenReturn(Optional.of(Account10001Fixture.orders().get(4)));
+        when(orders.findOrderOfUser(5L, 2L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.cancel("10002", 5L))
                 .isInstanceOf(DomainException.class)
                 .extracting(ex -> ((DomainException) ex).error())
-                .isEqualTo(DomainErrorCodes.ORDER_NOT_OWNED);
+                .isEqualTo(DomainErrorCodes.ORDER_NOT_FOUND);
+        verify(orders, never()).save(any());
     }
 
     @Test
     void missingOrderThrows() {
         when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
-        when(orders.findOrderById(99L)).thenReturn(Optional.empty());
+        when(orders.findOrderOfUser(99L, 1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.cancel("10001", 99L))
                 .isInstanceOf(DomainException.class)
@@ -97,7 +98,7 @@ class CancelOrderServiceTest {
         Order openSell = Account10001Fixture.order(
                 20L, 47L, 10, "1000", OrderSide.SELL, OrderStatus.NEW, OrderType.LIMIT, "2023-07-14T10:00:00");
         when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
-        when(orders.findOrderById(20L)).thenReturn(Optional.of(openSell));
+        when(orders.findOrderOfUser(20L, 1L)).thenReturn(Optional.of(openSell));
         when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(instruments.findInstrumentById(47L)).thenReturn(Optional.of(Account10001Fixture.PAMP));
 

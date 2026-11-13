@@ -35,11 +35,11 @@ class CancelOrderIT extends IntegrationTestBase {
     }
 
     @Test
-    void otherAccountCannotCancel() throws Exception {
+    void orderOfAnotherAccountIsNotFound() throws Exception {
         mockMvc.perform(post(apiV1() + "/accounts/10002/orders/5/cancellation"))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("BRK-001"))
-                .andExpect(jsonPath("$.detail").value("The order does not belong to this account."));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("BRK-003"))
+                .andExpect(jsonPath("$.detail").value("Order not found."));
     }
 
     @Test

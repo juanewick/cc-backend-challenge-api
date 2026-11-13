@@ -177,8 +177,8 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [x] T039 [P] [US6] Crear `src/test/java/com/cc/brokerage/application/CancelOrderServiceTest.java` con Mockito: cancelar la compra de 50 `LOMA` a `710.00` libera `35500.00`; cancelar `FILLED`, `REJECTED` o `CANCELLED` no cambia el estado; otra cuenta no cancela la orden; un id inexistente no cancela nada; cancelar una venta límite de 10 `PAMP` devuelve esas 10 acciones y no cambia el efectivo
-- [x] T040 [P] [US6] Crear `src/test/java/com/cc/brokerage/adapter/in/web/CancelOrderIT.java` para `POST /api/accounts/{accountNumber}/orders/{orderId}/cancellation`. En una base recién cargada, la orden `LOMA` tiene id `5`. Éxito responde 200. Estado no cancelable o cuenta distinta responde 409. Id inexistente responde 404
+- [x] T039 [P] [US6] Crear `src/test/java/com/cc/brokerage/application/CancelOrderServiceTest.java` con Mockito: cancelar la compra de 50 `LOMA` a `710.00` libera `35500.00`; cancelar `FILLED`, `REJECTED` o `CANCELLED` no cambia el estado; otra cuenta no cancela la orden y la ve como inexistente; un id inexistente no cancela nada; cancelar una venta límite de 10 `PAMP` devuelve esas 10 acciones y no cambia el efectivo
+- [x] T040 [P] [US6] Crear `src/test/java/com/cc/brokerage/adapter/in/web/CancelOrderIT.java` para `POST /api/accounts/{accountNumber}/orders/{orderId}/cancellation`. En una base recién cargada, la orden `LOMA` tiene id `5`. Éxito responde 200. Estado no cancelable responde 409. Id inexistente o de otra cuenta responde 404
 
 ### Implementation for User Story 6
 

@@ -32,10 +32,8 @@ public class GetOrderService implements GetOrderUseCase {
     public ListedOrder get(String accountNumber, long orderId) {
         String account = InputText.account(accountNumber);
         User user = users.findByAccountNumber(account).orElseThrow(() -> new DomainException(DomainErrorCodes.ACCOUNT_NOT_FOUND));
-        Order order = orders.findOrderById(orderId).orElseThrow(() -> new DomainException(DomainErrorCodes.ORDER_NOT_FOUND));
-        if (!order.userId().equals(user.id())) {
-            throw new DomainException(DomainErrorCodes.ORDER_NOT_OWNED);
-        }
+        Order order = orders.findOrderOfUser(orderId, user.id())
+                .orElseThrow(() -> new DomainException(DomainErrorCodes.ORDER_NOT_FOUND));
         String ticker = instruments.findInstrumentById(order.instrumentId())
                 .map(Instrument::ticker)
                 .orElseThrow(() -> new DomainException(DomainErrorCodes.INSTRUMENT_NOT_FOUND));

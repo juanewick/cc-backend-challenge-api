@@ -10,8 +10,11 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 public interface OrderJpaRepository extends JpaRepository<OrderEntity, Long> {
+
+    Optional<OrderEntity> findByIdAndUserId(Long id, Long userId);
 
     @Query(value = """
             select o from OrderEntity o

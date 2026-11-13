@@ -21,7 +21,7 @@ Lista las órdenes de esa cuenta por `datetime` ascendente e `id` ascendente. Ca
 
 `GET /accounts/{accountNumber}/orders/{orderId}`
 
-La misma forma. Si la orden es de otra cuenta, `409` y `BRK-001`. Si no existe, `404` y `BRK-003`. Ninguno repite el identificador.
+La misma forma. Si la orden no existe o es de otra cuenta, `404` y `BRK-003`: las dos respuestas son iguales, para no revelar qué identificadores existen. No repite el identificador.
 
 `POST /accounts/{accountNumber}/orders`
 
@@ -71,9 +71,8 @@ El `detail` es el texto en inglés. El código no cambia si se ajusta esa redacc
 
 | Situación | Código | Detail |
 |-----------|--------|--------|
-| Orden de otra cuenta | `BRK-001` | The order does not belong to this account. |
 | Activo inexistente | `BRK-002` | Instrument not found. |
-| Orden inexistente | `BRK-003` | Order not found. |
+| Orden inexistente o de otra cuenta | `BRK-003` | Order not found. |
 | Cuenta inexistente | `BRK-004` | Account not found. |
 | Orden que no está abierta | `BRK-005` | Only open orders can be cancelled. |
 | Moneda no operable | `BRK-006` | The currency is not tradable. |

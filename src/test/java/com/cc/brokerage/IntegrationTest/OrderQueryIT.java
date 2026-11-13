@@ -91,11 +91,11 @@ class OrderQueryIT extends IntegrationTestBase {
     }
 
     @Test
-    void otherAccountCannotReadTheOrder() throws Exception {
+    void orderOfAnotherAccountIsNotFound() throws Exception {
         mockMvc.perform(get(apiV1() + "/accounts/10002/orders/5"))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("BRK-001"))
-                .andExpect(jsonPath("$.detail").value("The order does not belong to this account."));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("BRK-003"))
+                .andExpect(jsonPath("$.detail").value("Order not found."));
     }
 
     @Test

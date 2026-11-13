@@ -33,10 +33,8 @@ public class CancelOrderService implements CancelOrderUseCase {
     public ListedOrder cancel(String accountNumber, long orderId) {
         String account = InputText.account(accountNumber);
         User user = users.lockByAccountNumber(account);
-        Order order = orders.findOrderById(orderId).orElseThrow(() -> new DomainException(DomainErrorCodes.ORDER_NOT_FOUND));
-        if (!order.userId().equals(user.id())) {
-            throw new DomainException(DomainErrorCodes.ORDER_NOT_OWNED);
-        }
+        Order order = orders.findOrderOfUser(orderId, user.id())
+                .orElseThrow(() -> new DomainException(DomainErrorCodes.ORDER_NOT_FOUND));
         if (order.status() != OrderStatus.NEW) {
             throw new DomainException(DomainErrorCodes.ORDER_NOT_OPEN);
         }
