@@ -2,6 +2,7 @@ package com.cc.brokerage.application;
 
 import com.cc.brokerage.domain.InstrumentNotFoundException;
 import com.cc.brokerage.domain.InvalidRequestException;
+import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.InstrumentType;
 import com.cc.brokerage.domain.model.MarketPrice;
@@ -27,6 +28,8 @@ import java.time.LocalDateTime;
 
 @Service
 public class PlaceOrderService implements PlaceOrderUseCase {
+
+    private static final BigDecimal MAX_MONEY = new BigDecimal("99999999.99");
 
     private final UserRepository users;
     private final InstrumentRepository instruments;
@@ -54,10 +57,12 @@ public class PlaceOrderService implements PlaceOrderUseCase {
     @Override
     @Transactional
     public Order place(PlaceOrderCommand command) {
+        String accountNumber = InputText.account(command.accountNumber());
+        String ticker = InputText.ticker(command.ticker());
         validateShape(command);
-        User user = users.lockByAccountNumber(command.accountNumber());
-        Instrument instrument = instruments.findByTicker(command.ticker())
-                .orElseThrow(() -> new InstrumentNotFoundException(command.ticker()));
+        User user = users.lockByAccountNumber(accountNumber);
+        Instrument instrument = instruments.findByTicker(ticker)
+                .orElseThrow(InstrumentNotFoundException::new);
         if (instrument.type() == InstrumentType.MONEDA
                 || command.side() == OrderSide.CASH_IN
                 || command.side() == OrderSide.CASH_OUT) {
@@ -94,19 +99,36 @@ public class PlaceOrderService implements PlaceOrderUseCase {
             throw new InvalidRequestException("Debe indicarse exactamente una forma de cantidad: acciones o monto");
         }
         if (hasSize && command.size() < 1) {
-            throw new InvalidRequestException("La cantidad debe ser un entero positivo");
+            throw new InvalidRequestException("La cantidad debe ser un entero de 1 a 2147483647");
         }
-        if (hasAmount && command.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidRequestException("El monto debe ser mayor que cero");
+        if (hasAmount) {
+            acceptMoney(command.amount(), "El monto debe ser mayor que cero", "El monto supera el máximo permitido");
         }
-        if (command.type() == OrderType.LIMIT && (command.price() == null || command.price().compareTo(BigDecimal.ZERO) <= 0)) {
-            throw new InvalidRequestException("El precio es obligatorio y debe ser mayor que cero");
+        if (command.type() == OrderType.LIMIT) {
+            if (command.price() == null) {
+                throw new InvalidRequestException("El precio es obligatorio y debe ser mayor que cero");
+            }
+            acceptMoney(command.price(), "El precio es obligatorio y debe ser mayor que cero", "El precio supera el máximo permitido");
         }
+    }
+
+    private static void acceptMoney(BigDecimal value, String notPositive, String aboveMaximum) {
+        BigDecimal rounded = rounded(value);
+        if (rounded.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidRequestException(notPositive);
+        }
+        if (rounded.compareTo(MAX_MONEY) > 0) {
+            throw new InvalidRequestException(aboveMaximum);
+        }
+    }
+
+    private static BigDecimal rounded(BigDecimal value) {
+        return value.setScale(MoneyMath.SCALE, MoneyMath.ROUNDING);
     }
 
     private BigDecimal resolvePrice(PlaceOrderCommand command, Instrument instrument) {
         if (command.type() == OrderType.LIMIT) {
-            return command.price();
+            return rounded(command.price());
         }
         return prices.findLatestByInstrumentId(instrument.id())
                 .map(MarketPrice::close)
@@ -120,7 +142,7 @@ public class PlaceOrderService implements PlaceOrderUseCase {
         if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
             return 0;
         }
-        return MoneyMath.sharesFromAmount(command.amount(), price);
+        return MoneyMath.sharesFromAmount(rounded(command.amount()), price);
     }
 
     private OrderStatus decideStatus(PlaceOrderCommand command, User user, Instrument instrument, int size, BigDecimal price) {

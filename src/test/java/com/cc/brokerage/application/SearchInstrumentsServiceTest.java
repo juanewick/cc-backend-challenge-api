@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -86,6 +87,71 @@ class SearchInstrumentsServiceTest {
 
     @Test
     void blankQueryIsRejected() {
-        assertThatThrownBy(() -> service.search("   ")).isInstanceOf(InvalidRequestException.class);
+        assertThatThrownBy(() -> service.search("   "))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("La búsqueda no tiene texto");
+        assertThatThrownBy(() -> service.search(""))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("La búsqueda no tiene texto");
+    }
+
+    @Test
+    void queryAboveOneHundredCharactersIsRejected() {
+        assertThatThrownBy(() -> service.search("n".repeat(101)))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("La búsqueda supera el máximo permitido");
+    }
+
+    @Test
+    void hundredCharactersAreAccepted() {
+        when(instruments.findAll()).thenReturn(List.of());
+
+        assertThat(service.search("n".repeat(100))).isEmpty();
+    }
+
+    @Test
+    void controlCharacterIsRejected() {
+        assertThatThrownBy(() -> service.search("pamp\n"))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("La búsqueda no es válida");
+    }
+
+    @Test
+    void nullCharacterIsRejected() {
+        assertThatThrownBy(() -> service.search("pamp\u0000"))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("La búsqueda no es válida");
+    }
+
+    @Test
+    void upperAndLowerCaseFindTheSameInstrument() {
+        when(instruments.findAll()).thenReturn(List.of(Account10001Fixture.PAMP));
+        when(prices.findByInstrumentIds(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
+
+        assertThat(service.search("PAMP")).extracting(InstrumentQuote::ticker).containsExactly("PAMP");
+        assertThat(service.search("pamp")).extracting(InstrumentQuote::ticker).containsExactly("PAMP");
+        assertThat(service.search("  pamp  ")).extracting(InstrumentQuote::ticker).containsExactly("PAMP");
+    }
+
+    @Test
+    void injectionShapedQueryDoesNotAddRows() {
+        when(instruments.findAll()).thenReturn(List.of(Account10001Fixture.PAMP, Account10001Fixture.BMA));
+
+        assertThat(service.search("pamp' OR 1=1")).isEmpty();
+    }
+
+    @Test
+    void matchDoesNotDependOnMachineLocale() {
+        Locale previous = Locale.getDefault();
+        Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+        try {
+            when(instruments.findAll()).thenReturn(List.of(
+                    new Instrument(8L, "TIP", "Titulo", InstrumentType.ACCIONES)));
+            when(prices.findByInstrumentIds(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
+
+            assertThat(service.search("tip")).extracting(InstrumentQuote::ticker).containsExactly("TIP");
+        } finally {
+            Locale.setDefault(previous);
+        }
     }
 }

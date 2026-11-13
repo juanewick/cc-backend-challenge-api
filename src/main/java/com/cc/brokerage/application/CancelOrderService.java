@@ -2,6 +2,7 @@ package com.cc.brokerage.application;
 
 import com.cc.brokerage.domain.OrderConflictException;
 import com.cc.brokerage.domain.OrderNotFoundException;
+import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.Order;
 import com.cc.brokerage.domain.model.OrderStatus;
 import com.cc.brokerage.domain.model.User;
@@ -25,8 +26,9 @@ public class CancelOrderService implements CancelOrderUseCase {
     @Override
     @Transactional
     public Order cancel(String accountNumber, Long orderId) {
-        User user = users.lockByAccountNumber(accountNumber);
-        Order order = orders.findOrderById(orderId).orElseThrow(() -> new OrderNotFoundException(orderId));
+        String account = InputText.account(accountNumber);
+        User user = users.lockByAccountNumber(account);
+        Order order = orders.findOrderById(orderId).orElseThrow(OrderNotFoundException::new);
         if (!order.userId().equals(user.id())) {
             throw new OrderConflictException("La orden no pertenece a esa cuenta");
         }

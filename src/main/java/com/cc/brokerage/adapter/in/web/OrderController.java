@@ -1,5 +1,6 @@
 package com.cc.brokerage.adapter.in.web;
 
+import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.Order;
 import com.cc.brokerage.domain.model.PlaceOrderCommand;
 import com.cc.brokerage.domain.port.in.CancelOrderUseCase;
@@ -50,8 +51,9 @@ public class OrderController {
     }
 
     @PostMapping("/{orderId}/cancellation")
-    public OrderResponse cancel(@PathVariable String accountNumber, @PathVariable Long orderId) {
-        Order order = cancelOrder.cancel(accountNumber, orderId);
+    public OrderResponse cancel(@PathVariable String accountNumber, @PathVariable String orderId) {
+        long id = InputText.orderId(orderId);
+        Order order = cancelOrder.cancel(accountNumber, id);
         String ticker = instruments.findInstrumentById(order.instrumentId()).map(instrument -> instrument.ticker()).orElse("");
         return OrderResponse.from(order, accountNumber, ticker);
     }

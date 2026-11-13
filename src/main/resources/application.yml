@@ -1,6 +1,15 @@
 spring:
   application:
     name: brokerage-api
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+      fail-on-trailing-tokens: true
+    read:
+      strict-duplicate-detection: true
+    datatype:
+      enum:
+        fail-on-numbers-for-enums: true
   jpa:
     open-in-view: false
     hibernate:

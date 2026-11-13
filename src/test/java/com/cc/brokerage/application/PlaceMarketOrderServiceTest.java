@@ -30,6 +30,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -123,7 +124,7 @@ class PlaceMarketOrderServiceTest {
 
     @Test
     void unknownAccountDoesNotSave() {
-        when(users.lockByAccountNumber("99999")).thenThrow(new AccountNotFoundException("99999"));
+        when(users.lockByAccountNumber("99999")).thenThrow(new AccountNotFoundException());
         assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
                 "99999", "GGAL", OrderSide.BUY, OrderType.MARKET, 1, null, null)))
                 .isInstanceOf(AccountNotFoundException.class);
@@ -138,6 +139,64 @@ class PlaceMarketOrderServiceTest {
                 "10001", "ZZZZ", OrderSide.BUY, OrderType.MARKET, 1, null, null)))
                 .isInstanceOf(InstrumentNotFoundException.class);
         verify(orders, never()).save(any());
+    }
+
+    @Test
+    void amountWhoseShareCountOverflowsDoesNotSave() {
+        stubAccountAndGgalLenient();
+        assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, new BigDecimal("3000000000000"), null)))
+                .isInstanceOf(InvalidRequestException.class);
+        verify(orders, never()).save(any());
+    }
+
+    @Test
+    void amountThatRoundsPastEightIntegerDigitsDoesNotSave() {
+        stubAccountAndGgalLenient();
+        assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, new BigDecimal("99999999.995"), null)))
+                .isInstanceOf(InvalidRequestException.class);
+        verify(orders, never()).save(any());
+    }
+
+    @Test
+    void nonPositiveAmountDoesNotSave() {
+        assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, BigDecimal.ZERO, null)))
+                .isInstanceOf(InvalidRequestException.class);
+        assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, new BigDecimal("-1"), null)))
+                .isInstanceOf(InvalidRequestException.class);
+        verify(orders, never()).save(any());
+    }
+
+    @Test
+    void amountThatBuysNoSharesIsSavedRejected() {
+        when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
+        when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
+        when(prices.findLatestByInstrumentId(34L)).thenReturn(Optional.of(Account10001Fixture.latestPrices().get(34L)));
+        when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Order placed = service.place(new PlaceOrderCommand(
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, BigDecimal.ONE, null));
+
+        assertThat(placed.status()).isEqualTo(OrderStatus.REJECTED);
+        assertThat(placed.size()).isZero();
+        verify(orders).save(any());
+    }
+
+    @Test
+    void marketWithoutCloseIsSavedRejected() {
+        when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
+        when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
+        when(prices.findLatestByInstrumentId(34L)).thenReturn(Optional.empty());
+        when(orders.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Order placed = service.place(new PlaceOrderCommand(
+                "10001", "GGAL", OrderSide.BUY, OrderType.MARKET, null, new BigDecimal("100"), null));
+
+        assertThat(placed.status()).isEqualTo(OrderStatus.REJECTED);
+        verify(orders).save(any());
     }
 
     @Test
@@ -157,5 +216,12 @@ class PlaceMarketOrderServiceTest {
         stubAccount();
         when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
         when(prices.findLatestByInstrumentId(34L)).thenReturn(Optional.of(Account10001Fixture.latestPrices().get(34L)));
+    }
+
+    private void stubAccountAndGgalLenient() {
+        lenient().when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
+        lenient().when(orders.findByUserId(1L)).thenReturn(Account10001Fixture.orders());
+        lenient().when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
+        lenient().when(prices.findLatestByInstrumentId(34L)).thenReturn(Optional.of(Account10001Fixture.latestPrices().get(34L)));
     }
 }

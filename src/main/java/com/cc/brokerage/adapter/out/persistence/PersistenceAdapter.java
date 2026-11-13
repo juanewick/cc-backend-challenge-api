@@ -44,7 +44,7 @@ public class PersistenceAdapter implements UserRepository, InstrumentRepository,
     public User lockByAccountNumber(String accountNumber) {
         return users.lockByAccountNumber(accountNumber)
                 .map(this::toDomain)
-                .orElseThrow(() -> new AccountNotFoundException(accountNumber));
+                .orElseThrow(AccountNotFoundException::new);
     }
 
     @Override

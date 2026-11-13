@@ -30,6 +30,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -136,6 +137,44 @@ class PlaceLimitOrderServiceTest {
     }
 
     @Test
+    void limitAmountWhoseShareCountOverflowsDoesNotSave() {
+        stubAccountAndGgalLenient();
+        assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, new BigDecimal("2147483648"), BigDecimal.ONE)))
+                .isInstanceOf(InvalidRequestException.class);
+        verify(orders, never()).save(any());
+    }
+
+    @Test
+    void limitAmountThatRoundsPastEightIntegerDigitsDoesNotSave() {
+        stubAccountAndGgalLenient();
+        assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, new BigDecimal("99999999.995"), BigDecimal.ONE)))
+                .isInstanceOf(InvalidRequestException.class);
+        verify(orders, never()).save(any());
+    }
+
+    @Test
+    void limitPriceThatRoundsPastEightIntegerDigitsDoesNotSave() {
+        stubAccountAndGgalLenient();
+        assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, 1, null, new BigDecimal("99999999.995"))))
+                .isInstanceOf(InvalidRequestException.class);
+        verify(orders, never()).save(any());
+    }
+
+    @Test
+    void nonPositiveLimitAmountDoesNotSave() {
+        assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, BigDecimal.ZERO, BigDecimal.ONE)))
+                .isInstanceOf(InvalidRequestException.class);
+        assertThatThrownBy(() -> service.place(new PlaceOrderCommand(
+                "10001", "GGAL", OrderSide.BUY, OrderType.LIMIT, null, new BigDecimal("-1"), BigDecimal.ONE)))
+                .isInstanceOf(InvalidRequestException.class);
+        verify(orders, never()).save(any());
+    }
+
+    @Test
     void limitSellReservesSharesAndDoesNotChangeCash() {
         stubAccount();
         when(instruments.findByTicker("PAMP")).thenReturn(Optional.of(Account10001Fixture.PAMP));
@@ -164,6 +203,12 @@ class PlaceLimitOrderServiceTest {
     private void stubAccountAndGgal() {
         stubAccount();
         when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
+    }
+
+    private void stubAccountAndGgalLenient() {
+        lenient().when(users.lockByAccountNumber("10001")).thenReturn(Account10001Fixture.USER);
+        lenient().when(orders.findByUserId(1L)).thenReturn(Account10001Fixture.orders());
+        lenient().when(instruments.findByTicker("GGAL")).thenReturn(Optional.of(Account10001Fixture.GGAL));
     }
 
     private static List<Order> withSaved(Order saved) {

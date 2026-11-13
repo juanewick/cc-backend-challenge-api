@@ -13,7 +13,7 @@ public final class MoneyFormats {
         if (value == null) {
             return null;
         }
-        return MoneyMath.scaled(value).toPlainString();
+        return value.setScale(MoneyMath.SCALE, MoneyMath.ROUNDING).toPlainString();
     }
 
     public static BigDecimal parse(String value, String field) {

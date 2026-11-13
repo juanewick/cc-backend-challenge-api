@@ -1,6 +1,6 @@
 package com.cc.brokerage.application;
 
-import com.cc.brokerage.domain.InvalidRequestException;
+import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.InstrumentQuote;
 import com.cc.brokerage.domain.model.MarketPrice;
@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -32,10 +33,7 @@ public class SearchInstrumentsService implements SearchInstrumentsUseCase {
     @Override
     @Transactional(readOnly = true)
     public List<InstrumentQuote> search(String query) {
-        if (query == null || query.isBlank()) {
-            throw new InvalidRequestException("La búsqueda no tiene texto");
-        }
-        String needle = query.trim().toLowerCase();
+        String needle = InputText.search(query).toLowerCase(Locale.ROOT);
         List<Instrument> matches = instruments.findAll().stream()
                 .filter(instrument -> contains(instrument.ticker(), needle) || contains(instrument.name(), needle))
                 .sorted(Comparator.comparing(Instrument::ticker))
@@ -48,7 +46,7 @@ public class SearchInstrumentsService implements SearchInstrumentsUseCase {
     }
 
     private static boolean contains(String value, String needle) {
-        return value != null && value.toLowerCase().contains(needle);
+        return value != null && value.toLowerCase(Locale.ROOT).contains(needle);
     }
 
     private Map<Long, MarketPrice> latestPrices(Set<Long> instrumentIds) {
