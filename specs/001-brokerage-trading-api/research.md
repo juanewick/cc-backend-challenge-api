@@ -40,13 +40,13 @@
 
 **Alternatives considered**: Only the database in Docker and the app on the host. It does not meet the single start. A single image with Postgres and Java inside mixes two processes and worsens the lifecycle.
 
-## LocalStack and Testcontainers
+## Testcontainers
 
-**Decision**: The `*IT.java` classes use Testcontainers. The PostgreSQL container is the real database for happy and error scenarios. The same harness starts LocalStack with the Testcontainers module and checks that it answers; no business operation calls AWS.
+**Decision**: The `*IT.java` classes use Testcontainers. The PostgreSQL container is the real database for happy and error scenarios.
 
-**Rationale**: The request names both tools. LocalStack emulates AWS, and this application has no S3, queues or any other AWS service. Using it as the database would be wrong. Leaving it out would break the written request. Starting it and checking it meets the requirement without inventing a product dependency.
+**Rationale**: The scenarios run against the same engine as the product, with the reference data loaded. The application calls no AWS service, so the suite starts no AWS emulator.
 
-**Alternatives considered**: Leaving LocalStack out. Storing orders in S3 just to have something to test against LocalStack.
+**Alternatives considered**: An in-memory database. It does not run the PostgreSQL queries the service relies on.
 
 ## Generated contract and Actuator
 

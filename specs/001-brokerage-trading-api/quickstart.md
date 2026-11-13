@@ -67,4 +67,4 @@ Health answers `{"status":"UP"}` when the application and the database answer, w
 mvn verify
 ```
 
-`*Test.java` covers the calculation and the services with Mockito. `*IT.java` starts PostgreSQL and LocalStack with Testcontainers and walks through the happy and error scenarios. `ActuatorIT` runs first and checks health, info and that the rest of Actuator is not published. They do not depend on a `docker compose` that is already running.
+`*Test.java` covers the calculation and the services with Mockito. `*IT.java` starts PostgreSQL with Testcontainers and walks through the happy and error scenarios. `ActuatorIT` runs first and checks health, info and that the rest of Actuator is not published. They do not depend on a `docker compose` that is already running.

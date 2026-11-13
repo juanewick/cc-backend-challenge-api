@@ -14,7 +14,7 @@ An investment account in pesos can be queried, instruments can be searched by ti
 
 **Language/Version**: Java 25 (LTS)
 
-**Primary Dependencies**: Spring Boot 4.1.2 (`spring-boot-starter-webmvc`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `spring-boot-starter-actuator`). Contract generated with springdoc-openapi 3.2.0 (`springdoc-openapi-starter-webmvc-ui`), the 3.2.x line built on Spring Boot 4.1.2. Test: `spring-boot-starter-test` (JUnit Jupiter 6.0.3, Mockito 5.23.0), `spring-boot-starter-webmvc-test`, Testcontainers PostgreSQL and LocalStack.
+**Primary Dependencies**: Spring Boot 4.1.2 (`spring-boot-starter-webmvc`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `spring-boot-starter-actuator`). Contract generated with springdoc-openapi 3.2.0 (`springdoc-openapi-starter-webmvc-ui`), the 3.2.x line built on Spring Boot 4.1.2. Test: `spring-boot-starter-test` (JUnit Jupiter 6.0.3, Mockito 5.23.0), `spring-boot-starter-webmvc-test`, Testcontainers PostgreSQL.
 
 **Storage**: PostgreSQL 18.6, official image pinned (18.7 was not on Docker Hub yet). Schema and data come from the delivered SQL; Hibernate does not generate it.
 
@@ -36,9 +36,9 @@ An investment account in pesos can be queried, instruments can be searched by ti
 
 `.specify/memory/constitution.md` is still the template without ratified principles. There are no project gates to evaluate. The gate passes.
 
-The constraints that do bind are those of the request and of [research.md](research.md): Java 25, Spring Boot 4.1.2, hexagonal, PostgreSQL in Docker, TDD, service tests with Mockito, `*IT.java` integration with Testcontainers and LocalStack, no authentication, and standalone start with Docker.
+The constraints that do bind are those of the request and of [research.md](research.md): Java 25, Spring Boot 4.1.2, hexagonal, PostgreSQL in Docker, TDD, service tests with Mockito, `*IT.java` integration with Testcontainers, no authentication, and standalone start with Docker.
 
-Post-design review: the model and the quickstart meet those constraints. The HTTP contract is not stored in the repository: springdoc generates it at startup. The only extra complexity is LocalStack, justified below. The gate still passes.
+Post-design review: the model and the quickstart meet those constraints. The HTTP contract is not stored in the repository: springdoc generates it at startup. The gate still passes.
 
 ## Project Structure
 
@@ -88,4 +88,4 @@ cc-backend-challenge/
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| LocalStack in the integration tests, with no AWS service in the product | The request names LocalStack together with Testcontainers | Using it as the database would be false: it does not emulate PostgreSQL. Leaving it out leaves the written request unmet. The container is started and checked; business assertions go against the API and Postgres. |
+| None | | |

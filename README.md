@@ -80,8 +80,8 @@ mvn verify
 
 - Java 25, Spring Boot 4.1.2 y JUnit 6. Los tests usan JUnit Jupiter 6.0.3, la versión que trae ese Spring Boot, junto con Mockito.
 - PostgreSQL se fija en la imagen `postgres:18.6`. El 2026-11-12 salió el parche 18.7, pero ese tag todavía no estaba en Docker Hub.
-- La integración usa Testcontainers contra PostgreSQL para los escenarios de negocio. LocalStack se arranca en esa misma suite porque el pedido lo pide; la aplicación no llama a AWS.
-- Los `*IT.java` comparten un PostgreSQL y un LocalStack arrancados una sola vez. Un contenedor por clase cambiaba el puerto y el contexto cacheado de Spring seguía apuntando al anterior.
+- La integración usa Testcontainers contra PostgreSQL para los escenarios de negocio.
+- Los `*IT.java` comparten un PostgreSQL arrancado una sola vez. Un contenedor por clase cambiaba el puerto y el contexto cacheado de Spring seguía apuntando al anterior.
 - El Dockerfile de compilación usa `maven:3.9.11-eclipse-temurin-25` para no instalar Maven aparte en la etapa de build.
 - Antes de cada escenario de integración se recrean las órdenes de referencia con `TRUNCATE`, para que un test no deje saldo a otro.
 - Actuator publica solo health e info, en `/actuator`. Health no muestra componentes. Info repite el nombre `brokerage-api`.

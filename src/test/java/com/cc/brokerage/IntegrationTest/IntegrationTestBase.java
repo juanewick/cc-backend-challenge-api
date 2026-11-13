@@ -12,9 +12,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 import javax.sql.DataSource;
 
@@ -29,11 +27,8 @@ public abstract class IntegrationTestBase {
             .withPassword("brokerage")
             .withInitScript("db/database.sql");
 
-    public static final LocalStackContainer LOCALSTACK = new LocalStackContainer(DockerImageName.parse("localstack/localstack:4.0"));
-
     static {
         POSTGRES.start();
-        LOCALSTACK.start();
     }
 
     @Autowired
