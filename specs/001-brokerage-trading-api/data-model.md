@@ -87,7 +87,7 @@ Solo participan las filas ya guardadas.
 - Valor de mercado = cantidad neta × cierre vigente.
 - Rendimiento total, en porcentaje, con dos decimales, half-up: si la cantidad neta es positiva, `(cierre − costo promedio) / costo promedio × 100`; si es negativa, `(precio promedio de venta − cierre) / precio promedio de venta × 100`. Sin compras (o sin ventas, en una corta) es nulo.
 - Rendimiento diario, en porcentaje = `(cierre − cierre anterior) / cierre anterior × 100`, con la misma escala. Si el cierre anterior es nulo o 0, es nulo.
-- Valor total = efectivo liquidado + valor de mercado de las posiciones que tienen cierre. Una posición sin cierre se lista con cantidad y con valores nulos, y no suma al total.
+- Valor total = efectivo liquidado + valor de mercado de las posiciones que tienen cierre. Una posición sin cierre se lista con cantidad y con valores nulos, no suma al total y su ticker va en `unpricedTickers`.
 - Se omiten las posiciones de cantidad neta 0 y la moneda. El resto se ordena por ticker. La cantidad negativa se conserva.
 
 Los importes de una orden nueva de compra o venta usan el precio aplicable: cierre vigente en `MARKET`, precio enviado en `LIMIT`. Si el pedido trae un monto, `size = floor(monto / precio aplicable)`. El efectivo que mueve es `size * precio`, no el monto original.

@@ -11,7 +11,8 @@ public record PortfolioResponse(
         @Schema(description = "Pesos disponibles a dos decimales, como texto.") String availableCash,
         @Schema(description = "Efectivo liquidado calculado, a dos decimales. No se guarda.") String settledCash,
         @Schema(description = "Efectivo reservado por compras abiertas, a dos decimales. No se guarda.") String reservedCash,
-        List<PositionResponse> positions
+        List<PositionResponse> positions,
+        @Schema(description = "Tickers de las posiciones sin cierre. Se listan, pero no suman al valor total. Vacío si todas tienen precio.") List<String> unpricedTickers
 ) {
     public static PortfolioResponse from(Portfolio portfolio, MoneyFormatter money) {
         return new PortfolioResponse(
@@ -20,7 +21,8 @@ public record PortfolioResponse(
                 money.format(portfolio.availableCash()),
                 money.format(portfolio.settledCash()),
                 money.format(portfolio.reservedCash()),
-                portfolio.positions().stream().map(position -> PositionResponse.from(position, money)).toList()
+                portfolio.positions().stream().map(position -> PositionResponse.from(position, money)).toList(),
+                portfolio.unpricedTickers()
         );
     }
 }

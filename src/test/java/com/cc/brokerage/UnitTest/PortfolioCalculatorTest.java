@@ -1,6 +1,7 @@
 package com.cc.brokerage.UnitTest;
 
 import com.cc.brokerage.domain.service.PortfolioCalculator;
+import com.cc.brokerage.domain.model.MarketPrice;
 import com.cc.brokerage.domain.model.OrderSide;
 import com.cc.brokerage.domain.model.OrderStatus;
 import com.cc.brokerage.domain.model.OrderType;
@@ -12,7 +13,9 @@ import com.cc.brokerage.support.MoneyBounds;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -34,6 +37,7 @@ class PortfolioCalculatorTest {
         assertThat(portfolio.availableCash()).isEqualByComparingTo("627500.00");
         assertThat(portfolio.totalValue()).isEqualByComparingTo("889756.00");
         assertThat(portfolio.positions()).extracting(Position::ticker).containsExactly("BMA", "METR", "PAMP");
+        assertThat(portfolio.unpricedTickers()).isEmpty();
 
         Position bma = portfolio.positions().get(0);
         assertThat(bma.quantity()).isEqualTo(-10);
@@ -108,6 +112,24 @@ class PortfolioCalculatorTest {
     }
 
     @Test
+    void positionWithoutCloseIsFlaggedAndLeftOutOfTheTotal() {
+        Map<Long, MarketPrice> withoutPamp = new HashMap<>(Account10001Fixture.latestPrices());
+        withoutPamp.remove(Account10001Fixture.PAMP.id());
+
+        Portfolio portfolio = calculator.toPortfolio(
+                Account10001Fixture.USER,
+                HoldingsOf.orders(Account10001Fixture.orders()),
+                Account10001Fixture.instruments(),
+                withoutPamp
+        );
+
+        assertThat(portfolio.unpricedTickers()).containsExactly("PAMP");
+        assertThat(portfolio.positions()).extracting(Position::ticker).containsExactly("BMA", "METR", "PAMP");
+        assertThat(portfolio.positions().get(2).marketValue()).isNull();
+        assertThat(portfolio.totalValue()).isEqualByComparingTo("852722.00");
+    }
+
+    @Test
     void emptyOrdersYieldZeroPortfolio() {
         Portfolio portfolio = calculator.toPortfolio(
                 Account10001Fixture.USER,
@@ -119,5 +141,6 @@ class PortfolioCalculatorTest {
         assertThat(portfolio.availableCash()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(portfolio.totalValue()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(portfolio.positions()).isEmpty();
+        assertThat(portfolio.unpricedTickers()).isEmpty();
     }
 }

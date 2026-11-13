@@ -31,7 +31,8 @@ class PortfolioControllerIT extends IntegrationTestBase {
                 .andExpect(jsonPath("$.positions[2].quantity").value(40))
                 .andExpect(jsonPath("$.positions[2].marketValue").value("37034.00"))
                 .andExpect(jsonPath("$.positions[2].totalReturnPercent").value("-0.45"))
-                .andExpect(jsonPath("$.positions[2].dailyReturnPercent").value("0.44"));
+                .andExpect(jsonPath("$.positions[2].dailyReturnPercent").value("0.44"))
+                .andExpect(jsonPath("$.unpricedTickers").isEmpty());
     }
 
     @Test

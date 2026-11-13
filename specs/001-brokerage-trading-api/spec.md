@@ -180,7 +180,7 @@ Quien va a operar, o quien acaba de cambiar la configuración, consulta dos ruta
 
 - Una posición cuya cantidad neta es cero no se muestra. La posición corta de `BMA` en la cuenta de referencia sí se muestra, con cantidad y valor de mercado negativos.
 - La moneda en pesos no es una posición, aunque sus movimientos sean órdenes.
-- Un activo sin último cierre se lista con su cantidad y con valor de mercado y rendimiento no disponibles, y no suma al valor total de la cuenta.
+- Un activo sin último cierre se lista con su cantidad y con valor de mercado y rendimiento no disponibles, y no suma al valor total de la cuenta. El portfolio lo informa en `unpricedTickers`.
 - Si el cierre anterior es cero o no existe, el rendimiento diario queda no disponible.
 - Si no hay compras `FILLED` en una posición larga, o ventas `FILLED` en una corta, no hay costo promedio y el rendimiento total queda no disponible.
 - Una venta parcial no cambia el costo promedio de las acciones que quedan, así que no altera el rendimiento total.

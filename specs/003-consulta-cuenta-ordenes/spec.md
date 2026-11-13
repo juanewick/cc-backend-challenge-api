@@ -103,7 +103,7 @@ Portfolio, búsqueda, cotización y orden de mercado toman el mismo último cier
 ### Edge Cases
 
 - Una posición cuya cantidad neta es cero no se muestra. La posición corta de `BMA` sigue mostrándose, con cantidad y valor de mercado negativos.
-- Un activo sin último cierre sigue en la posición con valor y rendimientos no disponibles, y no suma al valor total.
+- Un activo sin último cierre sigue en la posición con valor y rendimientos no disponibles, y no suma al valor total. Su ticker figura en `unpricedTickers`, para que el valor total no parezca completo.
 - Si el cierre anterior es cero o no existe, el rendimiento diario queda no disponible.
 - Si no hay costo promedio (sin compras `FILLED` en una larga, sin ventas `FILLED` en una corta), el rendimiento total queda no disponible.
 - La moneda sigue sin ser una posición.

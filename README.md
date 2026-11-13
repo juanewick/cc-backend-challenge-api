@@ -19,7 +19,7 @@ Se usó arquitectura hexagonal. El dominio no conoce HTTP ni JPA: los casos de u
 
 ## Funcionalidades
 
-- Consultar el portfolio: valor total, pesos disponibles y posiciones (cantidad, valor de mercado, rendimiento total y diario).
+- Consultar el portfolio: valor total, pesos disponibles y posiciones (cantidad, valor de mercado, rendimiento total y diario). `unpricedTickers` avisa qué posiciones no tienen cierre y quedaron fuera del valor total.
 - Buscar activos cuyo ticker o nombre contienen un texto, sin distinguir mayúsculas.
 - Enviar órdenes `MARKET` (se ejecutan al cierre vigente) o `LIMIT` (quedan abiertas y reservan pesos o acciones).
 - Rechazar una orden `MARKET` que trae `price` (`BRK-027`, sin grabar la orden).

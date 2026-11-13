@@ -89,13 +89,18 @@ public class PortfolioCalculator {
         }
 
         positions.sort(Comparator.comparing(Position::ticker));
+        List<String> unpricedTickers = positions.stream()
+                .filter(position -> position.marketValue() == null)
+                .map(Position::ticker)
+                .toList();
         return new Portfolio(
                 user.accountNumber(),
                 holdings.settledCash().add(marketTotal),
                 holdings.availableCash(),
                 holdings.settledCash(),
                 holdings.reservedCash(),
-                List.copyOf(positions)
+                List.copyOf(positions),
+                unpricedTickers
         );
     }
 

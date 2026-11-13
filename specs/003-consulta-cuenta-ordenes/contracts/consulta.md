@@ -10,6 +10,7 @@ Además de `accountNumber`, `totalValue`, `availableCash` y `positions`, la resp
 
 - `settledCash`: efectivo liquidado, calculado.
 - `reservedCash`: efectivo reservado por compras abiertas, calculado.
+- `unpricedTickers`: tickers de las posiciones sin cierre, ordenados. Esas posiciones se listan con valores nulos y no suman a `totalValue`. Lista vacía si todas tienen precio.
 
 Cuenta `10001` sin órdenes nuevas: `settledCash` `753000.00`, `reservedCash` `125500.00`, `availableCash` `627500.00`, `totalValue` `889756.00`.
 
