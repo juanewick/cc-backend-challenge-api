@@ -1,81 +1,80 @@
-# Research: Endurecer las entradas
+# Research: Harden the inputs
 
-## Lectura estricta del documento
+## Strict reading of the document
 
-**Decision**: Activar en `application.yml` la lectura que Spring Boot 4.1.2 ya expone sobre Jackson 3.1.7:
+**Decision**: Enable in `application.yml` the reading options that Spring Boot 4.1.2 already exposes over Jackson 3.1.7:
 
 - `spring.jackson.deserialization.fail-on-unknown-properties: true`
 - `spring.jackson.deserialization.fail-on-trailing-tokens: true`
 - `spring.jackson.read.strict-duplicate-detection: true`
 - `spring.jackson.datatype.enum.fail-on-numbers-for-enums: true`
 
-El customizer estándar de Boot desactiva `FAIL_ON_UNKNOWN_PROPERTIES`. Hay que volver a activarlo. Las claves repetidas salen de `StreamReadFeature.STRICT_DUPLICATE_DETECTION`, en el mapa `spring.jackson.read`.
+Boot's standard customizer turns `FAIL_ON_UNKNOWN_PROPERTIES` off. It has to be turned back on. Repeated keys come from `StreamReadFeature.STRICT_DUPLICATE_DETECTION`, in the `spring.jackson.read` map.
 
-Las coerciones no tienen propiedad. Un `JsonMapperBuilderCustomizer` (`org.springframework.boot.jackson.autoconfigure`) pone `CoercionAction.Fail` cuando un escalar llega con otra forma: texto donde va un número, número donde va un texto, número donde va un lado o un tipo, y booleano, arreglo u objeto en cualquiera de esos campos. El cuerpo vacío, un arreglo en la raíz y un tipo de contenido que no es un documento de datos siguen el mismo rechazo que un pedido ilegible.
+Coercions have no property. A `JsonMapperBuilderCustomizer` (`org.springframework.boot.jackson.autoconfigure`) sets `CoercionAction.Fail` when a scalar arrives in another shape: text where a number goes, a number where text goes, a number where a side or a type goes, and a boolean, array or object in any of those fields. An empty body, an array at the root and a content type that is not a data document get the same rejection as an unreadable request.
 
-**Rationale**: Bean Validation no ve una clave repetida, un campo desconocido ni un número que no entra en un entero: el lector ya falló o ya eligió un valor. Estas banderas existen en los jars del proyecto (`spring-boot-jackson` 4.1.2 y `jackson-databind` 3.1.7) y no agregan una dependencia.
+**Rationale**: Bean Validation does not see a repeated key, an unknown field or a number that does not fit an integer: the reader has already failed or already picked a value. These flags exist in the project jars (`spring-boot-jackson` 4.1.2 and `jackson-databind` 3.1.7) and add no dependency.
 
-**Alternatives considered**: Anotaciones de validación sobre `PlaceOrderRequest`. No rechazan el campo de más ni la clave repetida. Leer el cuerpo como árbol y validarlo a mano duplica el lector que ya tiene el adaptador.
+**Alternatives considered**: Validation annotations on `PlaceOrderRequest`. They do not reject the extra field or the repeated key. Reading the body as a tree and validating it by hand duplicates the reader the adapter already has.
 
-## Texto estable, sin el valor enviado
+## Stable text, without the value sent
 
-**Decision**: `ApiExceptionHandler` deja de devolver `exception.getMessage()` para los fallos de lectura, de tipo de contenido y de argumento mal formado. El cuerpo sigue siendo `ApiError`, con HTTP 400, salvo el tipo de contenido no soportado, que responde 415 (revisado el 2026-11-13).
+**Decision**: `ApiExceptionHandler` stops returning `exception.getMessage()` for read failures, content type failures and malformed arguments. The body is still `ApiError`, with HTTP 400, except an unsupported content type, which answers 415 (revised on 2026-11-13).
 
-- Pedido ilegible, vacío, que no es un objeto, o con tokens de más: `El pedido no se puede leer`.
-- Tipo de contenido distinto de `application/json`: 415, código `UNSUPPORTED_MEDIA_TYPE` y encabezado `Accept` con los tipos que la operación lee.
-- Campo que la operación no define: `El pedido tiene un campo que no corresponde`. No se nombra esa clave, porque el nombre lo elige quien llama y puede ser el propio texto hostil.
-- Campo nuestro repetido o de otro tipo: `El campo cantidad está repetido` o `El campo cantidad no es válido`, y lo mismo para ticker, lado, tipo, monto y precio. El nombre es el del modelo, no el valor.
-- Cuenta, activo u orden inexistentes: `La cuenta no existe`, `El activo no existe`, `La orden no existe`. Hoy esos textos concatenan el valor enviado.
+- Unreadable request, empty, not an object, or with trailing tokens: `The request cannot be read.`.
+- Content type other than `application/json`: 415, code `UNSUPPORTED_MEDIA_TYPE` and an `Accept` header with the types the operation reads.
+- A field the operation does not define: `The request contains a field that is not allowed.`. That key is not named, because the caller picks the name and it may be the hostile text itself.
+- One of our fields repeated or wrongly typed: `The size field is duplicated.` or `The size field is not valid.`, and the same for ticker, side, type, amount and price. The name is the model's, not the value.
+- Missing account, instrument or order: `Account not found.`, `Instrument not found.`, `Order not found.`. Before this feature those texts concatenated the value sent.
 
-Si el lector no indica un campo nuestro, se usa el texto de pedido ilegible. Nunca se copia el mensaje de Jackson: incluye el fragmento leído y la ruta interna.
+If the reader does not point to one of our fields, the unreadable-request text is used. Jackson's message is never copied: it includes the fragment read and the internal path.
 
-**Rationale**: La spec pide un texto estable, el nombre del campo cuando es uno de los nuestros, y nada del valor ni del diagnóstico interno. El sobre `{ "message" }` ya es el de la feature 001.
+**Rationale**: The spec asks for a stable text, the field name when it is one of ours, and nothing of the value or the internal diagnosis. The `{ "message" }` envelope is already the one of feature 001.
 
-**Alternatives considered**: Problem Details. Cambia el cuerpo que ya consumen los tests y el contrato generado. Devolver el mensaje de Jackson y recortarlo es frágil: el texto del lector no es un contrato.
+**Alternatives considered**: Problem Details. It changes the body the tests and the generated contract already consume. Returning Jackson's message and trimming it is fragile: the reader's text is not a contract.
 
-## Formato antes de la cuenta
+## Format before the account
 
-**Decision**: Cuenta, ticker, identificador de orden y búsqueda se interpretan en `InputText`, en el dominio, y lanzan `InvalidRequestException` con un texto fijo. Los controladores reciben la ruta y la búsqueda como texto. El id de orden deja de declararse como `Long` para que un número enorme no lo convierta el framework ni se consulte otra orden.
+**Decision**: Account, ticker, order id and search are parsed in `InputText`, in the domain, and throw `InvalidRequestException` with a fixed text. Controllers receive the path and the search as text. The order id is no longer declared as `Long`, so that the framework does not convert a huge number and no other order is queried.
 
-Reglas:
+Rules:
 
-- Cuenta: de 1 a 20 dígitos, el texto completo. No se recorta. `10001` sigue siendo la cuenta de referencia. Los ceros a la izquierda se conservan, porque forman otra cadena.
-- Ticker: de 1 a 10 letras o dígitos, el texto completo, sin recorte y sin cambiar mayúsculas. `PAMP` se busca igual que hoy. `pamp` tiene formato válido y, si no hay ese activo, responde que no existe, sin repetir el texto.
-- Orden: un entero de 1 a 2147483647. Cero, negativo, texto, espacios y un número más grande se rechazan con `La orden no es válida`. Se aceptan ceros a la izquierda si el valor numérico entra en el rango (`0001` es la orden 1).
-- Búsqueda: se recortan solo los extremos. Después, de 1 a 100 caracteres Unicode, sin caracteres de control ISO y sin el carácter nulo. Vacía: `La búsqueda no tiene texto`. Demasiado larga: `La búsqueda supera el máximo permitido`. Con un control: `La búsqueda no es válida`.
+- Account: 1 to 20 digits, the whole text. It is not trimmed. `10001` is still the reference account. Leading zeros are kept, because they make a different string.
+- Ticker: 1 to 10 letters or digits, the whole text, untrimmed and with its case unchanged. `PAMP` is looked up as today. `pamp` has a valid format and, if there is no such instrument, answers that it does not exist, without repeating the text.
+- Order: an integer from 1 to 2147483647. Zero, negative, text, spaces and a larger number are rejected with `The order is not valid.`. Leading zeros are accepted if the numeric value is in range (`0001` is order 1).
+- Search: only the ends are trimmed. After that, 1 to 100 Unicode characters, without ISO control characters and without the null character. Empty: `The search has no text.`. Too long: `The search exceeds the maximum length.`. With a control: `The search is not valid.`.
 
-La comparación de la búsqueda sigue siendo en memoria, sobre el catálogo ya cargado, con `Locale.ROOT`. El texto no se concatena en una consulta. Así un texto que parece una instrucción no se ejecuta y no depende del idioma de la máquina.
+The search comparison is still in memory, over the catalogue already loaded, with `Locale.ROOT`. The text is not concatenated into a query. That way a text that looks like an instruction is not executed and does not depend on the machine locale.
 
-**Rationale**: La spec exige validar antes de leer o grabar, y no elegir un registro parecido. Interpretar el id como `Long` deja pasar valores que el entero de la orden no puede guardar y, en el fallo de conversión, el mensaje por defecto incluye el texto de la ruta.
+**Rationale**: The spec requires validating before reading or storing, and never picking a similar record. Parsing the id as `Long` lets through values the order integer cannot store and, when conversion fails, the default message includes the path text.
 
-**Alternatives considered**: Expresiones regulares solo en el controlador. El caso de uso quedaría desprotegido si otro adaptador lo llama. Rechazar la búsqueda con signos: los nombres de referencia usan puntuación, y la spec la permite.
+**Alternatives considered**: Regular expressions only in the controller. The use case would be unprotected if another adapter called it. Rejecting the search when it has signs: the reference names use punctuation, and the spec allows it.
 
-## Monto, precio y cantidad
+## Amount, price and size
 
-**Decision**: Monto y precio se leen como texto, no como número suelto, igual que hoy. Si el texto no es un número decimal, el campo no es válido. Si lo es, primero se redondea half-up a 2 decimales y después se exige que sea mayor que cero y que tenga como máximo 8 dígitos enteros. `99999999.994` queda en `99999999.99` y entra. `99999999.995` queda en `100000000.00` y se rechaza por el máximo. Un resultado cero después del redondeo se rechaza por no ser mayor que cero.
+**Decision**: Amount and price are read as text, not as a bare number, as today. If the text is not a decimal number, the field is not valid. If it is, it is first rounded half-up to 2 decimals and then required to be greater than zero with at most 8 integer digits. `99999999.994` becomes `99999999.99` and is accepted. `99999999.995` becomes `100000000.00` and is rejected for the maximum. A zero result after rounding is rejected for not being greater than zero.
 
-`MoneyMath.sharesFromAmount` deja de usar `intValue()`. Calcula el cociente entero y, si es mayor que 2147483647, lanza rechazo de entrada. El caso de uso no graba esa orden. El cociente 0 sigue siendo el rechazo de negocio ya existente: se guarda `REJECTED`. El precio de una orden límite ausente, cero o negativo se sigue rechazando antes de grabar. Un lado distinto de `BUY` o `SELL`, un tipo distinto de `MARKET` o `LIMIT`, y las dos formas de cantidad o ninguna, se siguen rechazando.
+`MoneyMath.sharesFromAmount` stops using `intValue()`. It computes the integer quotient and, if it is greater than 2147483647, throws an input rejection. The use case does not store that order. Quotient 0 is still the existing business rejection: it is stored `REJECTED`. A missing, zero or negative limit price is still rejected before storing. A side other than `BUY` or `SELL`, a type other than `MARKET` or `LIMIT`, and both forms of quantity or neither, are still rejected.
 
-Los textos de dominio, sin el valor enviado:
+The domain texts, without the value sent:
 
-- `La cantidad debe ser un entero de 1 a 2147483647`
-- `El monto debe ser mayor que cero`
-- `El monto supera el máximo permitido`
-- `El precio es obligatorio y debe ser mayor que cero`
-- `El precio supera el máximo permitido`
-- `Debe indicarse exactamente una forma de cantidad: acciones o monto`
-- `El lado debe ser BUY o SELL`
-- `El tipo de orden es obligatorio`
-- `El tipo debe ser MARKET o LIMIT`
+- `Size must be an integer from 1 to 2147483647.`
+- `Amount must be greater than zero.`
+- `Amount exceeds the maximum allowed.`
+- `Price is required and must be greater than zero.`
+- `Price exceeds the maximum allowed.`
+- `Exactly one quantity is required: shares or amount.`
+- `Side must be BUY or SELL.`
+- `Order type is required.`
 
-**Rationale**: `NUMERIC(10, 2)` guarda 8 enteros y 2 decimales. Redondear antes de contar los enteros valida el número que se guardaría. `intValue()` se queda con los 32 bits bajos y puede persistir una cantidad chica o negativa; la spec lo prohíbe.
+**Rationale**: `NUMERIC(10, 2)` stores 8 integer digits and 2 decimals. Rounding before counting the integer digits validates the number that would be stored. `intValue()` keeps the low 32 bits and may persist a small or negative size; the spec forbids it.
 
-**Alternatives considered**: Rechazar todo monto con más de 2 decimales. La spec dice que esos decimales se redondean. Subir el tope a 12 enteros. La columna actual no los guarda, y esta feature no cambia el esquema.
+**Alternatives considered**: Rejecting every amount with more than 2 decimals. The spec says those decimals are rounded. Raising the cap to 12 integer digits. The current column does not store them, and this feature does not change the schema.
 
-## Contrato y pruebas
+## Contract and tests
 
-**Decision**: No se escribe un OpenAPI en `specs`. El documento sigue siendo el que genera springdoc al arrancar. [contracts/entradas.md](contracts/entradas.md) fija los textos y los rechazos observables. Los tests de dominio y de servicio salen primero y tienen que fallar antes de la implementación. `HardenInputsIT` cubre el documento HTTP. Los escenarios de `10001`, `PAMP` y una orden válida que ya existen no se aflojan.
+**Decision**: No OpenAPI is written in `specs`. The document is still the one springdoc generates at startup. [contracts/inputs.md](contracts/inputs.md) fixes the observable texts and rejections. Domain and service tests come first and must fail before implementation. `HardenInputsIT` covers the HTTP document. The existing scenarios for `10001`, `PAMP` and a valid order are not loosened.
 
-**Rationale**: La feature 001 prohíbe una copia escrita a mano del contrato. Los textos de error son parte de lo observable y hoy no están en ese documento generado de forma estable, porque salen de excepciones.
+**Rationale**: Feature 001 forbids a hand-written copy of the contract. The error texts are part of what is observable and today they are not in that generated document in a stable way, because they come from exceptions.
 
-**Alternatives considered**: Anotar el esquema de error para que springdoc publique cada mensaje. Publica nombres de tipos, no el catálogo de frases. No reemplaza los tests.
+**Alternatives considered**: Annotating the error schema so springdoc publishes each message. It publishes type names, not the catalogue of phrases. It does not replace the tests.

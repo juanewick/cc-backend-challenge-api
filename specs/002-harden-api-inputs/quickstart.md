@@ -1,31 +1,31 @@
-# Quickstart: Endurecer las entradas
+# Quickstart: Harden the inputs
 
-Validación del comportamiento de [spec.md](spec.md). Los textos exactos están en [contracts/entradas.md](contracts/entradas.md) y las reglas, en [data-model.md](data-model.md).
+Validation of the behaviour of [spec.md](spec.md). The exact texts are in [contracts/inputs.md](contracts/inputs.md) and the rules in [data-model.md](data-model.md).
 
-## Prerrequisitos
+## Prerequisites
 
-- Docker, con Compose, para la corrida manual.
-- JDK 25 y Maven 3.6.3 o posterior, para `mvn verify`.
+- Docker, with Compose, for the manual run.
+- JDK 25 and Maven 3.6.3 or later, for `mvn verify`.
 
 ## Tests
 
-Desde `cc-backend-challenge`:
+From `cc-backend-challenge`:
 
 ```bash
 mvn verify
 ```
 
-Tienen que pasar los tests de `MoneyMath`, de `InputText`, de los casos de uso y `HardenInputsIT`, además de los de portfolio, búsqueda y órdenes que ya existían.
+The tests of `MoneyMath`, `InputText`, the use cases and `HardenInputsIT` must pass, together with the existing portfolio, search and order tests.
 
-## Arranque
+## Start
 
 ```bash
 docker compose up --build
 ```
 
-La aplicación queda en `http://localhost:8080`.
+The application is at `http://localhost:8080`.
 
-## Regresión de lo ya válido
+## Regression of what was already valid
 
 ```bash
 curl -s http://localhost:8080/api/brokerage-api/v1/accounts/10001/portfolio
@@ -35,15 +35,15 @@ curl -s -X POST http://localhost:8080/api/brokerage-api/v1/accounts/10001/orders
   -d '{"ticker":"PAMP","side":"BUY","type":"LIMIT","size":1,"price":"1.00"}'
 ```
 
-El portfolio de `10001` y la búsqueda `PAMP` responden como antes. La orden límite válida se graba. Una compra sin fondos suficientes se sigue guardando rechazada.
+The portfolio of `10001` and the `PAMP` search answer as before. The valid limit order is stored. A buy without enough cash is still stored as rejected.
 
-## Rechazos de entrada
+## Input rejections
 
 ```bash
 curl -s -o /tmp/body -w '%{http_code}' -X POST \
   http://localhost:8080/api/brokerage-api/v1/accounts/10001/orders \
   -H 'Content-Type: application/json' \
-  -d 'no-es-un-documento'
+  -d 'not-a-document'
 
 curl -s -X POST http://localhost:8080/api/brokerage-api/v1/accounts/10001/orders \
   -H 'Content-Type: application/json' \
@@ -58,10 +58,10 @@ curl -s http://localhost:8080/api/brokerage-api/v1/accounts/10001%27%20OR%20%271
 curl -s -X POST http://localhost:8080/api/brokerage-api/v1/accounts/10001/orders/0/cancellation
 ```
 
-El primero responde 400 y `El pedido no se puede leer`, sin el cuerpo enviado. El campo de más y la cantidad repetida responden 400 sin grabar una orden. La cuenta con signos responde 400 y no devuelve el portfolio de `10001`. La orden `0` responde 400 y no cancela otra orden.
+The first answers 400 and `The request cannot be read.`, without the body sent. The extra field and the repeated size answer 400 without storing an order. The account with signs answers 400 and does not return the portfolio of `10001`. Order `0` answers 400 and does not cancel another order.
 
 ```bash
 curl -s "http://localhost:8080/api/brokerage-api/v1/instruments?q=pamp%27%20OR%201%3D1"
 ```
 
-Ese texto entra en el largo y en la puntuación de un nombre. Responde 200 con una lista vacía, no modifica datos y no trae un error interno.
+That text fits the length and a name's punctuation. It answers 200 with an empty list, modifies no data and carries no internal error.

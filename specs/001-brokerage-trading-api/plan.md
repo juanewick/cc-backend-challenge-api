@@ -1,4 +1,4 @@
-# Implementation Plan: Portfolio, búsqueda y órdenes
+# Implementation Plan: Portfolio, search and orders
 
 **Branch**: `001-brokerage-trading-api` | **Date**: 2026-11-12 | **Spec**: [spec.md](spec.md)
 
@@ -8,37 +8,37 @@
 
 ## Summary
 
-Una cuenta de inversión en pesos se consulta, se buscan activos por ticker o nombre, y se envían compras y ventas de mercado o límite. El portfolio y las reservas se calculan desde las órdenes ya guardadas. La aplicación es un servicio HTTP en Java 25 y Spring Boot 4.1.2, con arquitectura hexagonal, PostgreSQL 18.7 y un arranque único por Docker Compose. Los tests de cálculo y de servicios van primero; la integración corre contra contenedores reales.
+An investment account in pesos can be queried, instruments can be searched by ticker or name, and market or limit buys and sells can be sent. The portfolio and the reservations are computed from the orders already stored. The application is an HTTP service in Java 25 and Spring Boot 4.1.2, with hexagonal architecture, PostgreSQL 18.7 and a single start through Docker Compose. Calculation and service tests come first; integration runs against real containers.
 
 ## Technical Context
 
 **Language/Version**: Java 25 (LTS)
 
-**Primary Dependencies**: Spring Boot 4.1.2 (`spring-boot-starter-webmvc`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `spring-boot-starter-actuator`). Contrato generado con springdoc-openapi 3.2.0 (`springdoc-openapi-starter-webmvc-ui`), la línea 3.2.x construida sobre Spring Boot 4.1.2. Test: `spring-boot-starter-test` (JUnit Jupiter 6.0.3, Mockito 5.23.0), `spring-boot-starter-webmvc-test`, Testcontainers PostgreSQL y LocalStack.
+**Primary Dependencies**: Spring Boot 4.1.2 (`spring-boot-starter-webmvc`, `spring-boot-starter-data-jpa`, `spring-boot-starter-validation`, `spring-boot-starter-actuator`). Contract generated with springdoc-openapi 3.2.0 (`springdoc-openapi-starter-webmvc-ui`), the 3.2.x line built on Spring Boot 4.1.2. Test: `spring-boot-starter-test` (JUnit Jupiter 6.0.3, Mockito 5.23.0), `spring-boot-starter-webmvc-test`, Testcontainers PostgreSQL and LocalStack.
 
-**Storage**: PostgreSQL 18.6, imagen oficial fijada (18.7 todavía no estaba en Docker Hub). El esquema y los datos salen del SQL entregado, sin que Hibernate lo genere.
+**Storage**: PostgreSQL 18.6, official image pinned (18.7 was not on Docker Hub yet). Schema and data come from the delivered SQL; Hibernate does not generate it.
 
-**Testing**: JUnit Jupiter y Mockito para `*Test.java` de dominio y servicios. `*IT.java` con Testcontainers para el camino feliz y los errores. `ActuatorIT` tiene `@Order(1)` y corre antes que el resto de las clases de integración: comprueba health, info y que ningún otro endpoint de Actuator esté publicado. Maven Surefire corre las unitarias y Failsafe las de integración, ambas desde `mvn verify`.
+**Testing**: JUnit Jupiter and Mockito for domain and service `*Test.java`. `*IT.java` with Testcontainers for the happy path and the errors. `ActuatorIT` has `@Order(1)` and runs before the other integration classes: it checks health, info and that no other Actuator endpoint is published. Maven Surefire runs the unit tests and Failsafe the integration ones, both from `mvn verify`.
 
-**Target Platform**: Linux en contenedor. El host solo necesita Docker para el arranque standalone. El puerto público es 8080.
+**Target Platform**: Linux in a container. The host only needs Docker for the standalone start. The public port is 8080.
 
-**Project Type**: Servicio HTTP, un solo módulo Maven, en la raíz de `cc-backend-challenge`.
+**Project Type**: HTTP service, a single Maven module, at the root of `cc-backend-challenge`.
 
-**Performance Goals**: La búsqueda sobre el catálogo de referencia responde en menos de 1 segundo. El resto de las operaciones de la spec se resuelven en la misma petición.
+**Performance Goals**: Search over the reference catalogue answers in under 1 second. The other operations of the spec are resolved within the same request.
 
-**Constraints**: Sin autenticación. Sin simulación de mercado. Sin fracciones de acciones. Sin ingresos ni egresos nuevos. Esquema de base fijo. Precios en pesos. Decisiones de diseño no fijadas por la spec se escriben en `README.md`.
+**Constraints**: No authentication. No market simulation. No fractional shares. No new deposits or withdrawals. Fixed database schema. Prices in pesos. Design decisions the spec does not fix are written in `README.md`.
 
-**Scale/Scope**: 4 cuentas, 66 instrumentos y dos días de precios. Una transacción por cuenta alcanza para no gastar dos veces el mismo disponible.
+**Scale/Scope**: 4 accounts, 66 instruments and two days of prices. One transaction per account is enough to never spend the same available balance twice.
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-`.specify/memory/constitution.md` sigue siendo la plantilla sin principios ratificados. No hay gates de proyecto que evaluar. El gate pasa.
+`.specify/memory/constitution.md` is still the template without ratified principles. There are no project gates to evaluate. The gate passes.
 
-Las restricciones que sí obligan son las del pedido y las de [research.md](research.md): Java 25, Spring Boot 4.1.2, hexagonal, PostgreSQL en Docker, TDD, tests de servicio con Mockito, integración `*IT.java` con Testcontainers y LocalStack, sin autenticación, y arranque standalone con Docker.
+The constraints that do bind are those of the request and of [research.md](research.md): Java 25, Spring Boot 4.1.2, hexagonal, PostgreSQL in Docker, TDD, service tests with Mockito, `*IT.java` integration with Testcontainers and LocalStack, no authentication, and standalone start with Docker.
 
-Revisión posterior al diseño: el modelo y el quickstart cumplen esas restricciones. El contrato HTTP no se guarda en el repositorio: lo genera springdoc al arrancar. La única complejidad extra es LocalStack, justificada abajo. El gate sigue en pasa.
+Post-design review: the model and the quickstart meet those constraints. The HTTP contract is not stored in the repository: springdoc generates it at startup. The only extra complexity is LocalStack, justified below. The gate still passes.
 
 ## Project Structure
 
@@ -50,7 +50,7 @@ specs/001-brokerage-trading-api/
 ├── research.md
 ├── data-model.md
 ├── quickstart.md
-└── tasks.md              # lo crea /speckit-tasks, no este comando
+└── tasks.md              # created by /speckit-tasks, not by this command
 ```
 
 ### Source Code (repository root)
@@ -67,25 +67,25 @@ cc-backend-challenge/
 │   │   ├── model/
 │   │   ├── port/in/
 │   │   ├── port/out/
-│   │   └── service/          # cálculo puro de portfolio, reservas y cantidades
-│   ├── application/          # casos de uso: consultar, buscar, ordenar, cancelar
+│   │   └── service/          # pure calculation of portfolio, reservations and quantities
+│   ├── application/          # use cases: get, search, place, cancel
 │   └── adapter/
-│       ├── in/web/           # controladores y traducción HTTP
-│       └── out/persistence/  # entidades JPA y repositorios
+│       ├── in/web/           # controllers and HTTP translation
+│       └── out/persistence/  # JPA entities and repositories
 ├── src/main/resources/
 │   ├── application.yml
-│   └── db/database.sql       # el SQL entregado, sin cambios de significado
+│   └── db/database.sql       # the delivered SQL, with no change of meaning
 ├── src/test/java/com/cc/brokerage/
-│   ├── domain/service/       # *Test.java sin mocks
-│   ├── application/          # *Test.java con Mockito sobre los puertos
+│   ├── domain/service/       # *Test.java without mocks
+│   ├── application/          # *Test.java with Mockito over the ports
 │   └── adapter/in/web/       # *IT.java
-└── postman/                  # opcional, no bloquea el comportamiento
+└── postman/                  # optional, does not block the behaviour
 ```
 
-**Structure Decision**: Un módulo Maven en la raíz del repositorio. El dominio no depende de Spring ni de JPA. Los casos de uso dependen de puertos. REST y JPA son adaptadores. Así la arquitectura hexagonal pedida queda visible y los tests de servicio no levantan la base.
+**Structure Decision**: One Maven module at the repository root. The domain does not depend on Spring or JPA. Use cases depend on ports. REST and JPA are adapters. That keeps the requested hexagonal architecture visible, and service tests do not start the database.
 
 ## Complexity Tracking
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| LocalStack en los tests de integración, sin un servicio AWS en el producto | El pedido nombra LocalStack junto con Testcontainers | Usarlo como base sería falso: no emula PostgreSQL. Omitirlo deja el pedido escrito sin cumplir. Se arranca y se verifica el contenedor; las afirmaciones de negocio van contra la API y Postgres. |
+| LocalStack in the integration tests, with no AWS service in the product | The request names LocalStack together with Testcontainers | Using it as the database would be false: it does not emulate PostgreSQL. Leaving it out leaves the written request unmet. The container is started and checked; business assertions go against the API and Postgres. |

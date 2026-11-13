@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Endurecer las entradas
+# Specification Quality Checklist: Harden the inputs
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-11-12
@@ -31,6 +31,6 @@
 
 ## Notes
 
-- Validación del 2026-11-12: los 16 ítems pasan. No quedan marcadores de aclaración.
-- Los topes salen del comportamiento ya entregado y del acuerdo previo: 8 dígitos enteros y 2 decimales half-up, cantidad e identificador de orden hasta 2147483647, cuenta de 1 a 20 dígitos, ticker de 1 a 10 letras o dígitos, búsqueda de 1 a 100 caracteres.
-- Sesiones, permisos, límite de intentos y clave de reintento quedan fuera. El rechazo por fondos o acciones insuficientes se sigue grabando.
+- Validation of 2026-11-12: the 16 items pass. No clarification markers remain.
+- The caps come from the behaviour already delivered and the prior agreement: 8 integer digits and 2 decimals half-up, size and order id up to 2147483647, account of 1 to 20 digits, ticker of 1 to 10 letters or digits, search of 1 to 100 characters.
+- Sessions, permissions, attempt limits and the retry key are out of scope. The rejection for insufficient cash or shares is still stored.

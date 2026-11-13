@@ -1,4 +1,4 @@
-# Implementation Plan: Endurecer las entradas
+# Implementation Plan: Harden the inputs
 
 **Branch**: `feat/hardening-api` | **Date**: 2026-11-12 | **Spec**: [spec.md](spec.md)
 
@@ -8,37 +8,37 @@
 
 ## Summary
 
-Las operaciones ya entregadas rechazan, antes de leer o grabar una cuenta, un pedido ilegible, un campo de más, uno repetido o de otro tipo, y los números o textos que no entran en el modelo. El cuerpo de error sigue siendo `{ "message": "..." }`. El texto nombra el campo cuando es uno de los nuestros, es estable y no repite el valor enviado ni el diagnóstico del lector de documentos. Jackson 3 queda estricto para la forma del documento. El formato de cuenta, ticker, orden, búsqueda, cantidad, monto y precio se resuelve en el dominio, antes de los repositorios. Un monto que no cabe en el entero de acciones no se guarda, ni siquiera como orden rechazada por negocio.
+The operations already delivered reject, before reading or storing an account, an unreadable request, an extra field, a repeated or wrongly typed one, and the numbers or texts that do not fit the model. The error body is still `{ "message": "..." }`. The text names the field when it is one of ours, is stable and does not repeat the value sent or the document reader's diagnosis. Jackson 3 becomes strict about the shape of the document. The format of account, ticker, order, search, size, amount and price is resolved in the domain, before the repositories. An amount that does not fit the share integer is not stored, not even as a business-rejected order.
 
 ## Technical Context
 
-**Language/Version**: Java 25, el mismo runtime de la feature 001.
+**Language/Version**: Java 25, the same runtime as feature 001.
 
-**Primary Dependencies**: Spring Boot 4.1.2 y Jackson 3.1.7 (`tools.jackson`). El mapper se ajusta con propiedades `spring.jackson.*` y un `JsonMapperBuilderCustomizer` de `spring-boot-jackson` para las coerciones, que no tienen propiedad. El cuerpo de error sigue en `ApiError`. No se agrega una librería nueva. `spring-boot-starter-validation` ya está en el módulo y no hace falta para estas reglas: no cubren claves repetidas, campos de más ni el desborde de un entero.
+**Primary Dependencies**: Spring Boot 4.1.2 and Jackson 3.1.7 (`tools.jackson`). The mapper is tuned with `spring.jackson.*` properties and a `JsonMapperBuilderCustomizer` from `spring-boot-jackson` for coercions, which have no property. The error body stays in `ApiError`. No new library is added. `spring-boot-starter-validation` is already in the module and is not needed for these rules: they do not cover repeated keys, extra fields or integer overflow.
 
-**Storage**: Sin cambios de esquema. La cuenta sigue en 20 caracteres, el ticker en 10, la cantidad y el id de orden en entero, y el precio en `NUMERIC(10, 2)`. Esos topes son los de [data-model.md](data-model.md).
+**Storage**: No schema changes. The account stays at 20 characters, the ticker at 10, size and order id as integers, and price as `NUMERIC(10, 2)`. Those caps are the ones in [data-model.md](data-model.md).
 
-**Testing**: JUnit Jupiter y Mockito, como en la feature 001. Primero `MoneyMath` y los casos de uso (`*Test.java`). Después `*IT.java` con el PostgreSQL de Testcontainers para el pedido HTTP: documento roto, campo de más, campo repetido, tipo distinto, formatos y la regresión de `10001`, `PAMP` y una orden válida. `mvn verify`.
+**Testing**: JUnit Jupiter and Mockito, as in feature 001. First `MoneyMath` and the use cases (`*Test.java`). Then `*IT.java` with the Testcontainers PostgreSQL for the HTTP request: broken document, extra field, repeated field, wrong type, formats and the regression of `10001`, `PAMP` and a valid order. `mvn verify`.
 
-**Target Platform**: El mismo servicio HTTP en contenedor, puerto 8080. Sin endpoints nuevos.
+**Target Platform**: The same HTTP service in a container, port 8080. No new endpoints.
 
-**Project Type**: Servicio HTTP, un solo módulo Maven, arquitectura hexagonal ya existente.
+**Project Type**: HTTP service, a single Maven module, existing hexagonal architecture.
 
-**Performance Goals**: La validación ocurre en la misma petición, antes de consultar la cuenta. No agrega una ida extra a la base. La búsqueda sigue leyendo el catálogo de referencia una vez, después de aceptar el texto.
+**Performance Goals**: Validation happens in the same request, before querying the account. It adds no extra trip to the database. The search still reads the reference catalogue once, after accepting the text.
 
-**Constraints**: Sin sesiones, sin límite de intentos y sin clave de reintento. Sin copia escrita del OpenAPI. El rechazo por fondos o acciones insuficientes, y la cantidad cero que sale de un monto chico, se siguen grabando. Una posición corta puede seguir mostrando cantidad negativa. Los decimales de más se redondean half-up a 2 y no se rechazan por la cantidad de decimales.
+**Constraints**: No sessions, no attempt limit and no retry key. No written copy of the OpenAPI. The rejection for insufficient cash or shares, and the zero size coming from a small amount, are still stored. A short position may still show a negative quantity. Extra decimals are rounded half-up to 2 and are not rejected for the number of decimals.
 
-**Scale/Scope**: Las cuatro operaciones públicas ya existentes: portfolio, búsqueda, alta de orden y cancelación. El catálogo de referencia no cambia.
+**Scale/Scope**: The four existing public operations: portfolio, search, order placement and cancellation. The reference catalogue does not change.
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-`.specify/memory/constitution.md` sigue siendo la plantilla sin principios ratificados. No hay gates de proyecto que evaluar. El gate pasa.
+`.specify/memory/constitution.md` is still the template without ratified principles. There are no project gates to evaluate. The gate passes.
 
-Las restricciones que sí obligan son las de la feature 001 y las de esta spec: Java 25, Spring Boot 4.1.2, hexagonal, el esquema entregado, el contrato generado por springdoc, el cuerpo `{ "message": "..." }`, y validar antes de leer o grabar.
+The constraints that do bind are those of feature 001 and of this spec: Java 25, Spring Boot 4.1.2, hexagonal, the delivered schema, the contract generated by springdoc, the `{ "message": "..." }` body, and validating before reading or storing.
 
-Revisión posterior al diseño: [research.md](research.md), [data-model.md](data-model.md), [contracts/entradas.md](contracts/entradas.md) y [quickstart.md](quickstart.md) no agregan tablas, endpoints ni un contrato escrito a mano. El gate sigue en pasa.
+Post-design review: [research.md](research.md), [data-model.md](data-model.md), [contracts/inputs.md](contracts/inputs.md) and [quickstart.md](quickstart.md) add no tables, endpoints or hand-written contract. The gate still passes.
 
 ## Project Structure
 
@@ -51,8 +51,8 @@ specs/002-harden-api-inputs/
 ├── data-model.md
 ├── quickstart.md
 ├── contracts/
-│   └── entradas.md
-└── tasks.md              # lo crea /speckit-tasks, no este comando
+│   └── inputs.md
+└── tasks.md              # created by /speckit-tasks, not by this command
 ```
 
 ### Source Code (repository root)
@@ -60,15 +60,15 @@ specs/002-harden-api-inputs/
 ```text
 cc-backend-challenge/
 ├── src/main/java/com/cc/brokerage/
-│   ├── domain/model/MoneyMath.java          # escala, dígitos enteros y cantidad sin truncar
-│   ├── domain/model/InputText.java          # cuenta, ticker, orden y búsqueda
-│   ├── application/PlaceOrderService.java   # rechaza el desborde antes de grabar
+│   ├── domain/model/MoneyMath.java          # scale, integer digits and untruncated size
+│   ├── domain/model/InputText.java          # account, ticker, order and search
+│   ├── application/PlaceOrderService.java   # rejects the overflow before storing
 │   ├── application/SearchInstrumentsService.java
 │   ├── adapter/in/web/ApiExceptionHandler.java
 │   ├── adapter/in/web/MoneyFormats.java
-│   ├── adapter/in/web/*Controller.java      # la ruta llega como texto y se interpreta acá
-│   └── config/JsonMapperConfig.java         # coerciones que las propiedades no cubren
-├── src/main/resources/application.yml       # propiedades de lectura estricta
+│   ├── adapter/in/web/*Controller.java      # the path arrives as text and is parsed here
+│   └── config/JsonMapperConfig.java         # coercions the properties do not cover
+├── src/main/resources/application.yml       # strict reading properties
 └── src/test/java/com/cc/brokerage/
     ├── domain/model/MoneyMathTest.java
     ├── domain/model/InputTextTest.java
@@ -76,8 +76,8 @@ cc-backend-challenge/
     └── adapter/in/web/HardenInputsIT.java
 ```
 
-**Structure Decision**: Se queda el módulo único y los paquetes hexagonales de la feature 001. El formato es dominio, para testearlo sin HTTP. El adaptador web solo traduce el documento y las rutas, y no deja salir el mensaje del lector. No hay adaptador de persistencia nuevo.
+**Structure Decision**: The single module and the hexagonal packages of feature 001 stay. The format is domain, so it can be tested without HTTP. The web adapter only translates the document and the paths, and never lets the reader's message out. There is no new persistence adapter.
 
 ## Complexity Tracking
 
-Sin violaciones. Esta feature no agrega un servicio, una base ni un contrato paralelo.
+No violations. This feature adds no service, database or parallel contract.

@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Consulta de la cuenta
+# Specification Quality Checklist: Account queries
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-11-12
@@ -31,6 +31,6 @@
 
 ## Notes
 
-- Validación del 2026-11-12: los 16 ítems pasan. No quedan marcadores de aclaración.
-- Repetir un alta crea otra orden. No se crea ni se altera ninguna tabla ni ninguna columna. El efectivo liquidado, el reservado, el importe, el motivo y el código de error no se guardan.
-- Cantidad y fecha de la orden conservan los tipos del modelo de referencia. No se agrega una fecha de cancelación.
+- Validation of 2026-11-12: the 16 items pass. No clarification markers remain.
+- Repeating a placement creates another order. No table or column is created or altered. Settled cash, reserved cash, the amount, the reason and the error code are not stored.
+- Order size and date keep the types of the reference model. No cancellation date is added.

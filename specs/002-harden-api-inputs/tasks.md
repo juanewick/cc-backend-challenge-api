@@ -1,10 +1,10 @@
-# Tasks: Endurecer las entradas
+# Tasks: Harden the inputs
 
 **Input**: Design documents from `/specs/002-harden-api-inputs/`
 
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/, quickstart.md
 
-**Tests**: Incluidos. El plan exige que `*Test.java` y `*IT.java` se escriban primero y fallen antes de la implementación. JUnit Jupiter y Mockito en dominio y casos de uso. La integración usa el PostgreSQL de Testcontainers que ya levanta `IntegrationTestBase`.
+**Tests**: Included. The plan requires `*Test.java` and `*IT.java` to be written first and to fail before implementation. JUnit Jupiter and Mockito for domain and use cases. Integration uses the Testcontainers PostgreSQL that `IntegrationTestBase` already starts.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -16,96 +16,96 @@
 
 ## Path Conventions
 
-- Un módulo Maven en la raíz de `cc-backend-challenge/`
-- Código en `src/main/java/com/cc/brokerage/`
-- Tests unitarios en `src/test/java/com/cc/brokerage/` con sufijo `Test`
-- Integración en `src/test/java/com/cc/brokerage/` con sufijo `IT`
-- El cuerpo de error sigue siendo `{ "message": "..." }`. Los textos son los de `specs/002-harden-api-inputs/contracts/entradas.md`
+- One Maven module at the root of `cc-backend-challenge/`
+- Code in `src/main/java/com/cc/brokerage/`
+- Unit tests in `src/test/java/com/cc/brokerage/` with the `Test` suffix
+- Integration tests in `src/test/java/com/cc/brokerage/` with the `IT` suffix
+- The error body is still `{ "message": "..." }`. The texts are the ones in `specs/002-harden-api-inputs/contracts/inputs.md`
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Lectura estricta del documento, sin dependencias nuevas
+**Purpose**: Strict reading of the document, with no new dependencies
 
-- [x] T001 [P] Activar en `src/main/resources/application.yml` `spring.jackson.deserialization.fail-on-unknown-properties: true`, `spring.jackson.deserialization.fail-on-trailing-tokens: true`, `spring.jackson.read.strict-duplicate-detection: true` y `spring.jackson.datatype.enum.fail-on-numbers-for-enums: true`. No agregar dependencias a `pom.xml`
+- [x] T001 [P] Enable in `src/main/resources/application.yml` `spring.jackson.deserialization.fail-on-unknown-properties: true`, `spring.jackson.deserialization.fail-on-trailing-tokens: true`, `spring.jackson.read.strict-duplicate-detection: true` and `spring.jackson.datatype.enum.fail-on-numbers-for-enums: true`. Do not add dependencies to `pom.xml`
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Impedir que un escalar se convierta en otro tipo antes de cualquier historia
+**Purpose**: Keep a scalar from turning into another type before any story
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [x] T002 Crear `src/main/java/com/cc/brokerage/config/JsonMapperConfig.java` con un `JsonMapperBuilderCustomizer` que ponga `CoercionAction.Fail` cuando un entero, un decimal, un texto, un lado o un tipo llegue como texto, número, booleano, arreglo u objeto de otra forma. Un cuerpo vacío, un arreglo en la raíz o un tipo de contenido distinto queda para el mismo rechazo que un pedido ilegible
+- [x] T002 Create `src/main/java/com/cc/brokerage/config/JsonMapperConfig.java` with a `JsonMapperBuilderCustomizer` that sets `CoercionAction.Fail` when an integer, a decimal, a text, a side or a type arrives as text, number, boolean, array or object of another shape. An empty body, an array at the root or a different content type gets the same rejection as an unreadable request
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
 ---
 
-## Phase 3: User Story 1 - Rechazar un pedido que no se puede interpretar (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 - Reject a request that cannot be interpreted (Priority: P1) 🎯 MVP
 
-**Goal**: Un alta ilegible, vacía, con un tipo distinto, con un campo de más o con un campo repetido no graba una orden y no devuelve el cuerpo ni un diagnóstico interno
+**Goal**: An order request that is unreadable, empty, wrongly typed, with an extra field or with a repeated field stores no order and returns neither the body nor an internal diagnosis
 
-**Independent Test**: Enviar un cuerpo que no se puede leer, un cuerpo vacío, un número donde va un texto, un texto donde va una cantidad, un campo que la operación no define y el mismo campo dos veces. No aparece una orden nueva y la respuesta no cita el cuerpo enviado
+**Independent Test**: Send a body that cannot be read, an empty body, a number where text goes, text where a size goes, a field the operation does not define and the same field twice. No new order appears and the response does not quote the body sent
 
 ### Tests for User Story 1 ⚠️
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [x] T003 [US1] Crear `src/test/java/com/cc/brokerage/adapter/in/web/HardenDocumentIT.java`, que extienda `IntegrationTestBase`, para `POST /api/brokerage-api/v1/accounts/10001/orders`. Un cuerpo que no es un documento, un cuerpo vacío, un documento que no es un objeto, y tokens de más responden 400 con `El pedido no se puede leer`; un tipo de contenido distinto responde 415, sin el cuerpo enviado. Un campo que la operación no define responde 400 con `El pedido tiene un campo que no corresponde`, sin el nombre de esa clave. `size` repetido responde 400 con `El campo cantidad está repetido`. Un ticker numérico o una cantidad en texto responden 400 con `El campo ticker no es válido` o `El campo cantidad no es válido`. En todos los casos no se graba una orden
+- [x] T003 [US1] Create `src/test/java/com/cc/brokerage/adapter/in/web/HardenDocumentIT.java`, extending `IntegrationTestBase`, for `POST /api/brokerage-api/v1/accounts/10001/orders`. A body that is not a document, an empty body, a document that is not an object, and trailing tokens answer 400 with `The request cannot be read.`; a different content type answers 415, without the body sent. A field the operation does not define answers 400 with `The request contains a field that is not allowed.`, without the name of that key. A repeated `size` answers 400 with `The size field is duplicated.`. A numeric ticker or a size as text answer 400 with `The ticker field is not valid.` or `The size field is not valid.`. In every case no order is stored
 
 ### Implementation for User Story 1
 
-- [x] T004 [US1] Cambiar `src/main/java/com/cc/brokerage/adapter/in/web/ApiExceptionHandler.java` para que `HttpMessageNotReadableException` y un argumento de ruta mal formado respondan 400 con `ApiError`, y `HttpMediaTypeNotSupportedException` responda 415 con `ApiError`, y nunca con `exception.getMessage()`. Pedido ilegible, vacío, que no es un objeto o con tokens de más: `El pedido no se puede leer`. Campo desconocido: `El pedido tiene un campo que no corresponde`. Campo nuestro repetido: `El campo cantidad está repetido` y el equivalente para ticker, lado, tipo, monto o precio. Tipo distinto: `El campo ticker no es válido` y el equivalente para lado, tipo, cantidad, monto o precio. Si el lector no indica un campo nuestro, usar `El pedido no se puede leer` (depends on T003)
+- [x] T004 [US1] Change `src/main/java/com/cc/brokerage/adapter/in/web/ApiExceptionHandler.java` so that `HttpMessageNotReadableException` and a malformed path argument answer 400 with `ApiError`, and `HttpMediaTypeNotSupportedException` answers 415 with `ApiError`, never with `exception.getMessage()`. Unreadable, empty, not an object or with trailing tokens: `The request cannot be read.`. Unknown field: `The request contains a field that is not allowed.`. One of our fields repeated: `The size field is duplicated.` and the equivalent for ticker, side, type, amount or price. Wrong type: `The ticker field is not valid.` and the equivalent for side, type, size, amount or price. If the reader does not point to one of our fields, use `The request cannot be read.` (depends on T003)
 
-**Checkpoint**: User Story 1 rechaza el documento roto sin grabar y sin filtrar el lector
+**Checkpoint**: User Story 1 rejects the broken document without storing and without leaking the reader
 
 ---
 
-## Phase 4: User Story 2 - Rechazar números que no entran en el modelo (Priority: P2)
+## Phase 4: User Story 2 - Reject numbers that do not fit the model (Priority: P2)
 
-**Goal**: Cantidad, monto, precio e identificador de orden fuera de rango no se guardan recortados ni con otro signo. El desborde de un monto no graba ni una orden rechazada por negocio
+**Goal**: Size, amount, price and order id out of range are not stored trimmed or with another sign. An amount overflow does not store even a business-rejected order
 
-**Independent Test**: Cantidad `-1`, cantidad `0`, cantidad mayor que `2147483647`, monto o precio negativo, monto o precio con más de 8 enteros después del redondeo, e identificador `0` o negativo. Ninguno graba una orden ni cambia el portfolio. La cantidad `2147483647` no se rechaza por tamaño
+**Independent Test**: Size `-1`, size `0`, size greater than `2147483647`, negative amount or price, amount or price with more than 8 integer digits after rounding, and id `0` or negative. None stores an order or changes the portfolio. Size `2147483647` is not rejected for its size
 
 ### Tests for User Story 2 ⚠️
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [x] T005 [P] [US2] Crear `src/test/java/com/cc/brokerage/domain/model/MoneyMathTest.java`. Después de redondear half-up a 2, `99999999.994` entra como `99999999.99` y `99999999.995` se rechaza por superar 8 dígitos enteros. Un cociente mayor que `2147483647` no devuelve un entero truncado. El cociente `0` sigue siendo `0`. El cociente `2147483647` se acepta
-- [x] T006 [P] [US2] Ampliar `src/test/java/com/cc/brokerage/application/PlaceMarketOrderServiceTest.java` y `src/test/java/com/cc/brokerage/application/PlaceLimitOrderServiceTest.java`. Un monto cuyo cociente supera `2147483647` no llama a `save`. Un monto que redondea a más de 8 enteros, un monto no positivo y un precio límite no positivo tampoco graban. Un monto chico cuyo cociente es `0`, y una orden de mercado sin cierre, se siguen guardando `REJECTED`
-- [x] T007 [P] [US2] Crear `src/test/java/com/cc/brokerage/adapter/in/web/HardenNumbersIT.java`, que extienda `IntegrationTestBase`. Cantidad `0`, `-1` o mayor que `2147483647` responde 400 y no graba. La cantidad `2147483647` no responde 400 por tamaño. Monto o precio negativo, no numérico o con 9 enteros tras el redondeo responde 400. `POST /api/brokerage-api/v1/accounts/10001/orders/0/cancellation` y un id que no es un entero de 1 a 2147483647 responden 400 con `La orden no es válida` y no cancelan otra orden. Una orden inexistente bien formada responde 404 con `La orden no existe`, sin el id
+- [x] T005 [P] [US2] Create `src/test/java/com/cc/brokerage/domain/model/MoneyMathTest.java`. After rounding half-up to 2, `99999999.994` is accepted as `99999999.99` and `99999999.995` is rejected for exceeding 8 integer digits. A quotient greater than `2147483647` does not return a truncated integer. Quotient `0` stays `0`. Quotient `2147483647` is accepted
+- [x] T006 [P] [US2] Extend `src/test/java/com/cc/brokerage/application/PlaceMarketOrderServiceTest.java` and `src/test/java/com/cc/brokerage/application/PlaceLimitOrderServiceTest.java`. An amount whose quotient exceeds `2147483647` does not call `save`. An amount that rounds to more than 8 integer digits, a non-positive amount and a non-positive limit price do not store either. A small amount whose quotient is `0`, and a market order without a close, are still stored `REJECTED`
+- [x] T007 [P] [US2] Create `src/test/java/com/cc/brokerage/adapter/in/web/HardenNumbersIT.java`, extending `IntegrationTestBase`. Size `0`, `-1` or greater than `2147483647` answers 400 and does not store. Size `2147483647` does not answer 400 for its size. A negative, non-numeric amount or price, or one with 9 integer digits after rounding, answers 400. `POST /api/brokerage-api/v1/accounts/10001/orders/0/cancellation` and an id that is not an integer from 1 to 2147483647 answer 400 with `The order is not valid.` and do not cancel another order. A well-formed missing order answers 404 with `Order not found.`, without the id
 
 ### Implementation for User Story 2
 
-- [x] T008 [P] [US2] Cambiar `src/main/java/com/cc/brokerage/domain/model/MoneyMath.java` para redondear half-up a 2 y recién ahí exigir un valor mayor que cero con como máximo 8 dígitos enteros. `sharesFromAmount` calcula el cociente entero y, si es mayor que `2147483647`, lanza `InvalidRequestException` con `La cantidad debe ser un entero de 1 a 2147483647`. El cociente `0` se devuelve como `0`. No usar `intValue()` (depends on T005)
-- [x] T009 [P] [US2] Crear `src/main/java/com/cc/brokerage/domain/model/InputText.java` con el identificador de orden: entero de 1 a 2147483647. Cero, negativo, texto, espacios y un número más grande lanzan `InvalidRequestException` con `La orden no es válida`. `0001` es la orden 1 (depends on T007)
-- [x] T010 [US2] Cambiar `src/main/java/com/cc/brokerage/application/PlaceOrderService.java` para usar el redondeo y el cociente de `MoneyMath` antes de `save`. Cantidad fuera de 1 a 2147483647: `La cantidad debe ser un entero de 1 a 2147483647`. Monto no positivo: `El monto debe ser mayor que cero`. Monto por encima de 8 enteros: `El monto supera el máximo permitido`. Precio límite ausente o no positivo: `El precio es obligatorio y debe ser mayor que cero`. Precio por encima del máximo: `El precio supera el máximo permitido`. Se mantienen `Debe indicarse exactamente una forma de cantidad: acciones o monto`, `El lado debe ser BUY o SELL`, `El tipo de orden es obligatorio` y `El tipo debe ser MARKET o LIMIT`. El desborde no graba; el cociente `0` y la orden de mercado sin cierre se siguen guardando `REJECTED` (depends on T006, T008)
-- [x] T011 [US2] Cambiar `src/main/java/com/cc/brokerage/adapter/in/web/OrderController.java` para recibir `{orderId}` como texto, interpretarlo con `InputText` y no llamar a la cancelación si no entra en 1 a 2147483647. Cambiar `src/main/java/com/cc/brokerage/domain/OrderNotFoundException.java` para que el mensaje sea `La orden no existe`, sin el id (depends on T007, T009)
+- [x] T008 [P] [US2] Change `src/main/java/com/cc/brokerage/domain/model/MoneyMath.java` to round half-up to 2 and only then require a value greater than zero with at most 8 integer digits. `sharesFromAmount` computes the integer quotient and, if it is greater than `2147483647`, throws `InvalidRequestException` with `Size must be an integer from 1 to 2147483647.`. Quotient `0` is returned as `0`. Do not use `intValue()` (depends on T005)
+- [x] T009 [P] [US2] Create `src/main/java/com/cc/brokerage/domain/model/InputText.java` with the order id: an integer from 1 to 2147483647. Zero, negative, text, spaces and a larger number throw `InvalidRequestException` with `The order is not valid.`. `0001` is order 1 (depends on T007)
+- [x] T010 [US2] Change `src/main/java/com/cc/brokerage/application/PlaceOrderService.java` to use the rounding and the quotient of `MoneyMath` before `save`. Size outside 1 to 2147483647: `Size must be an integer from 1 to 2147483647.`. Non-positive amount: `Amount must be greater than zero.`. Amount above 8 integer digits: `Amount exceeds the maximum allowed.`. Missing or non-positive limit price: `Price is required and must be greater than zero.`. Price above the maximum: `Price exceeds the maximum allowed.`. `Exactly one quantity is required: shares or amount.`, `Side must be BUY or SELL.` and `Order type is required.` stay. The overflow does not store; quotient `0` and the market order without a close are still stored `REJECTED` (depends on T006, T008)
+- [x] T011 [US2] Change `src/main/java/com/cc/brokerage/adapter/in/web/OrderController.java` to take `{orderId}` as text, parse it with `InputText` and not call the cancellation if it does not fit 1 to 2147483647. Change `src/main/java/com/cc/brokerage/domain/OrderNotFoundException.java` so the message is `Order not found.`, without the id (depends on T007, T009)
 
-**Checkpoint**: User Story 2 rechaza números fuera de rango sin truncar y sin cambiar el rechazo de negocio ya existente
+**Checkpoint**: User Story 2 rejects out-of-range numbers without truncating and without changing the existing business rejection
 
 ---
 
-## Phase 5: User Story 3 - Tratar el texto como dato y no como instrucción (Priority: P3)
+## Phase 5: User Story 3 - Treat text as data, not as an instruction (Priority: P3)
 
-**Goal**: Cuenta, ticker y búsqueda tienen formato cerrado o texto acotado. Un texto que parece una instrucción no se ejecuta, no elige otro registro y no devuelve un error interno
+**Goal**: Account, ticker and search have a closed format or a bounded text. A text that looks like an instruction is not executed, does not pick another record and returns no internal error
 
-**Independent Test**: Portfolio de `10001' OR '1'='1`, alta con ticker `PAMP'; DROP TABLE orders;--` y búsqueda `pamp' OR 1=1`. La cuenta y el ticker se rechazan. La búsqueda no modifica datos. `10001` y `PAMP` siguen respondiendo como antes
+**Independent Test**: Portfolio of `10001' OR '1'='1`, order with ticker `PAMP'; DROP TABLE orders;--` and search `pamp' OR 1=1`. The account and the ticker are rejected. The search modifies no data. `10001` and `PAMP` keep answering as before
 
 ### Tests for User Story 3 ⚠️
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [x] T012 [P] [US3] Crear `src/test/java/com/cc/brokerage/domain/model/InputTextTest.java`. La cuenta es de 1 a 20 dígitos, sin recorte: los espacios al inicio o al final se rechazan y los ceros a la izquierda se conservan. El ticker es de 1 a 10 letras o dígitos, sin recorte y sin cambiar mayúsculas. La búsqueda recorta solo los extremos y, después, admite de 1 a 100 caracteres Unicode, sin controles ISO ni carácter nulo
-- [x] T013 [P] [US3] Ampliar `src/test/java/com/cc/brokerage/application/SearchInstrumentsServiceTest.java`. Búsqueda vacía: `La búsqueda no tiene texto`. Más de 100 caracteres: `La búsqueda supera el máximo permitido`. Un control o el carácter nulo: `La búsqueda no es válida`. `PAMP` y `pamp` encuentran el mismo activo. `pamp' OR 1=1` no agrega filas. La comparación no depende del idioma de la máquina
-- [x] T014 [P] [US3] Crear `src/test/java/com/cc/brokerage/adapter/in/web/HardenTextIT.java`, que extienda `IntegrationTestBase`. Cuenta con letras, espacios, signos o más de 20 dígitos responde 400 con `La cuenta no es válida` en portfolio, alta y cancelación, y no devuelve otra cuenta. Ticker vacío, con espacios, con signos o con más de 10 letras o dígitos responde 400 con `El ticker no es válido` y no graba. Una cuenta bien formada que no existe responde 404 con `La cuenta no existe`. Un ticker de formato válido que no existe responde 404 con `El activo no existe`. Esos 404 no repiten el valor enviado. `GET /api/brokerage-api/v1/accounts/10001/portfolio` y `GET /api/brokerage-api/v1/instruments?q=PAMP` siguen respondiendo como antes
+- [x] T012 [P] [US3] Create `src/test/java/com/cc/brokerage/domain/model/InputTextTest.java`. The account is 1 to 20 digits, untrimmed: leading or trailing spaces are rejected and leading zeros are kept. The ticker is 1 to 10 letters or digits, untrimmed and with its case unchanged. The search trims only the ends and then allows 1 to 100 Unicode characters, without ISO controls or the null character
+- [x] T013 [P] [US3] Extend `src/test/java/com/cc/brokerage/application/SearchInstrumentsServiceTest.java`. Empty search: `The search has no text.`. More than 100 characters: `The search exceeds the maximum length.`. A control or the null character: `The search is not valid.`. `PAMP` and `pamp` find the same instrument. `pamp' OR 1=1` adds no rows. The comparison does not depend on the machine locale
+- [x] T014 [P] [US3] Create `src/test/java/com/cc/brokerage/adapter/in/web/HardenTextIT.java`, extending `IntegrationTestBase`. An account with letters, spaces, signs or more than 20 digits answers 400 with `The account is not valid.` on portfolio, placement and cancellation, and does not return another account. A ticker that is empty, has spaces, signs or more than 10 letters or digits answers 400 with `The ticker is not valid.` and does not store. A well-formed account that does not exist answers 404 with `Account not found.`. A ticker of valid format that does not exist answers 404 with `Instrument not found.`. Those 404 do not repeat the value sent. `GET /api/brokerage-api/v1/accounts/10001/portfolio` and `GET /api/brokerage-api/v1/instruments?q=PAMP` keep answering as before
 
 ### Implementation for User Story 3
 
-- [x] T015 [US3] Completar `src/main/java/com/cc/brokerage/domain/model/InputText.java` con la cuenta (1 a 20 dígitos, sin recorte; si no entra, `La cuenta no es válida`), el ticker (1 a 10 letras o dígitos, sin recorte y sin cambiar mayúsculas; si no entra, `El ticker no es válido`) y la búsqueda (extremos recortados, 1 a 100 caracteres Unicode, sin controles ISO ni carácter nulo). Vacía: `La búsqueda no tiene texto`. Demasiado larga: `La búsqueda supera el máximo permitido`. Con un control: `La búsqueda no es válida` (depends on T012)
-- [x] T016 [P] [US3] Cambiar `src/main/java/com/cc/brokerage/application/SearchInstrumentsService.java` para aceptar el texto con `InputText` antes de leer el catálogo y compararlo en memoria con `Locale.ROOT`, sin distinguir mayúsculas y sin concatenarlo en una consulta (depends on T013, T015)
-- [x] T017 [P] [US3] Validar la cuenta con `InputText` al inicio de `src/main/java/com/cc/brokerage/application/GetPortfolioService.java`, `src/main/java/com/cc/brokerage/application/PlaceOrderService.java` y `src/main/java/com/cc/brokerage/application/CancelOrderService.java`, y el ticker al inicio de `PlaceOrderService`, antes de cualquier repositorio. Cambiar `src/main/java/com/cc/brokerage/domain/AccountNotFoundException.java` a `La cuenta no existe` y `src/main/java/com/cc/brokerage/domain/InstrumentNotFoundException.java` a `El activo no existe`, sin el valor enviado (depends on T014, T015)
+- [x] T015 [US3] Complete `src/main/java/com/cc/brokerage/domain/model/InputText.java` with the account (1 to 20 digits, untrimmed; otherwise `The account is not valid.`), the ticker (1 to 10 letters or digits, untrimmed and with its case unchanged; otherwise `The ticker is not valid.`) and the search (ends trimmed, 1 to 100 Unicode characters, without ISO controls or the null character). Empty: `The search has no text.`. Too long: `The search exceeds the maximum length.`. With a control: `The search is not valid.` (depends on T012)
+- [x] T016 [P] [US3] Change `src/main/java/com/cc/brokerage/application/SearchInstrumentsService.java` to accept the text through `InputText` before reading the catalogue and compare it in memory with `Locale.ROOT`, case-insensitively and without concatenating it into a query (depends on T013, T015)
+- [x] T017 [P] [US3] Validate the account with `InputText` at the start of `src/main/java/com/cc/brokerage/application/GetPortfolioService.java`, `src/main/java/com/cc/brokerage/application/PlaceOrderService.java` and `src/main/java/com/cc/brokerage/application/CancelOrderService.java`, and the ticker at the start of `PlaceOrderService`, before any repository. Change `src/main/java/com/cc/brokerage/domain/AccountNotFoundException.java` to `Account not found.` and `src/main/java/com/cc/brokerage/domain/InstrumentNotFoundException.java` to `Instrument not found.`, without the value sent (depends on T014, T015)
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -113,10 +113,10 @@
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-**Purpose**: Cerrar la regresión de lo ya válido
+**Purpose**: Close the regression of what was already valid
 
-- [x] T018 [P] Revisar los `*IT.java` de `src/test/java/com/cc/brokerage/adapter/in/web/` y actualizar solo las aserciones que exijan el valor enviado dentro de `message`
-- [x] T019 Ejecutar `mvn verify` desde `cc-backend-challenge` y los curl de `specs/002-harden-api-inputs/quickstart.md`. No agregar un OpenAPI escrito a mano: el contrato sigue siendo el que genera springdoc en `/v3/api-docs`
+- [x] T018 [P] Review the `*IT.java` in `src/test/java/com/cc/brokerage/adapter/in/web/` and update only the assertions that expect the value sent inside `message`
+- [x] T019 Run `mvn verify` from `cc-backend-challenge` and the curl calls of `specs/002-harden-api-inputs/quickstart.md`. Do not add a hand-written OpenAPI: the contract is still the one springdoc generates at `/v3/api-docs`
 
 ---
 
@@ -134,8 +134,8 @@
 ### User Story Dependencies
 
 - **User Story 1 (P1)**: Can start after Foundational (Phase 2) - No dependencies on other stories
-- **User Story 2 (P2)**: Can start after Foundational (Phase 2) - No depende de US1 para el dominio. El HTTP de un número que no entra en el entero usa el traductor de US1
-- **User Story 3 (P3)**: Can start after Foundational (Phase 2) - Amplía `InputText.java`, que US2 crea en T009. El portfolio y la búsqueda se prueban sin la alta
+- **User Story 2 (P2)**: Can start after Foundational (Phase 2) - Does not depend on US1 for the domain. The HTTP side of a number that does not fit the integer uses the translator from US1
+- **User Story 3 (P3)**: Can start after Foundational (Phase 2) - Extends `InputText.java`, which US2 creates in T009. Portfolio and search are tested without placement
 
 ### Within Each User Story
 
@@ -159,14 +159,14 @@
 ## Parallel Example: User Story 2
 
 ```bash
-# Tests de US2, archivos distintos:
-Task: "Crear src/test/java/com/cc/brokerage/domain/model/MoneyMathTest.java"
-Task: "Ampliar src/test/java/com/cc/brokerage/application/PlaceMarketOrderServiceTest.java y src/test/java/com/cc/brokerage/application/PlaceLimitOrderServiceTest.java"
-Task: "Crear src/test/java/com/cc/brokerage/adapter/in/web/HardenNumbersIT.java"
+# US2 tests, different files:
+Task: "Create src/test/java/com/cc/brokerage/domain/model/MoneyMathTest.java"
+Task: "Extend src/test/java/com/cc/brokerage/application/PlaceMarketOrderServiceTest.java and src/test/java/com/cc/brokerage/application/PlaceLimitOrderServiceTest.java"
+Task: "Create src/test/java/com/cc/brokerage/adapter/in/web/HardenNumbersIT.java"
 
-# Implementación en paralelo después de esos tests:
-Task: "Cambiar src/main/java/com/cc/brokerage/domain/model/MoneyMath.java"
-Task: "Crear src/main/java/com/cc/brokerage/domain/model/InputText.java"
+# Implementation in parallel after those tests:
+Task: "Change src/main/java/com/cc/brokerage/domain/model/MoneyMath.java"
+Task: "Create src/main/java/com/cc/brokerage/domain/model/InputText.java"
 ```
 
 ---
@@ -211,4 +211,4 @@ With multiple developers:
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
-- US3 edita `InputText.java` y `PlaceOrderService.java` después de US2. No los tomes en paralelo con T009, T010 y T011
+- US3 edits `InputText.java` and `PlaceOrderService.java` after US2. Do not take them in parallel with T009, T010 and T011

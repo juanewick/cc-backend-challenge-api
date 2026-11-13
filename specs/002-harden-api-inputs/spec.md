@@ -1,4 +1,4 @@
-# Feature Specification: Endurecer las entradas
+# Feature Specification: Harden the inputs
 
 **Feature Branch**: `feat/hardening-api`
 
@@ -6,112 +6,112 @@
 
 **Status**: Draft
 
-**Input**: User description: "Endurecer las operaciones ya entregadas con validaciones de entrada. Un pedido ilegible, con un campo de más, repetido o de otro tipo se rechaza entero y la respuesta no cita el texto enviado ni un detalle interno. La cantidad de acciones va de 1 a 2147483647; un monto que no entra en ese entero no se guarda truncado. El monto y el precio son positivos, con hasta 8 dígitos enteros y 2 decimales half-up. La cuenta es de 1 a 20 dígitos. El ticker es de 1 a 10 letras o dígitos. El identificador de orden es un entero de 1 a 2147483647. La búsqueda se recorta en los extremos, admite hasta 100 caracteres, no admite caracteres de control ni el carácter nulo, y se compara literal sin depender del idioma de la máquina. El mensaje nombra el campo, es estable y no repite el valor enviado. No hay sesiones, límite de intentos ni clave de reintento. El rechazo por fondos o acciones insuficientes se sigue grabando. La cuenta 10001, la búsqueda PAMP y una orden válida siguen respondiendo como antes."
+**Input**: User description: "Harden the operations already delivered with input validation. An unreadable request, or one with an extra, repeated or wrongly typed field, is rejected whole and the response does not quote the text sent or an internal detail. The number of shares goes from 1 to 2147483647; an amount that does not fit that integer is not stored truncated. Amount and price are positive, with up to 8 integer digits and 2 decimals half-up. The account is 1 to 20 digits. The ticker is 1 to 10 letters or digits. The order id is an integer from 1 to 2147483647. The search is trimmed at both ends, allows up to 100 characters, allows no control characters or the null character, and is compared literally without depending on the machine locale. The message names the field, is stable and does not repeat the value sent. There are no sessions, attempt limits or retry key. The rejection for insufficient cash or shares is still stored. Account 10001, the PAMP search and a valid order keep answering as before."
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Rechazar un pedido que no se puede interpretar (Priority: P1)
+### User Story 1 - Reject a request that cannot be interpreted (Priority: P1)
 
-Una persona, o un cliente automático, envía un pedido roto: no es un documento de datos, está vacío, trae un tipo distinto del esperado, repite un campo o incluye un dato que la operación no pide. La operación lo rechaza, no graba nada y no devuelve el texto recibido ni un diagnóstico interno.
+A person, or an automated client, sends a broken request: it is not a data document, it is empty, it carries a type other than the expected one, it repeats a field or it includes data the operation does not ask for. The operation rejects it, stores nothing and does not return the text received or an internal diagnosis.
 
-**Why this priority**: Un pedido ilegible o con campos de más es la puerta de entrada de datos basura. Si se procesa, puede grabar una orden distinta de la intención o mostrar un detalle interno.
+**Why this priority**: An unreadable request or one with extra fields is the entry point for junk data. If it is processed, it can store an order different from the intent or show an internal detail.
 
-**Independent Test**: Enviar un cuerpo que no se puede leer, un cuerpo vacío, un número donde va un texto, un texto donde va una cantidad, el mismo campo dos veces y un campo que la operación no define. En todos los casos no aparece una orden nueva y la respuesta no cita el cuerpo enviado.
+**Independent Test**: Send a body that cannot be read, an empty body, a number where text goes, text where a size goes, the same field twice and a field the operation does not define. In every case no new order appears and the response does not quote the body sent.
 
 **Acceptance Scenarios**:
 
-1. **Given** un cuerpo que no es un documento de datos válido, **When** se envía una orden, **Then** no se graba nada y la respuesta informa un pedido ilegible, sin el cuerpo recibido y sin un detalle interno.
-2. **Given** un cuerpo vacío, un documento que no es un objeto, o un envío que no es un documento de datos, **When** se envía, **Then** se rechaza igual que un pedido ilegible.
-3. **Given** un campo con un tipo distinto del esperado, como una cantidad en texto no numérico o un ticker que no es texto, **When** se envía, **Then** se nombra el campo, no se graba nada y no se reinterpreta el valor.
-4. **Given** un campo que la operación no define, **When** se envía junto con un pedido por lo demás válido, **Then** se rechaza el pedido completo y no se ignora el campo de más.
-5. **Given** el mismo campo repetido con dos valores, **When** se envía, **Then** se rechaza y no se elige uno de los dos.
+1. **Given** a body that is not a valid data document, **When** an order is sent, **Then** nothing is stored and the response reports an unreadable request, without the body received and without an internal detail.
+2. **Given** an empty body, a document that is not an object, or a submission that is not a data document, **When** it is sent, **Then** it is rejected like an unreadable request.
+3. **Given** a field with a type other than the expected one, such as a size as non-numeric text or a ticker that is not text, **When** it is sent, **Then** the field is named, nothing is stored and the value is not reinterpreted.
+4. **Given** a field the operation does not define, **When** it is sent with an otherwise valid request, **Then** the whole request is rejected and the extra field is not ignored.
+5. **Given** the same field repeated with two values, **When** it is sent, **Then** it is rejected and neither value is picked.
 
 ---
 
-### User Story 2 - Rechazar números que no entran en el modelo (Priority: P2)
+### User Story 2 - Reject numbers that do not fit the model (Priority: P2)
 
-Una persona envía una cantidad, un monto, un precio o un identificador negativo, cero cuando se exige un positivo, o tan grande que no se puede guardar entero. La operación rechaza el pedido completo. No conserva la parte que sí entra ni lo convierte en otro número.
+A person sends a size, amount, price or id that is negative, zero when a positive is required, or so large it cannot be stored whole. The operation rejects the whole request. It does not keep the part that fits or turn it into another number.
 
-**Why this priority**: Un número que desborda o que cambia de signo puede reservar o ejecutar una cantidad distinta de la pedida. Eso mueve dinero o acciones de más.
+**Why this priority**: A number that overflows or changes sign can reserve or fill a quantity different from the one requested. That moves extra money or shares.
 
-**Independent Test**: Enviar una cantidad `-1`, una cantidad `0`, una cantidad mayor que `2147483647`, un monto o un precio negativo, un monto o un precio con 9 dígitos enteros, y un identificador de orden `0` o negativo. Ninguno graba una orden ni cambia el portfolio. La cantidad `2147483647`, si el resto del pedido es válido y la cuenta lo cubre, no se rechaza por tamaño.
+**Independent Test**: Send a size `-1`, a size `0`, a size greater than `2147483647`, a negative amount or price, an amount or price with 9 integer digits, and an order id `0` or negative. None stores an order or changes the portfolio. A size of `2147483647`, if the rest of the request is valid and the account covers it, is not rejected for its size.
 
 **Acceptance Scenarios**:
 
-1. **Given** una cantidad, un monto o un precio negativo, **When** se envía una orden, **Then** no se graba y la respuesta nombra ese campo.
-2. **Given** una cantidad cero, o un precio cero o ausente en una orden con precio límite, **When** se envía, **Then** no se graba.
-3. **Given** una cantidad mayor que `2147483647`, o un monto o precio con más de 8 dígitos enteros, **When** se envía, **Then** no se graba una cifra más chica ni un número de otro signo.
-4. **Given** un monto que, al dividirlo por el precio aplicable, da más acciones que `2147483647`, **When** se envía, **Then** no se graba ninguna orden, ni siquiera una rechazada por negocio, con una cantidad menor o de otro signo.
-5. **Given** un identificador de orden que no es un entero de `1` a `2147483647`, **When** se cancela, **Then** no se opera sobre otra orden.
-6. **Given** una posición corta ya existente, **When** se consulta el portfolio, **Then** la cantidad negativa informada se conserva. Esta feature no prohíbe ese resultado.
+1. **Given** a negative size, amount or price, **When** an order is sent, **Then** it is not stored and the response names that field.
+2. **Given** a zero size, or a zero or missing price on a limit order, **When** it is sent, **Then** it is not stored.
+3. **Given** a size greater than `2147483647`, or an amount or price with more than 8 integer digits, **When** it is sent, **Then** a smaller figure or a number of another sign is not stored.
+4. **Given** an amount that, divided by the applicable price, gives more shares than `2147483647`, **When** it is sent, **Then** no order is stored, not even a business-rejected one, with a smaller quantity or another sign.
+5. **Given** an order id that is not an integer from `1` to `2147483647`, **When** it is cancelled, **Then** no other order is acted on.
+6. **Given** an existing short position, **When** the portfolio is queried, **Then** the reported negative quantity is kept. This feature does not forbid that result.
 
 ---
 
-### User Story 3 - Tratar el texto como dato y no como instrucción (Priority: P3)
+### User Story 3 - Treat text as data, not as an instruction (Priority: P3)
 
-Una persona envía, en la cuenta, el ticker o la búsqueda, un texto que parece una instrucción para leer, cambiar o borrar datos. Ese texto no se ejecuta. Si no cumple el formato del campo, se rechaza. Si es un texto de búsqueda permitido, se compara literalmente y, como máximo, no devuelve filas. En ningún caso cambia datos que el pedido válido no cambiaría, ni la respuesta muestra un error interno.
+A person sends, in the account, the ticker or the search, a text that looks like an instruction to read, change or delete data. That text is not executed. If it does not match the field format, it is rejected. If it is an allowed search text, it is compared literally and, at most, returns no rows. In no case does it change data a valid request would not change, nor does the response show an internal error.
 
-**Why this priority**: La cuenta, el ticker y la búsqueda llegan de quien llama. Sin un formato cerrado, un texto hostil puede alterar la consulta o filtrar un error interno.
+**Why this priority**: The account, the ticker and the search come from the caller. Without a closed format, a hostile text can alter the query or leak an internal error.
 
-**Independent Test**: Pedir el portfolio de `10001' OR '1'='1`, crear una orden con ticker `PAMP'; DROP TABLE orders;--` y buscar `pamp' OR 1=1`. La cuenta y el ticker se rechazan. La búsqueda no modifica datos y no devuelve un error interno. El portfolio de `10001` y la búsqueda `PAMP` siguen respondiendo como antes.
+**Independent Test**: Ask for the portfolio of `10001' OR '1'='1`, create an order with ticker `PAMP'; DROP TABLE orders;--` and search `pamp' OR 1=1`. The account and the ticker are rejected. The search modifies no data and returns no internal error. The portfolio of `10001` and the `PAMP` search keep answering as before.
 
 **Acceptance Scenarios**:
 
-1. **Given** un número de cuenta con letras, espacios, signos o más de 20 dígitos, **When** se usa en portfolio, alta o cancelación, **Then** se rechaza y no se elige otra cuenta.
-2. **Given** un ticker vacío, con espacios, con signos o con más de 10 letras o dígitos, **When** se envía una orden, **Then** no se graba nada.
-3. **Given** un texto de búsqueda vacío, con más de 100 caracteres, con caracteres de control o con un carácter nulo, **When** se busca, **Then** no hay listado y no se muestra un error interno.
-4. **Given** un texto de búsqueda de hasta 100 caracteres, formado por letras, dígitos, espacios y la puntuación habitual de un nombre, **When** se busca, **Then** se compara como texto literal, sin distinguir mayúsculas y sin depender del idioma de la máquina. Un texto que parece una instrucción no cambia datos y no amplía el resultado más allá de las coincidencias literales.
-5. **Given** la cuenta `10001` y el ticker `PAMP`, **When** se consultan con su forma válida, **Then** el resultado es el de la feature anterior.
+1. **Given** an account number with letters, spaces, signs or more than 20 digits, **When** it is used for portfolio, placement or cancellation, **Then** it is rejected and no other account is picked.
+2. **Given** a ticker that is empty, has spaces, signs or more than 10 letters or digits, **When** an order is sent, **Then** nothing is stored.
+3. **Given** a search text that is empty, longer than 100 characters, with control characters or with a null character, **When** it is searched, **Then** there is no list and no internal error is shown.
+4. **Given** a search text of up to 100 characters, made of letters, digits, spaces and the usual punctuation of a name, **When** it is searched, **Then** it is compared as literal text, case-insensitively and without depending on the machine locale. A text that looks like an instruction changes no data and does not widen the result beyond the literal matches.
+5. **Given** account `10001` and ticker `PAMP`, **When** they are queried in their valid form, **Then** the result is the one of the previous feature.
 
 ---
 
 ### Edge Cases
 
-- Recortar espacios no convierte un identificador en otro. Una cuenta o un ticker con espacios al inicio o al final se rechaza.
-- Un texto de búsqueda sí puede recortarse en los extremos. Después se le aplican el largo máximo de 100 caracteres y la prohibición de caracteres de control y del carácter nulo.
-- Más de 2 decimales en un monto o un precio no es basura: se redondea half-up a 2 decimales, igual que el resto de los importes. Esta feature no lo rechaza por la cantidad de decimales.
-- `BUY` y `SELL` son los únicos lados de una orden nueva. `MARKET` y `LIMIT` son los únicos tipos. Cualquier otro texto, incluidas variantes de mayúsculas o espacios, se rechaza. Un ingreso o un egreso de pesos nuevo sigue sin grabar una orden.
-- Una orden nueva sigue exigiendo exactamente una forma de cantidad: acciones o monto. Las dos, o ninguna, se rechazan.
-- Cuando el error corresponde a un campo, la respuesta nombra ese campo, usa el mismo texto para el mismo caso y no incluye el valor enviado. Una cuenta, un activo o una orden que no existen se informan sin repetir el valor enviado.
-- Una compra o una venta que no entra por fondos o acciones insuficientes se sigue guardando rechazada. Esta feature no convierte ese caso en un rechazo de entrada.
-- Un pedido válido de la cuenta de referencia no empieza a fallar por estas reglas.
-- Quien conoce el número de cuenta opera. Esta feature no agrega sesiones, permisos ni un límite de intentos.
+- Trimming spaces does not turn one identifier into another. An account or ticker with leading or trailing spaces is rejected.
+- A search text can be trimmed at both ends. After that, the 100-character maximum and the ban on control characters and the null character apply.
+- More than 2 decimals on an amount or price is not junk: it is rounded half-up to 2 decimals, like every other amount. This feature does not reject it for the number of decimals.
+- `BUY` and `SELL` are the only sides of a new order. `MARKET` and `LIMIT` are the only types. Any other text, including case or space variants, is rejected. A new peso deposit or withdrawal still stores no order.
+- A new order still requires exactly one form of quantity: shares or amount. Both, or neither, are rejected.
+- When the error belongs to a field, the response names that field, uses the same text for the same case and does not include the value sent. An account, instrument or order that does not exist is reported without repeating the value sent.
+- A buy or sell that does not fit for insufficient cash or shares is still stored as rejected. This feature does not turn that case into an input rejection.
+- A valid request of the reference account does not start failing because of these rules.
+- Whoever knows the account number trades. This feature adds no sessions, permissions or attempt limit.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: Todo dato de entrada de una operación MUST validarse antes de leer o grabar el estado de una cuenta. Un dato inválido MUST NOT grabar una orden, MUST NOT cambiar saldos y MUST NOT elegir otro registro parecido.
-- **FR-002**: Un cuerpo ilegible, vacío, que no sea un documento de datos, o que no sea un objeto MUST rechazarse. La respuesta MUST NOT incluir el cuerpo recibido ni un detalle interno.
-- **FR-003**: Un campo con un tipo distinto del esperado, un campo repetido o un campo que la operación no define MUST rechazar el pedido completo. El sistema MUST NOT ignorar el campo de más, MUST NOT elegir uno de los valores repetidos y MUST NOT convertir un texto en número ni un número en texto.
-- **FR-004**: Cuando el error corresponde a un campo, la respuesta MUST nombrar ese campo. El texto MUST ser estable para el mismo caso y MUST NOT incluir el valor enviado ni un diagnóstico interno. Una cuenta, un activo o una orden inexistentes MUST informarse sin repetir el valor enviado.
-- **FR-005**: Una cantidad de acciones MUST ser un entero de `1` a `2147483647`. Un monto o un precio MUST ser mayor que cero y MUST tener como máximo 8 dígitos enteros. Los decimales de más MUST redondearse half-up a 2. Un valor negativo, cero cuando el campo es obligatorio, no numérico o con más de 8 dígitos enteros MUST rechazarse entero, sin guardar una parte del número ni cambiarle el signo.
-- **FR-006**: Si un monto, dividido por el precio aplicable, no cabe en un entero de `1` a `2147483647`, el pedido MUST rechazarse sin grabar una orden, incluida una orden rechazada por negocio.
-- **FR-007**: Un identificador de orden MUST ser un entero de `1` a `2147483647`. Cero, negativo, texto u otro número fuera de ese rango MUST rechazarse sin operar sobre una orden distinta.
-- **FR-008**: Un número de cuenta MUST ser de 1 a 20 dígitos, sin otros caracteres. Un ticker de orden MUST ser de 1 a 10 letras o dígitos, sin espacios ni signos. Un valor fuera de ese formato MUST rechazarse. Los espacios al inicio o al final de la cuenta o del ticker MUST rechazarse y MUST NOT recortarse.
-- **FR-009**: Un texto de búsqueda MUST recortarse solo en los extremos, MUST tener de 1 a 100 caracteres después de ese recorte y MUST NOT contener caracteres de control ni el carácter nulo. El texto aceptado MUST compararse de forma literal, sin distinguir mayúsculas y sin depender del idioma de la máquina, y MUST NOT ejecutarse como instrucción. Una búsqueda inválida o sin coincidencias MUST NOT modificar datos ni devolver un error interno.
-- **FR-010**: Un lado distinto de compra o venta, o un tipo distinto de mercado o límite, MUST rechazarse. La operación MUST seguir exigiendo exactamente una forma entre cantidad de acciones y monto. Un ingreso o un egreso de pesos nuevo MUST seguir sin grabar una orden.
-- **FR-011**: Una consulta o una orden que ya era válida MUST seguir siéndolo. La cantidad negativa de una posición corta informada por el portfolio MUST conservarse. Una orden que no entra por fondos o acciones insuficientes MUST seguir guardándose rechazada.
+- **FR-001**: Every input of an operation MUST be validated before reading or storing the state of an account. Invalid input MUST NOT store an order, MUST NOT change balances and MUST NOT pick another similar record.
+- **FR-002**: A body that is unreadable, empty, not a data document, or not an object MUST be rejected. The response MUST NOT include the body received or an internal detail.
+- **FR-003**: A field with a type other than the expected one, a repeated field or a field the operation does not define MUST reject the whole request. The system MUST NOT ignore the extra field, MUST NOT pick one of the repeated values and MUST NOT turn text into a number or a number into text.
+- **FR-004**: When the error belongs to a field, the response MUST name that field. The text MUST be stable for the same case and MUST NOT include the value sent or an internal diagnosis. A missing account, instrument or order MUST be reported without repeating the value sent.
+- **FR-005**: A number of shares MUST be an integer from `1` to `2147483647`. An amount or price MUST be greater than zero and MUST have at most 8 integer digits. Extra decimals MUST be rounded half-up to 2. A value that is negative, zero when the field is required, non-numeric or with more than 8 integer digits MUST be rejected whole, without storing part of the number or changing its sign.
+- **FR-006**: If an amount, divided by the applicable price, does not fit an integer from `1` to `2147483647`, the request MUST be rejected without storing an order, including a business-rejected order.
+- **FR-007**: An order id MUST be an integer from `1` to `2147483647`. Zero, negative, text or any other number outside that range MUST be rejected without acting on a different order.
+- **FR-008**: An account number MUST be 1 to 20 digits, with no other characters. An order ticker MUST be 1 to 10 letters or digits, with no spaces or signs. A value outside that format MUST be rejected. Leading or trailing spaces on the account or the ticker MUST be rejected and MUST NOT be trimmed.
+- **FR-009**: A search text MUST be trimmed only at both ends, MUST have 1 to 100 characters after that trim and MUST NOT contain control characters or the null character. The accepted text MUST be compared literally, case-insensitively and without depending on the machine locale, and MUST NOT be executed as an instruction. An invalid search or one without matches MUST NOT modify data or return an internal error.
+- **FR-010**: A side other than buy or sell, or a type other than market or limit, MUST be rejected. The operation MUST still require exactly one form between number of shares and amount. A new peso deposit or withdrawal MUST still store no order.
+- **FR-011**: A query or order that was already valid MUST stay valid. The negative quantity of a short position reported by the portfolio MUST be kept. An order that does not fit for insufficient cash or shares MUST still be stored as rejected.
 
 ### Key Entities
 
-- **Dato de entrada**: Cada valor que llega en una operación: cuenta, identificador de orden, texto de búsqueda, ticker, lado, tipo, cantidad, monto y precio. Tiene un formato cerrado o un texto acotado. Fuera de ese formato no entra al estado de la cuenta.
-- **Rechazo de entrada**: La respuesta de un dato que no se puede aceptar. Nombra el campo cuando hay uno, no repite el valor enviado y no cambia órdenes ni saldos.
+- **Input value**: Each value that arrives in an operation: account, order id, search text, ticker, side, type, size, amount and price. It has a closed format or a bounded text. Outside that format it does not reach the account state.
+- **Input rejection**: The response to a value that cannot be accepted. It names the field when there is one, does not repeat the value sent and does not change orders or balances.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: El 100% de los pedidos ilegibles, con tipo distinto, con un campo de más o con un campo repetido no crean una orden, y la respuesta no contiene el cuerpo enviado ni un detalle interno.
-- **SC-002**: El 100% de las cantidades, montos, precios e identificadores negativos, en cero cuando no corresponden, o por encima del máximo no dejan una orden nueva ni cambian el portfolio. Ningún monto que no cabe en el entero de acciones queda guardado con una cantidad menor.
-- **SC-003**: El 100% de los textos de cuenta, ticker y búsqueda que parecen una instrucción no modifican datos y no producen un error interno. La cuenta y el ticker fuera de formato se rechazan. La búsqueda permitida solo devuelve coincidencias literales.
-- **SC-004**: El portfolio de `10001`, la búsqueda `PAMP` y una orden válida de esa cuenta siguen completándose como antes de esta feature.
+- **SC-001**: 100% of the requests that are unreadable, wrongly typed, with an extra field or with a repeated field create no order, and the response contains neither the body sent nor an internal detail.
+- **SC-002**: 100% of sizes, amounts, prices and ids that are negative, zero when not allowed, or above the maximum leave no new order and do not change the portfolio. No amount that does not fit the integer of shares is stored with a smaller size.
+- **SC-003**: 100% of account, ticker and search texts that look like an instruction modify no data and produce no internal error. Out-of-format account and ticker are rejected. An allowed search only returns literal matches.
+- **SC-004**: The portfolio of `10001`, the `PAMP` search and a valid order of that account keep completing as before this feature.
 
 ## Assumptions
 
-- Esta feature se apoya en el comportamiento ya entregado de portfolio, búsqueda y órdenes. No cambia la escala de los importes: siguen en 2 decimales half-up, y el tope nuevo de 8 dígitos enteros es el máximo que ya se puede registrar para un precio.
-- El tope de `2147483647` acciones es el máximo entero que ya se puede registrar como cantidad. Esta feature lo aplica en el borde y prohíbe guardar una parte del número.
-- Los límites de 20 dígitos para la cuenta y de 10 caracteres para el ticker son los que ya identifican a las cuentas y a los activos de referencia. No se amplían en esta feature.
-- El largo de 100 caracteres de la búsqueda es un tope nuevo de esta feature. El texto puede incluir letras, dígitos, espacios y la puntuación de un nombre, porque los nombres de referencia la usan. No se le aplica el formato cerrado del ticker.
-- Las sesiones, los permisos, el límite de intentos y la clave de reintento quedan fuera de alcance.
-- La forma de atar cada texto como dato y de imponer estos formatos se elige en la planificación. Esa elección no cambia las reglas observables de esta spec.
+- This feature builds on the behaviour already delivered for portfolio, search and orders. It does not change the scale of amounts: they stay at 2 decimals half-up, and the new 8-integer-digit cap is the maximum a price can already be stored with.
+- The `2147483647` share cap is the largest integer that can already be stored as a size. This feature applies it at the edge and forbids storing part of the number.
+- The limits of 20 digits for the account and 10 characters for the ticker are the ones that already identify the reference accounts and instruments. This feature does not widen them.
+- The 100-character length of the search is a new cap of this feature. The text may include letters, digits, spaces and a name's punctuation, because the reference names use it. The closed ticker format does not apply to it.
+- Sessions, permissions, attempt limits and the retry key are out of scope.
+- How each text is bound as data and how these formats are enforced is chosen during planning. That choice does not change the observable rules of this spec.

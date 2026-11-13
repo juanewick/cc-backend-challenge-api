@@ -1,46 +1,46 @@
-# Data Model: Endurecer las entradas
+# Data Model: Harden the inputs
 
-No hay tablas ni columnas nuevas. Los topes de abajo son los que el esquema entregado ya puede guardar.
+There are no new tables or columns. The caps below are the ones the delivered schema can already store.
 
-## Dato de entrada
+## Input value
 
-Valor que llega en una operación y se acepta o se rechaza entero, antes de leer o grabar la cuenta.
+A value that arrives in an operation and is accepted or rejected whole, before reading or storing the account.
 
-| Dato | Forma aceptada | Si no entra |
+| Value | Accepted shape | If it does not fit |
 |---|---|---|
-| Documento de alta | Un objeto con los campos de la orden, sin campos de más, sin claves repetidas y sin otro token después | No se graba. Texto de pedido ilegible, de campo desconocido o de campo inválido, según [contracts/entradas.md](contracts/entradas.md) |
-| Cuenta | 1 a 20 dígitos, sin recorte | `La cuenta no es válida`. No se busca otra cuenta |
-| Ticker | 1 a 10 letras o dígitos, sin recorte y sin cambiar mayúsculas | `El ticker no es válido` |
-| Identificador de orden | Entero de 1 a 2147483647 | `La orden no es válida`. No se consulta otra orden |
-| Búsqueda | Extremos recortados, 1 a 100 caracteres Unicode, sin controles ISO ni carácter nulo | Texto vacío, máximo superado o búsqueda no válida. No cambia datos |
-| Lado | `BUY` o `SELL`, tal cual | No se graba |
-| Tipo | `MARKET` o `LIMIT`, tal cual | No se graba |
-| Cantidad | Entero de 1 a 2147483647, y ninguna otra forma de cantidad en el mismo pedido | No se graba una cifra menor ni de otro signo |
-| Monto | Número mayor que cero, con hasta 8 dígitos enteros después de redondear half-up a 2, y ninguna cantidad de acciones en el mismo pedido | No se graba |
-| Precio límite | Mismo rango que el monto, obligatorio solo en `LIMIT` | No se graba |
+| Order document | An object with the order fields, no extra fields, no repeated keys and no other token after it | Not stored. Unreadable-request, unknown-field or invalid-field text, as in [contracts/inputs.md](contracts/inputs.md) |
+| Account | 1 to 20 digits, untrimmed | `The account is not valid.`. No other account is looked up |
+| Ticker | 1 to 10 letters or digits, untrimmed and with its case unchanged | `The ticker is not valid.` |
+| Order id | Integer from 1 to 2147483647 | `The order is not valid.`. No other order is queried |
+| Search | Ends trimmed, 1 to 100 Unicode characters, without ISO controls or the null character | Empty text, maximum exceeded or invalid search. No data changes |
+| Side | `BUY` or `SELL`, as is | Not stored |
+| Type | `MARKET` or `LIMIT`, as is | Not stored |
+| Size | Integer from 1 to 2147483647, and no other form of quantity in the same request | A smaller figure or one of another sign is not stored |
+| Amount | Number greater than zero, with up to 8 integer digits after rounding half-up to 2, and no number of shares in the same request | Not stored |
+| Limit price | Same range as the amount, required only on `LIMIT` | Not stored |
 
-Un ingreso o un egreso de pesos nuevo (`CASH_IN`, `CASH_OUT`, o un activo de tipo moneda) sigue sin grabar una orden.
+A new peso deposit or withdrawal (`CASH_IN`, `CASH_OUT`, or an instrument of currency type) still stores no order.
 
-## Cantidad derivada de un monto
+## Size derived from an amount
 
-`parte entera de monto redondeado / precio aplicable`.
+`integer part of rounded amount / applicable price`.
 
-- El precio aplicable de una orden de mercado es el último cierre. El de una límite es el precio enviado, ya redondeado.
-- Si el cociente es 0, o no hay cierre para una orden de mercado, se guarda `REJECTED`. Es el rechazo de negocio de la feature 001.
-- Si el cociente es mayor que 2147483647, no se guarda nada.
-- Si la compra no entra en los pesos disponibles, o la venta no entra en las acciones disponibles, se guarda `REJECTED`.
+- The applicable price of a market order is the latest close. That of a limit order is the price sent, already rounded.
+- If the quotient is 0, or there is no close for a market order, it is stored `REJECTED`. It is the business rejection of feature 001.
+- If the quotient is greater than 2147483647, nothing is stored.
+- If the buy does not fit the available pesos, or the sell does not fit the available shares, it is stored `REJECTED`.
 
-## Rechazo de entrada
+## Input rejection
 
-No es una orden. No tiene estado, no reserva y no cambia el portfolio.
+It is not an order. It has no status, reserves nothing and does not change the portfolio.
 
-- Nombra el campo cuando el campo es cuenta, ticker, orden, búsqueda, lado, tipo, cantidad, monto o precio.
-- No incluye el valor enviado ni un detalle interno del lector.
-- Una cuenta, un activo o una orden que no existen se informan sin repetir el valor.
+- It names the field when the field is account, ticker, order, search, side, type, size, amount or price.
+- It does not include the value sent or an internal detail of the reader.
+- An account, instrument or order that does not exist is reported without repeating the value.
 
-## Lo que no cambia
+## What does not change
 
-- `Order`, `Portfolio` y `InstrumentQuote` siguen como en la feature 001.
-- Una posición de cantidad neta negativa se sigue informando.
-- El redondeo de importes y porcentajes mostrados sigue en 2 decimales half-up.
-- La búsqueda aceptada se compara literal, sin distinguir mayúsculas y sin depender del idioma de la máquina. No se ejecuta como instrucción.
+- `Order`, `Portfolio` and `InstrumentQuote` stay as in feature 001.
+- A position with a negative net quantity is still reported.
+- Rounding of the amounts and percentages shown stays at 2 decimals half-up.
+- The accepted search is compared literally, case-insensitively and without depending on the machine locale. It is not executed as an instruction.
