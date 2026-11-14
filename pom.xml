@@ -14,11 +14,21 @@
     <groupId>com.cc</groupId>
     <artifactId>brokerage</artifactId>
     <version>1.0.0</version>
-    <name>brokerage</name>
+    <name>brokerage-api</name>
     <description>Portfolio, instrument search and orders</description>
 
     <properties>
         <java.version>25</java.version>
+        <!-- Fixed releases ahead of Spring Boot 4.1.2. Drop each one when Boot ships it. -->
+        <!-- CVE-2026-110879 -->
+        <jackson-2-bom.version>2.21.8</jackson-2-bom.version>
+        <jackson-bom.version>3.1.8</jackson-bom.version>
+        <!-- CVE-2026-113602, tests only -->
+        <json-smart.version>2.6.1</json-smart.version>
+        <!-- CVE-2026-19880: no fixed 1.5.x; Spring Boot 4.2 moves to 1.6 -->
+        <logback.version>1.6.7</logback.version>
+        <!-- CVE-2026-119078, tests only -->
+        <commons-codec.version>1.23.0</commons-codec.version>
     </properties>
 
     <dependencies>
@@ -52,6 +62,13 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <!-- JSONAssert brings android-json, unmaintained and open to CVE-2026-110974. No test compares JSON with it. -->
+                <exclusion>
+                    <groupId>org.skyscreamer</groupId>
+                    <artifactId>jsonassert</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

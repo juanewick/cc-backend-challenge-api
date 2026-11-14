@@ -23,8 +23,9 @@ class ApplicationIdentityIT extends IntegrationTestBase {
 
     @Test
     void bannerIdentifiesTheService() throws Exception {
+        // The title is the jar's Implementation-Title, which Maven takes from the project name: brokerage-api.
         String banner = new String(new ClassPathResource("banner.txt").getInputStream().readAllBytes());
-        assertThat(banner).contains("brokerage-api");
+        assertThat(banner).contains("|  _ \\          | |").contains("${application.title} ${application.version}");
     }
 
     @Test
