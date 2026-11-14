@@ -1,6 +1,6 @@
 # brokerage-api
 
-API HTTP de una cuenta de inversión en pesos. Se consulta el portfolio, se buscan activos por ticker o nombre, y se envían o cancelan órdenes de compra y venta. No hay autenticación. El conjunto de cuentas, precios y órdenes de referencia se carga con la base.
+API HTTP de una cuenta de inversión en pesos. Se consulta el portfolio, se buscan activos por ticker o nombre, y se envían o cancelan órdenes de compra y venta. No hay autenticación. La API usa una base PostgreSQL externa (Neon) que ya tiene las cuentas, precios y órdenes de referencia.
 
 ## Arquitectura
 
@@ -29,7 +29,7 @@ Se usó arquitectura hexagonal. El dominio no conoce HTTP ni JPA: los casos de u
 
 ## Arranque local con Docker
 
-Hace falta Docker Desktop (o Docker Engine con Compose) en la máquina. No hace falta instalar Java ni PostgreSQL en el host.
+Hace falta Docker Desktop (o Docker Engine con Compose) en la máquina. No hace falta instalar Java ni PostgreSQL en el host: la aplicación se conecta a la base PostgreSQL de Neon.
 
 Desde esta carpeta, `cc-backend-challenge`:
 
@@ -37,7 +37,11 @@ Desde esta carpeta, `cc-backend-challenge`:
 docker compose up --build
 ```
 
-Quedan la aplicación en http://localhost:8080 y PostgreSQL con los datos de referencia. El banner al arrancar es `brokerage-api`.
+No hay nada que configurar: `compose.yaml` ya trae la URL JDBC, el usuario y la contraseña de la base de Neon en `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` y `SPRING_DATASOURCE_PASSWORD`. `application.yml` no tiene valores por defecto, así que fuera de Compose la aplicación arranca solo si se le pasan esas tres variables.
+
+> **Credenciales versionadas a propósito.** Las dejamos en el repositorio para que quien lo baje pueda levantar la API sin configurar nada a mano. En un ambiente productivo no lo haríamos: las credenciales vendrían de un gestor de secretos (o de variables de entorno inyectadas por la plataforma), nunca del código, y se rotarían si quedaran expuestas.
+
+Queda la aplicación en http://localhost:8080. El banner al arrancar es `brokerage-api`.
 
 Ejemplos:
 
@@ -79,8 +83,8 @@ mvn verify
 ## Decisiones de planificación
 
 - Java 25, Spring Boot 4.1.2 y JUnit 6. Los tests usan JUnit Jupiter 6.0.3, la versión que trae ese Spring Boot, junto con Mockito.
-- PostgreSQL se fija en la imagen `postgres:18.6`. El 2026-11-12 salió el parche 18.7, pero ese tag todavía no estaba en Docker Hub.
-- La integración usa Testcontainers contra PostgreSQL para los escenarios de negocio.
+- La base es PostgreSQL 18 en Neon. Los tests usan la imagen `postgres:18.6`: el 2026-11-12 salió el parche 18.7, pero ese tag todavía no estaba en Docker Hub.
+- La integración usa Testcontainers contra PostgreSQL para los escenarios de negocio. El esquema y los datos de referencia salen de `src/test/resources/db/database.sql`, que solo usan los tests: los tests nunca tocan la base de Neon.
 - Los `*IT.java` comparten un PostgreSQL arrancado una sola vez. Un contenedor por clase cambiaba el puerto y el contexto cacheado de Spring seguía apuntando al anterior.
 - El Dockerfile de compilación usa `maven:3.9.11-eclipse-temurin-25` para no instalar Maven aparte en la etapa de build.
 - Antes de cada escenario de integración se recrean las órdenes de referencia con `TRUNCATE`, para que un test no deje saldo a otro.
@@ -152,7 +156,7 @@ El código Java se genera en esta carpeta, `cc-backend-challenge`. Los specs viv
 
 ### Requisito de arranque
 
-La aplicación se levanta standalone con Docker, junto con la base de datos y los datos de referencia. Un único arranque alcanza para consultar el portfolio, buscar activos y enviar órdenes, sin instalar la plataforma ni la base por separado.
+La aplicación se levanta standalone con Docker y se conecta a la base de Neon, que ya tiene los datos de referencia. Un único arranque alcanza para consultar el portfolio, buscar activos y enviar órdenes, sin instalar la plataforma ni la base por separado.
 
 ## Mejoras
 

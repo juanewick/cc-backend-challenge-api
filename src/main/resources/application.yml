@@ -17,9 +17,9 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         globally_quoted_identifiers: true
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/brokerage}
-    username: ${SPRING_DATASOURCE_USERNAME:brokerage}
-    password: ${SPRING_DATASOURCE_PASSWORD:brokerage}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
 server:
   port: 8080
