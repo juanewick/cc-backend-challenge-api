@@ -7,8 +7,10 @@ import com.cc.brokerage.adapter.in.web.api.PageResponse;
 import com.cc.brokerage.adapter.in.web.api.PlaceOrderRequest;
 import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.ListedOrder;
-import com.cc.brokerage.domain.model.PageResult;
+import com.cc.brokerage.domain.model.OrderStatus;
 import com.cc.brokerage.domain.model.PageLimits;
+import com.cc.brokerage.domain.model.PageQuery;
+import com.cc.brokerage.domain.model.PageResult;
 import com.cc.brokerage.domain.model.PlaceOrderOutcome;
 import com.cc.brokerage.domain.port.in.CancelOrderUseCase;
 import com.cc.brokerage.domain.port.in.GetOrderUseCase;
@@ -75,7 +77,11 @@ public class OrderController {
             @Parameter(description = "Orders per page, from 1 to the configured maximum (100 unless changed). Defaults to 20.")
             @RequestParam(required = false) String pageSize
     ) {
-        PageResult<ListedOrder> found = listOrders.list(accountNumber, InputText.orderStatus(status), InputText.page(page, pageSize, pageLimits.orderList()));
+        // The account is checked before the filters, so an invalid account is reported whatever the query says.
+        String account = InputText.account(accountNumber);
+        OrderStatus requestedStatus = InputText.orderStatus(status);
+        PageQuery requested = InputText.page(page, pageSize, pageLimits.orderList());
+        PageResult<ListedOrder> found = listOrders.list(account, requestedStatus, requested);
         return PageResponse.from(found, order -> toResponse(order, accountNumber));
     }
 

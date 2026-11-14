@@ -79,6 +79,13 @@ class ListOrdersIT extends IntegrationTestBase {
     }
 
     @Test
+    void invalidAccountIsReportedBeforeInvalidFilters() throws Exception {
+        mockMvc.perform(get(apiV1() + "/accounts/ABC/orders").param("status", "UNKNOWN").param("page", "-1").param("pageSize", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BRK-008"));
+    }
+
+    @Test
     void invalidListParametersAreRejected() throws Exception {
         mockMvc.perform(get(apiV1() + "/accounts/10001/orders").param("status", "UNKNOWN"))
                 .andExpect(status().isBadRequest())
