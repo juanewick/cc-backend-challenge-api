@@ -42,9 +42,9 @@ A `MARKET` order must not carry `price`: it answers `400` and `BRK-027`, and no 
 
 ## Instruments
 
-`GET /instruments?q=`
+`GET /instruments?q=&page=&pageSize=`
 
-As before, without `MONEDA`. `PESOS` and `ARS` return no tradable share.
+One page of matches sorted by ticker, as `{content, page, pageSize, totalElements, totalPages}`. `page` starts at 0 and `pageSize` goes from 1 to `BROKERAGE_INSTRUMENT_SEARCH_MAX_PAGE_SIZE` (100 unless set), 20 by default; an invalid value answers `400` with `BRK-025` or `BRK-026`. A blank `q` answers `BRK-011` even when the page parameters are also invalid. Without `MONEDA`. `PESOS` and `ARS` return no tradable share.
 
 `GET /instruments/{ticker}`
 

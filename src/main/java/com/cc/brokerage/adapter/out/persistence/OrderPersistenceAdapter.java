@@ -29,16 +29,11 @@ public class OrderPersistenceAdapter implements OrderRepository {
 
     @Override
     public PageResult<Order> findPageByUserId(Long userId, OrderStatus status, PageQuery page) {
-        PageRequest request = PageRequest.of(page.page(), page.size());
+        PageRequest request = PageMapping.toRequest(page);
         Page<OrderEntity> found = status == null
                 ? orders.findPageByUserId(userId, request)
                 : orders.findPageByUserIdAndStatus(userId, status, request);
-        return new PageResult<>(
-                found.getContent().stream().map(OrderPersistenceAdapter::toDomain).toList(),
-                page.page(),
-                page.size(),
-                found.getTotalElements()
-        );
+        return PageMapping.toResult(found, page, OrderPersistenceAdapter::toDomain);
     }
 
     @Override

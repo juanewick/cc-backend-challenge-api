@@ -20,7 +20,7 @@ Se usó arquitectura hexagonal. El dominio no conoce HTTP ni JPA: los casos de u
 ## Funcionalidades
 
 - Consultar el portfolio: valor total, pesos disponibles y posiciones (cantidad, valor de mercado, rendimiento total y diario). `unpricedTickers` avisa qué posiciones no tienen cierre y quedaron fuera del valor total.
-- Buscar activos cuyo ticker o nombre contienen un texto, sin distinguir mayúsculas.
+- Buscar activos cuyo ticker o nombre contienen un texto, sin distinguir mayúsculas, por páginas.
 - Enviar órdenes `MARKET` (se ejecutan al cierre vigente) o `LIMIT` (quedan abiertas y reservan pesos o acciones).
 - Rechazar una orden `MARKET` que trae `price` (`BRK-027`, sin grabar la orden).
 - Guardar como `REJECTED` la orden que no entra por fondos o acciones insuficientes.
@@ -43,7 +43,7 @@ Ejemplos:
 
 ```bash
 curl -s http://localhost:8080/api/brokerage-api/v1/accounts/10001/portfolio
-curl -s "http://localhost:8080/api/brokerage-api/v1/instruments?q=banco"
+curl -s "http://localhost:8080/api/brokerage-api/v1/instruments?q=banco&page=0&pageSize=20"
 curl -s "http://localhost:8080/api/brokerage-api/v1/accounts/10001/orders?status=NEW&page=0&pageSize=20"
 ```
 
@@ -97,8 +97,8 @@ mvn verify
 - **`MoneyMath` es un bean.** Se construye con los límites de `application.yml` y se inyecta. No hay estado estático.
 - **El portfolio se suma en la base.** Una consulta agrupa por instrumento las órdenes `FILLED` y `NEW` del usuario (cantidad neta, capital neto, compras y ventas ejecutadas para el costo promedio, reservas y movimientos de pesos). El servicio no carga el historial de órdenes, ni para el portfolio ni al validar una orden nueva con la cuenta bloqueada. La suma de cantidades es `BIGINT`, así que no desborda aunque cada orden sea `INT`.
 - **Último precio en la base.** `DISTINCT ON (instrumentid)` devuelve una fila por instrumento: la fecha más reciente y, si empatan, el id más alto. Es una consulta de PostgreSQL, la base del challenge.
-- **Búsqueda en la base.** Busca el texto dentro del ticker o del nombre, sin distinguir mayúsculas, con `%` y `_` tomados literalmente. Devuelve hasta 50 activos ordenados por ticker.
-- **Listado de órdenes por páginas.** `GET /orders` acepta `status`, `page` (desde 0) y `pageSize` (1 a 100, por defecto 20). Responde `{content, page, pageSize, totalElements, totalPages}`, de la orden más antigua a la más nueva. Antes devolvía un arreglo con todas las órdenes; es un cambio de contrato.
+- **Búsqueda en la base.** Busca el texto dentro del ticker o del nombre, sin distinguir mayúsculas, con `%` y `_` tomados literalmente. Responde por páginas, ordenada por ticker, con el mismo formato y los mismos parámetros que el listado de órdenes: una búsqueda amplia no recorta resultados sin avisar, porque `totalElements` dice cuántos hay. El tamaño máximo de página se configura aparte con `BROKERAGE_INSTRUMENT_SEARCH_MAX_PAGE_SIZE` (100 si no se cambia). Un `q` vacío responde `SEARCH_EMPTY` aunque `page` o `pageSize` también sean inválidos.
+- **Listado de órdenes por páginas.** `GET /orders` acepta `status`, `page` (desde 0) y `pageSize` (de 1 al máximo configurado con `BROKERAGE_ORDER_LIST_MAX_PAGE_SIZE`, 100 si no se cambia; por defecto 20). Responde `{content, page, pageSize, totalElements, totalPages}`, de la orden más antigua a la más nueva. Antes devolvía un arreglo con todas las órdenes; es un cambio de contrato.
 - **Valores desconocidos en la base.** Un tipo, lado o estado que el servicio no conoce se lee como `UNKNOWN` y se registra un aviso. Las órdenes con lado o estado `UNKNOWN` no cuentan en el portfolio y nunca se vuelven a grabar.
 
 ## Decisiones de la especificación

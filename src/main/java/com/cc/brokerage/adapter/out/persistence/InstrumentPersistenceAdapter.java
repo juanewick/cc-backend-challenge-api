@@ -4,12 +4,13 @@ import com.cc.brokerage.adapter.out.persistence.entity.InstrumentEntity;
 import com.cc.brokerage.adapter.out.persistence.repository.InstrumentJpaRepository;
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.InstrumentType;
+import com.cc.brokerage.domain.model.PageQuery;
+import com.cc.brokerage.domain.model.PageResult;
 import com.cc.brokerage.domain.port.out.InstrumentRepository;
-import org.springframework.data.domain.Limit;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -46,10 +47,9 @@ public class InstrumentPersistenceAdapter implements InstrumentRepository {
     }
 
     @Override
-    public List<Instrument> search(String text, InstrumentType excludedType, int limit) {
-        return instruments.search(containsPattern(text), excludedType, Limit.of(limit)).stream()
-                .map(InstrumentPersistenceAdapter::toDomain)
-                .toList();
+    public PageResult<Instrument> search(String text, InstrumentType excludedType, PageQuery page) {
+        Page<InstrumentEntity> found = instruments.search(containsPattern(text), excludedType, PageMapping.toRequest(page));
+        return PageMapping.toResult(found, page, InstrumentPersistenceAdapter::toDomain);
     }
 
     /**

@@ -5,6 +5,8 @@ import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.InstrumentQuote;
 import com.cc.brokerage.domain.model.InstrumentType;
 import com.cc.brokerage.domain.model.MarketPrice;
+import com.cc.brokerage.domain.model.PageQuery;
+import com.cc.brokerage.domain.model.PageResult;
 import com.cc.brokerage.domain.port.in.SearchInstrumentsUseCase;
 import com.cc.brokerage.domain.port.out.InstrumentRepository;
 import com.cc.brokerage.domain.port.out.MarketPriceRepository;
@@ -18,11 +20,6 @@ import java.util.Map;
 @Service
 public class SearchInstrumentsService implements SearchInstrumentsUseCase {
 
-    /**
-     * Upper bound on the instruments one search returns, so a one-letter search cannot pull the whole table.
-     */
-    public static final int MAX_RESULTS = 50;
-
     private final InstrumentRepository instruments;
     private final MarketPriceRepository prices;
     private final QuoteCalculator quotes;
@@ -35,15 +32,11 @@ public class SearchInstrumentsService implements SearchInstrumentsUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public List<InstrumentQuote> search(String query) {
+    public PageResult<InstrumentQuote> search(String query, PageQuery page) {
         String text = InputText.search(query);
-        List<Instrument> matches = instruments.search(text, InstrumentType.MONEDA, MAX_RESULTS);
-        if (matches.isEmpty()) {
-            return List.of();
-        }
-        Map<Long, MarketPrice> latest = prices.findLatestByInstrumentIds(matches.stream().map(Instrument::id).toList());
-        return matches.stream()
-                .map(instrument -> quotes.quote(instrument, latest.get(instrument.id())))
-                .toList();
+        PageResult<Instrument> matches = instruments.search(text, InstrumentType.MONEDA, page);
+        List<Long> ids = matches.content().stream().map(Instrument::id).toList();
+        Map<Long, MarketPrice> latest = ids.isEmpty() ? Map.of() : prices.findLatestByInstrumentIds(ids);
+        return matches.map(instrument -> quotes.quote(instrument, latest.get(instrument.id())));
     }
 }

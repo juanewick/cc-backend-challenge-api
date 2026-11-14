@@ -29,8 +29,8 @@
       "request": {
         "method": "GET",
         "header": [],
-        "url": "{{baseUrl}}/v1/instruments?q=banco",
-        "description": "q=banco returns BBAR, BHIP, BMA and BPAT."
+        "url": "{{baseUrl}}/v1/instruments?q=banco&page=0&pageSize=20",
+        "description": "q=banco returns one page with BBAR, BHIP, BMA and BPAT in content, and totalElements 4. page starts at 0; pageSize goes from 1 to 100 and defaults to 20."
       }
     },
     {

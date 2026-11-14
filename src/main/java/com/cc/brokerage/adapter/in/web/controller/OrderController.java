@@ -2,12 +2,13 @@ package com.cc.brokerage.adapter.in.web.controller;
 
 import com.cc.brokerage.adapter.in.web.api.ApiProblemModels;
 import com.cc.brokerage.adapter.in.web.api.MoneyFormatter;
-import com.cc.brokerage.adapter.in.web.api.OrderPageResponse;
 import com.cc.brokerage.adapter.in.web.api.OrderResponse;
+import com.cc.brokerage.adapter.in.web.api.PageResponse;
 import com.cc.brokerage.adapter.in.web.api.PlaceOrderRequest;
 import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.ListedOrder;
 import com.cc.brokerage.domain.model.PageResult;
+import com.cc.brokerage.domain.model.PageSizeLimits;
 import com.cc.brokerage.domain.model.PlaceOrderOutcome;
 import com.cc.brokerage.domain.port.in.CancelOrderUseCase;
 import com.cc.brokerage.domain.port.in.GetOrderUseCase;
@@ -40,45 +41,42 @@ public class OrderController {
     private final ListOrdersUseCase listOrders;
     private final GetOrderUseCase getOrder;
     private final MoneyFormatter money;
+    private final PageSizeLimits pageSizes;
 
     public OrderController(
             PlaceOrderUseCase placeOrder,
             CancelOrderUseCase cancelOrder,
             ListOrdersUseCase listOrders,
             GetOrderUseCase getOrder,
-            MoneyFormatter money
+            MoneyFormatter money,
+            PageSizeLimits pageSizes
     ) {
         this.placeOrder = placeOrder;
         this.cancelOrder = cancelOrder;
         this.listOrders = listOrders;
         this.getOrder = getOrder;
         this.money = money;
+        this.pageSizes = pageSizes;
     }
 
     @GetMapping
     @Operation(summary = "Lists the orders of the account by page, oldest first")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = OrderPageResponse.class))),
+            @ApiResponse(responseCode = "200"),
             @ApiResponse(responseCode = "400", content = @Content(mediaType = "application/problem+json", schema = @Schema(oneOf = {ApiProblemModels.InvalidParameters.class, ApiProblemModels.BadRequest.class}))),
             @ApiResponse(responseCode = "404", content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ApiProblemModels.NotFound.class)))
     })
-    public OrderPageResponse list(
+    public PageResponse<OrderResponse> list(
             @PathVariable String accountNumber,
             @Parameter(description = "Only the orders in this status: NEW, FILLED, REJECTED or CANCELLED.")
             @RequestParam(required = false) String status,
             @Parameter(description = "Page number, from 0. Defaults to 0.")
             @RequestParam(required = false) String page,
-            @Parameter(description = "Orders per page, from 1 to 100. Defaults to 20.")
+            @Parameter(description = "Orders per page, from 1 to the configured maximum (100 unless changed). Defaults to 20.")
             @RequestParam(required = false) String pageSize
     ) {
-        PageResult<ListedOrder> found = listOrders.list(accountNumber, InputText.orderStatus(status), InputText.page(page, pageSize));
-        return new OrderPageResponse(
-                found.content().stream().map(order -> toResponse(order, accountNumber)).toList(),
-                found.page(),
-                found.size(),
-                found.totalElements(),
-                found.totalPages()
-        );
+        PageResult<ListedOrder> found = listOrders.list(accountNumber, InputText.orderStatus(status), InputText.page(page, pageSize, pageSizes.orderList()));
+        return PageResponse.from(found, order -> toResponse(order, accountNumber));
     }
 
     @GetMapping("/{orderId}")

@@ -2,9 +2,10 @@ package com.cc.brokerage.domain.port.out;
 
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.InstrumentType;
+import com.cc.brokerage.domain.model.PageQuery;
+import com.cc.brokerage.domain.model.PageResult;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -20,8 +21,8 @@ public interface InstrumentRepository {
     Map<Long, Instrument> findByIds(Collection<Long> ids);
 
     /**
-     * Instruments whose ticker or name contain the text, ignoring case, ordered by ticker. The text is matched
+     * One page of the instruments whose ticker or name contain the text, ignoring case, ordered by ticker. The text is matched
      * literally: wildcard characters in it have no special meaning.
      */
-    List<Instrument> search(String text, InstrumentType excludedType, int limit);
+    PageResult<Instrument> search(String text, InstrumentType excludedType, PageQuery page);
 }
