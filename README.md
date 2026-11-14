@@ -1,0 +1,167 @@
+# brokerage-api
+
+API HTTP de una cuenta de inversión en pesos. Se consulta el portfolio, se buscan activos por ticker o nombre, y se envían o cancelan órdenes de compra y venta. No hay autenticación. La API usa una base PostgreSQL externa (Neon) que ya tiene las cuentas, precios y órdenes de referencia.
+
+## Arquitectura
+
+Se usó arquitectura hexagonal. El dominio no conoce HTTP ni JPA: los casos de uso entran por puertos y la persistencia sale por otros. Los adapters traducen.
+
+| Paquete (`com.cc.brokerage`) | Contenido |
+|---|---|
+| `domain` | Modelo, reglas y errores. `port.in` son los casos de uso. `port.out` son los repositorios. `service` calcula el portfolio y las cotizaciones. Los errores llevan una categoría (entrada inválida, inexistente, conflicto), no un status HTTP. |
+| `application` | Implementa los casos de uso. |
+| `adapter.in.web.controller` | Rutas HTTP. |
+| `adapter.in.web.api` | Pedidos, respuestas y errores. Traduce cada categoría de error a su status HTTP. |
+| `adapter.out.persistence` | Un adapter por agregado (`User`, `Instrument`, `MarketPrice`, `Order`) implementa cada puerto de salida. |
+| `adapter.out.persistence.entity` | Tablas JPA. |
+| `adapter.out.persistence.repository` | `JpaRepository` y las consultas que agregan en la base. |
+| `config` | Beans de Spring. El prefijo HTTP de los `RestController` y los límites de montos salen de `application.yml`. |
+
+## Funcionalidades
+
+- Consultar el portfolio: valor total, pesos disponibles y posiciones (cantidad, valor de mercado, rendimiento total y diario). `unpricedTickers` avisa qué posiciones no tienen cierre y quedaron fuera del valor total.
+- Buscar activos cuyo ticker o nombre contienen un texto, sin distinguir mayúsculas, por páginas.
+- Enviar órdenes `MARKET` (se ejecutan al cierre vigente) o `LIMIT` (quedan abiertas y reservan pesos o acciones).
+- Rechazar una orden `MARKET` que trae `price` (`BRK-027`, sin grabar la orden).
+- Guardar como `REJECTED` la orden que no entra por fondos o acciones insuficientes.
+- Cancelar una orden abierta `NEW` y devolver la reserva.
+- Listar las órdenes de una cuenta por páginas, opcionalmente filtradas por estado.
+
+## Arranque local con Docker
+
+Hace falta Docker Desktop (o Docker Engine con Compose) en la máquina. No hace falta instalar Java ni PostgreSQL en el host: la aplicación se conecta a la base PostgreSQL de Neon.
+
+Desde esta carpeta, `cc-backend-challenge`:
+
+```bash
+docker compose up --build
+```
+
+No hay nada que configurar: `compose.yaml` ya trae la URL JDBC, el usuario y la contraseña de la base de Neon en `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` y `SPRING_DATASOURCE_PASSWORD`. `application.yml` no tiene valores por defecto, así que fuera de Compose la aplicación arranca solo si se le pasan esas tres variables.
+
+> **Credenciales versionadas a propósito.** Las dejamos en el repositorio para que quien lo baje pueda levantar la API sin configurar nada a mano. En un ambiente productivo no lo haríamos: las credenciales vendrían de un gestor de secretos (o de variables de entorno inyectadas por la plataforma), nunca del código, y se rotarían si quedaran expuestas.
+
+Queda la aplicación en http://localhost:8080. El banner al arrancar es `brokerage-api`.
+
+Ejemplos:
+
+```bash
+curl -s http://localhost:8080/api/brokerage-api/v1/accounts/10001/portfolio
+curl -s "http://localhost:8080/api/brokerage-api/v1/instruments?q=banco&page=0&pageSize=20"
+curl -s "http://localhost:8080/api/brokerage-api/v1/accounts/10001/orders?status=NEW&page=0&pageSize=20"
+```
+
+Hay una colección de ejemplo en [`postman/brokerage.postman_collection.json`](postman/brokerage.postman_collection.json).
+
+Para saber si el proceso y la base responden:
+
+```bash
+curl -s http://localhost:8080/actuator/health
+curl -s http://localhost:8080/actuator/info
+```
+
+Health devuelve `{"groups":["liveness","readiness"],"status":"UP"}`: el estado y los nombres de los grupos de sondas, sin componentes ni detalles de la base. Info identifica la aplicación como `brokerage-api`. El resto de Actuator no está publicado.
+
+El contrato de la API lo genera la aplicación. No hay una copia en `specs`:
+
+- http://localhost:8080/v3/api-docs
+- http://localhost:8080/v3/api-docs.yaml
+- http://localhost:8080/swagger-ui.html
+
+Para bajarla:
+
+```bash
+docker compose down
+```
+
+Los tests en el host (opcional) piden JDK 25 y Maven:
+
+```bash
+mvn verify
+```
+
+## Decisiones de planificación
+
+- Java 25, Spring Boot 4.1.2 y JUnit 6. Los tests usan JUnit Jupiter 6.0.3, la versión que trae ese Spring Boot, junto con Mockito.
+- La base es PostgreSQL 18 en Neon. Los tests usan la imagen `postgres:18.6`: el 2026-11-12 salió el parche 18.7, pero ese tag todavía no estaba en Docker Hub.
+- La integración usa Testcontainers contra PostgreSQL para los escenarios de negocio. El esquema y los datos de referencia salen de `src/test/resources/db/database.sql`, que solo usan los tests: los tests nunca tocan la base de Neon.
+- Los `*IT.java` comparten un PostgreSQL arrancado una sola vez. Un contenedor por clase cambiaba el puerto y el contexto cacheado de Spring seguía apuntando al anterior.
+- El Dockerfile de compilación usa `maven:3.9.11-eclipse-temurin-25` para no instalar Maven aparte en la etapa de build.
+- Antes de cada escenario de integración se recrean las órdenes de referencia con `TRUNCATE`, para que un test no deje saldo a otro.
+- Actuator publica solo health e info, en `/actuator`. Health no muestra componentes. Info repite el nombre `brokerage-api`.
+- El contrato OpenAPI lo genera springdoc-openapi 3.2.0 (`springdoc-openapi-starter-webmvc-ui`).
+
+## Decisiones de diseño
+
+- **Validación en un solo lugar.** El controller solo lee el JSON. Las reglas de una orden nueva (lado, tipo, cantidad o monto, rangos, precio de una LIMIT) están en `PlaceOrderService`. Se quitó `spring-boot-starter-validation`: los límites de montos son configurables y con anotaciones habría quedado una segunda copia de las mismas reglas.
+- **Montos como texto.** `amount` y `price` se leen como `BigDecimal`. Se envían como texto (`"800.00"`), igual que todos los montos que devuelve la API, y también se aceptan como número JSON. Un valor que no es número responde `BRK-020` o `BRK-023`.
+- **Precio en una orden `MARKET`.** Se rechaza con `400` y `BRK-027`, y la orden no se graba. Antes se ignoraba y la orden se ejecutaba al cierre. Quien manda un precio en una orden de mercado probablemente espera un tope, y la orden no lo respeta, así que es mejor avisarle que ejecutar a un precio que no pidió.
+- **Tipo de contenido.** Un alta que no llega como `application/json` responde `415` con `UNSUPPORTED_MEDIA_TYPE`. Un cuerpo ilegible sigue respondiendo `400`.
+- **Campos repetidos.** No se controlan: si el cuerpo repite una propiedad, Jackson se queda con el último valor.
+- **Orden rechazada.** Una orden que no entra por fondos, acciones, precio o cantidad se graba como `REJECTED` y responde `201`, porque la orden existe y se puede consultar. Trae `rejectionReason` y, cuando hay precio, el `amount` que habría costado (por ejemplo `885800000.00` al comprar 1000000 GGAL a `885.80`). Ese monto no se reserva ni se descuenta.
+- **`MoneyMath` es un bean.** Se construye con los límites de `application.yml` y se inyecta. No hay estado estático.
+- **El portfolio se suma en la base.** Una consulta agrupa por instrumento las órdenes `FILLED` y `NEW` del usuario (cantidad neta, capital neto, compras y ventas ejecutadas para el costo promedio, reservas y movimientos de pesos). El servicio no carga el historial de órdenes, ni para el portfolio ni al validar una orden nueva con la cuenta bloqueada. La suma de cantidades es `BIGINT`, así que no desborda aunque cada orden sea `INT`.
+- **Último precio en la base.** `DISTINCT ON (instrumentid)` devuelve una fila por instrumento: la fecha más reciente y, si empatan, el id más alto. Es una consulta de PostgreSQL, la base del challenge.
+- **Búsqueda en la base.** Busca el texto dentro del ticker o del nombre, sin distinguir mayúsculas, con `%` y `_` tomados literalmente. Responde por páginas, ordenada por ticker, con el mismo formato y los mismos parámetros que el listado de órdenes: una búsqueda amplia no recorta resultados sin avisar, porque `totalElements` dice cuántos hay. La página más profunda y el tamaño máximo se configuran aparte con `BROKERAGE_INSTRUMENT_SEARCH_MAX_PAGE` (50 si no se cambia) y `BROKERAGE_INSTRUMENT_SEARCH_MAX_PAGE_SIZE` (100). La página tiene tope porque PostgreSQL recorre todas las filas anteriores a un `OFFSET`: sin límite, `page=99999` obliga a la base a ordenar millones de filas para descartarlas. Quien necesita más de 5100 resultados refina el texto. El total sale de una segunda consulta con el mismo `LIKE`, pero Spring Data la saltea cuando la página no viene llena, porque ahí el total ya se conoce; solo corre con una página llena o una página después del final. Un `q` vacío responde `SEARCH_EMPTY` aunque `page` o `pageSize` también sean inválidos.
+- **Listado de órdenes por páginas.** `GET /orders` valida primero la cuenta y después acepta `status`, `page` (de 0 a `BROKERAGE_ORDER_LIST_MAX_PAGE`, 1000 si no se cambia) y `pageSize` (de 1 a `BROKERAGE_ORDER_LIST_MAX_PAGE_SIZE`, 100 si no se cambia; por defecto 20). Responde `{content, page, pageSize, totalElements, totalPages}`, de la orden más antigua a la más nueva. Antes devolvía un arreglo con todas las órdenes; es un cambio de contrato.
+- **Valores desconocidos en la base.** Un tipo, lado o estado que el servicio no conoce se lee como `UNKNOWN` y se registra un aviso. Las órdenes con lado o estado `UNKNOWN` no cuentan en el portfolio y nunca se vuelven a grabar.
+
+## Decisiones de la especificación
+
+### ¿Cómo se calcula el rendimiento total de cada posición?
+
+- A: (Valor de mercado − capital neto de compras y ventas ejecutadas) / valor absoluto de ese capital
+- **B: (Último cierre − costo promedio de las acciones que siguen en cartera) / costo promedio** ← seleccionada
+- C: (Cierre − cierre anterior) / cierre anterior
+
+**Respuesta: B.** El costo promedio es lo pagado en las compras ejecutadas dividido por las acciones compradas. En una posición corta se usa el precio promedio de las ventas ejecutadas, y la ganancia es que el cierre baje. Sin compras (o sin ventas, en una corta) el rendimiento total sale vacío. El promedio usa todas las compras ejecutadas del activo, también las de una posición que se cerró y se volvió a abrir. No es el rendimiento diario.
+
+Primero se eligió A. Se cambió porque el capital neto se achica con cada venta con ganancia: comprar 10 a 100 y vender 5 a 150 daba 200 % con el cierre en 150, cuando las acciones que quedan ganan 50 %. Si las ventas superaban las compras, el capital neto quedaba negativo y el resultado perdía sentido. Con B, una venta parcial no cambia el rendimiento de lo que queda en cartera. Es la cifra que muestra un broker.
+
+### ¿Las órdenes que siguen abiertas reservan el dinero o las acciones disponibles?
+
+- **A: Las compras abiertas reservan pesos y las ventas abiertas reservan acciones** ← seleccionada
+- B: Solo las órdenes ejecutadas cambian el disponible; las abiertas no reservan
+- C: Las compras abiertas reservan pesos; las ventas abiertas no reservan acciones
+
+**Respuesta: A.** Las compras en estado `NEW` reservan pesos (cantidad por precio) y las ventas en estado `NEW` reservan acciones. El disponible de la cuenta 10001 sigue siendo 627500.00.
+
+### ¿Se pueden registrar ingresos y egresos de pesos nuevos, o el portfolio solo usa los que ya vienen cargados?
+
+- A: Se pueden registrar ingresos y egresos nuevos, y quedan guardados como órdenes
+- **B: No se registran nuevos; el portfolio solo usa los ingresos y egresos ya cargados** ← seleccionada
+- C: Se aceptan por la misma operación de compra o venta, indicando ingreso o egreso de pesos
+
+**Respuesta: B.** El portfolio incorpora los ingresos y egresos ya cargados. No se aceptan ingresos ni egresos nuevos, y un intento no graba una orden.
+
+### ¿Qué activos devuelve una búsqueda?
+
+- **A: Los activos cuyo ticker o nombre contienen el texto, sin distinguir mayúsculas** ← seleccionada
+- B: Solo los activos cuyo ticker o nombre empiezan por ese texto
+- C: También los parecidos aunque el texto no coincida letra por letra
+
+**Respuesta: A.** La búsqueda devuelve, sin duplicados, los activos cuyo ticker o nombre contienen el texto, sin distinguir mayúsculas. No corrige errores de tipeo.
+
+### ¿El rendimiento diario se muestra además del rendimiento total?
+
+- **A: Se muestra en cada posición y en cada activo encontrado, además del rendimiento total de la posición** ← seleccionada
+- B: Se muestra solo en la búsqueda; cada posición informa únicamente el rendimiento total
+- C: No se muestra; el único rendimiento informado es el total
+
+**Respuesta: A.** Cada posición muestra el rendimiento total y el rendimiento diario. Cada activo encontrado muestra el rendimiento diario.
+
+### Requisito de ubicación
+
+El código Java se genera en esta carpeta, `cc-backend-challenge`. Los specs viven en esta misma carpeta, junto al código.
+
+### Requisito de arranque
+
+La aplicación se levanta standalone con Docker y se conecta a la base de Neon, que ya tiene los datos de referencia. Un único arranque alcanza para consultar el portfolio, buscar activos y enviar órdenes, sin instalar la plataforma ni la base por separado.
+
+## Mejoras
+
+Estas mejoras tocan el modelo entregado por Cocos. No se hicieron: no queríamos tocarlo para no salirnos de alcance. Podemos tener una charla técnica para ver estos puntos.
+
+- **Cantidad de la orden.** La columna `orders.size` es `INT`, con tope 2147483647 por orden. La tenencia ya no desborda: se suma en la base como `BIGINT`. Admitir órdenes más grandes cambia el tipo en la tabla y en la entidad, por un entero más ancho.
+- **Fecha y hora de la orden.** La columna `orders.datetime` es `TIMESTAMP` sin zona horaria. La entidad la representa como fecha local y la guarda con la zona del proceso. El mismo instante puede verse distinto según dónde corre el servicio, y la respuesta no trae offset. Corregirlo cambia el tipo en la tabla y en la entidad, por un instante con zona horaria.
+- **Idempotencia del alta.** No la implementamos: no queremos tocar el modelo base. Repetir el pedido crea otra orden. Si no fuera así, guardaríamos el `Idempotency-Key` en la base, con una restricción única por cuenta y clave, en la misma transacción que graba la orden. Así sobrevive a un reinicio, sirve con varias instancias, y el bloqueo de la cuenta que ya toma el alta evita que dos pedidos con la misma clave graben dos órdenes. Una caché sola no alcanza: se pierde al reiniciar, no se comparte entre instancias y no da alta disponibilidad. A lo sumo serviría para responder más rápido una repetición.

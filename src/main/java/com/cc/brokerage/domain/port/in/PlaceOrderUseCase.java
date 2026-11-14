@@ -1,9 +1,9 @@
 package com.cc.brokerage.domain.port.in;
 
-import com.cc.brokerage.domain.model.Order;
 import com.cc.brokerage.domain.model.PlaceOrderCommand;
+import com.cc.brokerage.domain.model.PlaceOrderOutcome;
 
 public interface PlaceOrderUseCase {
 
-    Order place(PlaceOrderCommand command);
+    PlaceOrderOutcome place(PlaceOrderCommand command);
 }

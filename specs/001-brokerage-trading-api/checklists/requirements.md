@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Portfolio, búsqueda y órdenes
+# Specification Quality Checklist: Portfolio, search and orders
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-11-12
@@ -31,8 +31,8 @@
 
 ## Notes
 
-- Validación del 2026-11-12: los ítems pasan. No quedan marcadores de aclaración.
-- Los estados `NEW`, `FILLED`, `REJECTED` y `CANCELLED`, los lados y los tipos de orden son vocabulario del pedido, no una elección de plataforma.
-- El rendimiento total quedó definido como ganancia o pérdida acumulada sobre el capital neto invertido, distinta del rendimiento diario. La cuenta `10001` sirve de oráculo numérico.
-- Las restricciones de construcción del pedido (plataforma, arquitectura, persistencia, pruebas y nota de decisiones) no están en esta especificación. Hay que retomarlas en la planificación.
-- US7 fija el nombre público `brokerage-api`, la ruta base `/api/brokerage-api` y la versión `/v1` en cada operación, como requisito de producto.
+- Validation of 2026-11-12: the items pass. No clarification markers remain.
+- The statuses `NEW`, `FILLED`, `REJECTED` and `CANCELLED`, the sides and the order types are the vocabulary of the request, not a platform choice.
+- The total return is defined on the average cost of the shares held, distinct from the daily return. Since 2026-11-13 it replaces the first definition on net invested capital. Account `10001` serves as the numeric oracle.
+- The build constraints of the request (platform, architecture, persistence, tests and decision notes) are not in this specification. Planning has to pick them up.
+- US7 fixes the public name `brokerage-api`, the base path `/api/brokerage-api` and the version `/v1` on every operation, as a product requirement.

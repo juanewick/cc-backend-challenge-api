@@ -1,117 +1,118 @@
-# Data Model: Portfolio, búsqueda y órdenes
+# Data Model: Portfolio, search and orders
 
-El esquema entregado se carga sin rediseño. Los nombres de columna son los que PostgreSQL guarda: los identificadores sin comillas quedan en minúsculas.
+The delivered schema is loaded without redesign. Column names are the ones PostgreSQL stores: unquoted identifiers end up lower case.
 
 ## User
 
-Tabla `users`.
+Table `users`.
 
-| Campo | Tipo | Reglas |
+| Field | Type | Rules |
 |---|---|---|
-| id | entero, identidad | Lo asigna la base |
-| email | texto | Informativo |
-| accountnumber | texto, hasta 20 | Identificador público. La cuenta de referencia es `10001` |
+| id | integer, identity | Assigned by the database |
+| email | text | Informational |
+| accountnumber | text, up to 20 | Public identifier. The reference account is `10001` |
 
-Relación: una cuenta tiene muchas órdenes.
+Relation: an account has many orders.
 
 ## Instrument
 
-Tabla `instruments`.
+Table `instruments`.
 
-| Campo | Tipo | Reglas |
+| Field | Type | Rules |
 |---|---|---|
-| id | entero, identidad | Lo asigna la base |
-| ticker | texto, hasta 10 | Identificador público del activo. Único en los datos de referencia |
-| name | texto | Participa de la búsqueda |
-| type | texto, hasta 10 | `ACCIONES` o `MONEDA` |
+| id | integer, identity | Assigned by the database |
+| ticker | text, up to 10 | Public identifier of the instrument. Unique in the reference data |
+| name | text | Used by the search |
+| type | text, up to 10 | `ACCIONES` or `MONEDA` |
 
-`ARS` es la única moneda (`type = MONEDA`). No se muestra como posición. No se aceptan órdenes nuevas `CASH_IN` ni `CASH_OUT` sobre ella; las ya guardadas sí cuentan para el efectivo.
+`ARS` is the only currency (`type = MONEDA`). It is not shown as a position. New `CASH_IN` or `CASH_OUT` orders on it are not accepted; the stored ones do count towards cash.
 
 ## MarketPrice
 
-Tabla `marketdata`.
+Table `marketdata`.
 
-| Campo | Tipo | Reglas |
+| Field | Type | Rules |
 |---|---|---|
-| id | entero, identidad | Desempata dos precios del mismo día: gana el id mayor |
-| instrumentid | entero | Referencia al activo |
-| high, low, open | decimal (10,2) | Pueden ser nulos. No se informan |
-| close | decimal (10,2) | Último precio cuando la fila es la vigente |
-| previousclose | decimal (10,2) | Cierre anterior para el rendimiento diario |
-| date | fecha | Día de calendario, no hora |
+| id | integer, identity | Breaks a tie between two prices on the same day: the higher id wins |
+| instrumentid | integer | Reference to the instrument |
+| high, low, open | decimal (10,2) | May be null. Not reported |
+| close | decimal (10,2) | Latest price when the row is the current one |
+| previousclose | decimal (10,2) | Previous close for the daily return |
+| date | date | Calendar day, no time |
 
-El precio vigente de un activo es la fila de mayor `date` y, a igualdad, mayor `id`.
+The current price of an instrument is the row with the highest `date` and, on a tie, the highest `id`.
 
 ## Order
 
-Tabla `orders`.
+Table `orders`.
 
-| Campo | Tipo | Reglas |
+| Field | Type | Rules |
 |---|---|---|
-| id | entero, identidad | Identificador de la cancelación |
-| instrumentid | entero | Activo. En un ingreso o egreso histórico, la moneda `ARS` |
-| userid | entero | Cuenta dueña |
-| size | entero | Acciones, o pesos enteros en un ingreso o egreso histórico. Siempre positivo en una orden nueva |
-| price | decimal (10,2) | Precio unitario en pesos. En mercado es el cierre vigente. En límite es el precio enviado |
-| type | texto | `MARKET` o `LIMIT` |
-| side | texto | `BUY`, `SELL`, `CASH_IN`, `CASH_OUT` |
-| status | texto | `NEW`, `FILLED`, `REJECTED`, `CANCELLED` |
-| datetime | timestamp | Momento de registro de la orden |
+| id | integer, identity | Identifier used to cancel |
+| instrumentid | integer | Instrument. On a historical deposit or withdrawal, the `ARS` currency |
+| userid | integer | Owning account |
+| size | integer | Shares, or whole pesos on a historical deposit or withdrawal. Always positive on a new order |
+| price | decimal (10,2) | Unit price in pesos. On market it is the current close. On limit it is the price sent |
+| type | text | `MARKET` or `LIMIT` |
+| side | text | `BUY`, `SELL`, `CASH_IN`, `CASH_OUT` |
+| status | text | `NEW`, `FILLED`, `REJECTED`, `CANCELLED` |
+| datetime | timestamp | When the order was recorded |
 
-### Transiciones
+### Transitions
 
 ```text
-solicitud MARKET válida        -> FILLED
-solicitud LIMIT válida         -> NEW
-compra sin pesos, venta sin
-acciones, monto que no compra
-una acción, mercado sin cierre -> REJECTED
-NEW + cancelación del titular  -> CANCELLED
+valid MARKET request             -> FILLED
+valid LIMIT request              -> NEW
+buy without pesos, sell without
+shares, amount that buys no
+share, market without a close    -> REJECTED
+NEW + cancellation by the owner  -> CANCELLED
 ```
 
-No hay otras transiciones. `FILLED`, `REJECTED` y `CANCELLED` no cambian. Una orden límite no pasa a `FILLED` por el paso del tiempo ni por el precio vigente.
+There are no other transitions. `FILLED`, `REJECTED` and `CANCELLED` do not change. A limit order does not become `FILLED` with time or with the current price.
 
-Una solicitud inválida no inserta fila: cuenta inexistente, ticker inexistente, lado `CASH_IN` o `CASH_OUT`, cantidad y monto juntos o ninguno, cantidad no entera positiva, monto no positivo, límite sin precio o con precio no positivo.
+An invalid request inserts no row: missing account, missing ticker, side `CASH_IN` or `CASH_OUT`, size and amount together or neither, a size that is not a positive integer, a non-positive amount, a limit without a price or with a non-positive price, a market order with a price.
 
-### Efecto sobre la cuenta
+### Effect on the account
 
-Solo participan las filas ya guardadas.
+Only rows already stored count.
 
-- Efectivo liquidado = suma de `size * price` de `CASH_IN FILLED` y de `SELL FILLED`, menos la misma suma de `CASH_OUT FILLED` y de `BUY FILLED`.
-- Reserva de pesos = suma de `size * price` de `BUY NEW`.
-- Pesos disponibles = efectivo liquidado − reserva de pesos.
-- Cantidad neta = suma de `size` de `BUY FILLED` − suma de `size` de `SELL FILLED`, por activo, sin incluir `MONEDA`.
-- Acciones disponibles = cantidad neta − suma de `size` de `SELL NEW` de ese activo.
-- Capital neto = suma de `size * price` de `BUY FILLED` − suma de `size * price` de `SELL FILLED`.
-- Valor de mercado = cantidad neta × cierre vigente.
-- Rendimiento total, en porcentaje = `(valor de mercado − capital neto) / |capital neto| × 100`, con dos decimales, half-up. Si el capital neto es 0, el rendimiento total es nulo.
-- Rendimiento diario, en porcentaje = `(cierre − cierre anterior) / cierre anterior × 100`, con la misma escala. Si el cierre anterior es nulo o 0, es nulo.
-- Valor total = efectivo liquidado + valor de mercado de las posiciones que tienen cierre. Una posición sin cierre se lista con cantidad y con valores nulos, y no suma al total.
-- Se omiten las posiciones de cantidad neta 0 y la moneda. El resto se ordena por ticker. La cantidad negativa se conserva.
+- Settled cash = sum of `size * price` of `CASH_IN FILLED` and `SELL FILLED`, minus the same sum of `CASH_OUT FILLED` and `BUY FILLED`.
+- Peso reservation = sum of `size * price` of `BUY NEW`.
+- Available pesos = settled cash − peso reservation.
+- Net quantity = sum of `size` of `BUY FILLED` − sum of `size` of `SELL FILLED`, per instrument, excluding `MONEDA`.
+- Available shares = net quantity − sum of `size` of `SELL NEW` on that instrument.
+- Average cost = sum of `size * price` of `BUY FILLED` / sum of `size` of `BUY FILLED`.
+- Average sale price = sum of `size * price` of `SELL FILLED` / sum of `size` of `SELL FILLED`.
+- Market value = net quantity × current close.
+- Total return, as a percentage, with two decimals, half-up: if the net quantity is positive, `(close − average cost) / average cost × 100`; if it is negative, `(average sale price − close) / average sale price × 100`. Without buys (or without sells, on a short) it is null.
+- Daily return, as a percentage = `(close − previous close) / previous close × 100`, with the same scale. If the previous close is null or 0, it is null.
+- Total value = settled cash + market value of the positions that have a close. A position without a close is listed with its quantity and null values, is left out of the total and its ticker goes into `unpricedTickers`.
+- Positions with net quantity 0 and the currency are omitted. The rest are sorted by ticker. A negative quantity is kept.
 
-Los importes de una orden nueva de compra o venta usan el precio aplicable: cierre vigente en `MARKET`, precio enviado en `LIMIT`. Si el pedido trae un monto, `size = floor(monto / precio aplicable)`. El efectivo que mueve es `size * precio`, no el monto original.
+The amounts of a new buy or sell use the applicable price: the current close on `MARKET`, the price sent on `LIMIT`. If the request carries an amount, `size = floor(amount / applicable price)`. The cash moved is `size * price`, not the original amount.
 
 ## Portfolio
 
-No es una tabla. Es el resultado de calcular `Order` + `MarketPrice` para una cuenta.
+Not a table. It is the result of computing `Order` + `MarketPrice` for an account.
 
-| Campo | Reglas |
+| Field | Rules |
 |---|---|
-| accountNumber | El consultado |
-| totalValue | Valor total, dos decimales |
-| availableCash | Pesos disponibles, dos decimales |
-| positions | Lista ordenada por ticker |
+| accountNumber | The one queried |
+| totalValue | Total value, two decimals |
+| availableCash | Available pesos, two decimals |
+| positions | List sorted by ticker |
 
-Cada posición: ticker, name, quantity, marketValue, totalReturnPercent, dailyReturnPercent.
+Each position: ticker, name, quantity, marketValue, totalReturnPercent, dailyReturnPercent.
 
 ## InstrumentQuote
 
-No es una tabla. Es el resultado de búsqueda.
+Not a table. It is the search result.
 
-| Campo | Reglas |
+| Field | Rules |
 |---|---|
-| ticker, name, type | Del activo |
-| lastPrice | Cierre vigente, o nulo |
-| dailyReturnPercent | Según la fórmula, o nulo |
+| ticker, name, type | From the instrument |
+| lastPrice | Current close, or null |
+| dailyReturnPercent | Per the formula, or null |
 
-La búsqueda exige un texto no vacío. Coincide si el ticker o el nombre contienen el texto, sin distinguir mayúsculas. No corrige tipeos. Sin duplicados. Orden por ticker.
+The search requires a non-empty text. It matches if the ticker or the name contains the text, case-insensitively. It does not correct typos. No duplicates. Sorted by ticker.

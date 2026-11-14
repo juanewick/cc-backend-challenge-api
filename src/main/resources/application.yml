@@ -1,6 +1,13 @@
 spring:
   application:
     name: brokerage-api
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+      fail-on-trailing-tokens: true
+    datatype:
+      enum:
+        fail-on-numbers-for-enums: true
   jpa:
     open-in-view: false
     hibernate:
@@ -10,9 +17,42 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         globally_quoted_identifiers: true
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/brokerage}
-    username: ${SPRING_DATASOURCE_USERNAME:brokerage}
-    password: ${SPRING_DATASOURCE_PASSWORD:brokerage}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
 server:
   port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+
+brokerage:
+  api:
+    base-path: /api/brokerage-api
+  money:
+    scale: ${BROKERAGE_MONEY_SCALE:2}
+    min-amount: ${BROKERAGE_MONEY_MIN_AMOUNT:0}
+    max-amount: ${BROKERAGE_MONEY_MAX_AMOUNT:99999999.99}
+    min-shares: ${BROKERAGE_MONEY_MIN_SHARES:1}
+    max-shares: ${BROKERAGE_MONEY_MAX_SHARES:2147483647}
+  paging:
+    instrument-search:
+      max-page: ${BROKERAGE_INSTRUMENT_SEARCH_MAX_PAGE:50}
+      max-size: ${BROKERAGE_INSTRUMENT_SEARCH_MAX_PAGE_SIZE:100}
+    order-list:
+      max-page: ${BROKERAGE_ORDER_LIST_MAX_PAGE:1000}
+      max-size: ${BROKERAGE_ORDER_LIST_MAX_PAGE_SIZE:100}

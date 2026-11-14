@@ -1,40 +1,40 @@
-# Quickstart: Portfolio, búsqueda y órdenes
+# Quickstart: Portfolio, search and orders
 
-Validación manual del comportamiento descrito en [spec.md](spec.md). El contrato está en [contracts/http-api.yaml](contracts/http-api.yaml) y las fórmulas en [data-model.md](data-model.md).
+Manual validation of the behaviour described in [spec.md](spec.md). The contract is the OpenAPI the application generates at `http://localhost:8080/v3/api-docs` (YAML at `/v3/api-docs.yaml`, reading at `/swagger-ui.html`). The formulas are in [data-model.md](data-model.md).
 
-## Prerrequisitos
+## Prerequisites
 
-- Docker, con Compose.
-- JDK 25 y Maven 3.6.3 o posterior, solo para correr los tests en el host.
+- Docker, with Compose.
+- JDK 25 and Maven 3.6.3 or later, only to run the tests on the host.
 
-## Arranque
+## Start
 
-Desde `cc-backend-challenge`:
+From `cc-backend-challenge`:
 
 ```bash
 docker compose up --build
 ```
 
-Quedan la aplicación en `http://localhost:8080` y PostgreSQL con el SQL de referencia. No hace falta instalar Java ni la base en el host para esta corrida.
+The application is at `http://localhost:8080` and PostgreSQL has the reference SQL. There is no need to install Java or the database on the host for this run.
 
-## Consultar el portfolio de referencia
+## Get the reference portfolio
 
 ```bash
 curl -s http://localhost:8080/api/brokerage-api/v1/accounts/10001/portfolio
 ```
 
-Resultado esperado: `availableCash` `627500.00`, `totalValue` `889756.00`, y las posiciones `BMA` (−10), `METR` (500) y `PAMP` (40) con los valores de la historia 1 de la especificación.
+Expected result: `availableCash` `627500.00`, `totalValue` `889756.00`, and the positions `BMA` (−10), `METR` (500) and `PAMP` (40) with the values of story 1 of the specification.
 
-## Buscar
+## Search
 
 ```bash
 curl -s "http://localhost:8080/api/brokerage-api/v1/instruments?q=banco"
 curl -s "http://localhost:8080/api/brokerage-api/v1/instruments?q=pamp"
 ```
 
-`banco` devuelve `BBAR`, `BHIP`, `BMA` y `BPAT`, en ese orden. `pamp` devuelve una sola vez `PAMP`, con último precio `925.85` y rendimiento diario `0.44`.
+`banco` returns `BBAR`, `BHIP`, `BMA` and `BPAT`, in that order. `pamp` returns `PAMP` once, with latest price `925.85` and daily return `0.44`.
 
-## Enviar y cancelar
+## Place and cancel
 
 ```bash
 curl -s -X POST http://localhost:8080/api/brokerage-api/v1/accounts/10001/orders \
@@ -42,15 +42,24 @@ curl -s -X POST http://localhost:8080/api/brokerage-api/v1/accounts/10001/orders
   -d '{"ticker":"GGAL","side":"BUY","type":"MARKET","size":1}'
 ```
 
-La respuesta queda `FILLED`, con precio `885.80` y cantidad `1`.
+The response is `FILLED`, with price `885.80` and size `1`.
 
-En una base recién inicializada, la compra límite abierta de 50 `LOMA` a `710.00` tiene id `5`:
+On a freshly initialised database, the open limit buy of 50 `LOMA` at `710.00` has id `5`:
 
 ```bash
 curl -s -X POST http://localhost:8080/api/brokerage-api/v1/accounts/10001/orders/5/cancellation
 ```
 
-El estado pasa a `CANCELLED` y el disponible sube `35500.00`.
+The status becomes `CANCELLED` and the available balance grows by `35500.00`.
+
+## Health and identity
+
+```bash
+curl -s http://localhost:8080/actuator/health
+curl -s http://localhost:8080/actuator/info
+```
+
+Health answers `{"status":"UP"}` when the application and the database answer, without components. Info includes `app.name` equal to `brokerage-api`. `/actuator/env` and the rest of Actuator do not answer.
 
 ## Tests
 
@@ -58,4 +67,4 @@ El estado pasa a `CANCELLED` y el disponible sube `35500.00`.
 mvn verify
 ```
 
-`*Test.java` cubre el cálculo y los servicios con Mockito. `*IT.java` levanta PostgreSQL y LocalStack con Testcontainers y recorre los escenarios felices y de error del contrato. No dependen del `docker compose` que ya esté corriendo.
+`*Test.java` covers the calculation and the services with Mockito. `*IT.java` starts PostgreSQL with Testcontainers and walks through the happy and error scenarios. `ActuatorIT` runs first and checks health, info and that the rest of Actuator is not published. They do not depend on a `docker compose` that is already running.

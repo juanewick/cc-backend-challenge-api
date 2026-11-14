@@ -1,75 +1,71 @@
 package com.cc.brokerage.domain.service;
 
 import com.cc.brokerage.domain.model.Instrument;
+import com.cc.brokerage.domain.model.InstrumentHoldings;
 import com.cc.brokerage.domain.model.InstrumentType;
 import com.cc.brokerage.domain.model.MarketPrice;
 import com.cc.brokerage.domain.model.MoneyMath;
-import com.cc.brokerage.domain.model.Order;
-import com.cc.brokerage.domain.model.OrderSide;
-import com.cc.brokerage.domain.model.OrderStatus;
 import com.cc.brokerage.domain.model.Portfolio;
 import com.cc.brokerage.domain.model.Position;
 import com.cc.brokerage.domain.model.User;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Turns the per-instrument totals of an account into cash and positions. The totals themselves are added up
+ * by the order repository, so this never walks the order history.
+ */
 public class PortfolioCalculator {
 
-    public Holdings summarize(List<Order> orders) {
-        BigDecimal cash = BigDecimal.ZERO.setScale(MoneyMath.SCALE, RoundingMode.HALF_UP);
-        BigDecimal reservedCash = BigDecimal.ZERO.setScale(MoneyMath.SCALE, RoundingMode.HALF_UP);
-        Map<Long, MutablePosition> positions = new HashMap<>();
+    private final MoneyMath money;
 
-        for (Order order : orders) {
-            BigDecimal notional = order.notional();
-            if (order.status() == OrderStatus.FILLED) {
-                switch (order.side()) {
-                    case CASH_IN -> cash = cash.add(notional);
-                    case CASH_OUT -> cash = cash.subtract(notional);
-                    case BUY -> {
-                        cash = cash.subtract(notional);
-                        positions.computeIfAbsent(order.instrumentId(), id -> new MutablePosition()).buy(order.size(), notional);
-                    }
-                    case SELL -> {
-                        cash = cash.add(notional);
-                        positions.computeIfAbsent(order.instrumentId(), id -> new MutablePosition()).sell(order.size(), notional);
-                    }
-                }
-            } else if (order.status() == OrderStatus.NEW) {
-                if (order.side() == OrderSide.BUY) {
-                    reservedCash = reservedCash.add(notional);
-                } else if (order.side() == OrderSide.SELL) {
-                    positions.computeIfAbsent(order.instrumentId(), id -> new MutablePosition()).reserveSell(order.size());
-                }
+    public PortfolioCalculator(MoneyMath money) {
+        this.money = money;
+    }
+
+    public Holdings summarize(List<InstrumentHoldings> rows) {
+        BigDecimal cashFlow = money.zero();
+        BigDecimal invested = money.zero();
+        BigDecimal reservedCash = money.zero();
+        Map<Long, InstrumentHoldings> positions = new HashMap<>();
+
+        for (InstrumentHoldings row : rows) {
+            cashFlow = cashFlow.add(row.cashFlow());
+            invested = invested.add(row.netInvested());
+            reservedCash = reservedCash.add(row.reservedBuyAmount());
+            if (row.instrumentId() != null) {
+                positions.put(row.instrumentId(), row);
             }
         }
 
-        return new Holdings(cash, reservedCash, cash.subtract(reservedCash), Map.copyOf(positions));
+        BigDecimal settledCash = money.round(cashFlow.subtract(invested));
+        reservedCash = money.round(reservedCash);
+        return new Holdings(settledCash, reservedCash, settledCash.subtract(reservedCash), Map.copyOf(positions));
     }
 
     public Portfolio toPortfolio(
             User user,
-            List<Order> orders,
+            List<InstrumentHoldings> rows,
             Map<Long, Instrument> instruments,
             Map<Long, MarketPrice> latestPrices
     ) {
-        Holdings holdings = summarize(orders);
+        Holdings holdings = summarize(rows);
         List<Position> positions = new ArrayList<>();
-        BigDecimal marketTotal = BigDecimal.ZERO.setScale(MoneyMath.SCALE, RoundingMode.HALF_UP);
+        BigDecimal marketTotal = money.zero();
 
-        for (Map.Entry<Long, MutablePosition> entry : holdings.positions().entrySet()) {
+        for (Map.Entry<Long, InstrumentHoldings> entry : holdings.positions().entrySet()) {
             Instrument instrument = instruments.get(entry.getKey());
             if (instrument == null || instrument.type() == InstrumentType.MONEDA) {
                 continue;
             }
-            MutablePosition snapshot = entry.getValue();
-            if (snapshot.netQuantity == 0) {
+            InstrumentHoldings snapshot = entry.getValue();
+            if (snapshot.netQuantity() == 0) {
                 continue;
             }
             MarketPrice price = latestPrices.get(entry.getKey());
@@ -77,17 +73,15 @@ public class PortfolioCalculator {
             BigDecimal totalReturn = null;
             BigDecimal dailyReturn = null;
             if (price != null && price.close() != null) {
-                marketValue = MoneyMath.notional(snapshot.netQuantity, price.close());
+                marketValue = money.notional(snapshot.netQuantity(), price.close());
                 marketTotal = marketTotal.add(marketValue);
-                if (snapshot.netInvested.compareTo(BigDecimal.ZERO) != 0) {
-                    totalReturn = MoneyMath.percent(marketValue.subtract(snapshot.netInvested), snapshot.netInvested.abs());
-                }
-                dailyReturn = MoneyMath.percent(price.close().subtract(nullToZero(price.previousClose())), price.previousClose());
+                totalReturn = totalReturn(snapshot, price.close());
+                dailyReturn = money.percent(price.close().subtract(nullToZero(price.previousClose())), price.previousClose());
             }
             positions.add(new Position(
                     instrument.ticker(),
                     instrument.name(),
-                    snapshot.netQuantity,
+                    snapshot.netQuantity(),
                     marketValue,
                     totalReturn,
                     dailyReturn
@@ -95,20 +89,48 @@ public class PortfolioCalculator {
         }
 
         positions.sort(Comparator.comparing(Position::ticker));
+        List<String> unpricedTickers = positions.stream()
+                .filter(position -> position.marketValue() == null)
+                .map(Position::ticker)
+                .toList();
         return new Portfolio(
                 user.accountNumber(),
                 holdings.settledCash().add(marketTotal),
                 holdings.availableCash(),
-                List.copyOf(positions)
+                holdings.settledCash(),
+                holdings.reservedCash(),
+                List.copyOf(positions),
+                unpricedTickers
         );
     }
 
-    public int availableShares(Holdings holdings, Long instrumentId) {
-        MutablePosition position = holdings.positions().get(instrumentId);
+    public long availableShares(Holdings holdings, Long instrumentId) {
+        InstrumentHoldings position = holdings.positions().get(instrumentId);
         if (position == null) {
             return 0;
         }
-        return position.netQuantity - position.reservedSellQuantity;
+        return position.netQuantity() - position.reservedSellQuantity();
+    }
+
+    /**
+     * Return of the shares still held against their average cost. A long position compares the close with the
+     * average price of every FILLED buy; a short one compares the average price of every FILLED sell with the
+     * close, so a falling price is a gain. Without such orders there is no cost and the return is null.
+     */
+    private BigDecimal totalReturn(InstrumentHoldings snapshot, BigDecimal close) {
+        if (snapshot.netQuantity() > 0) {
+            BigDecimal averageCost = average(snapshot.boughtAmount(), snapshot.boughtQuantity());
+            return averageCost == null ? null : money.percent(close.subtract(averageCost), averageCost);
+        }
+        BigDecimal averageSale = average(snapshot.soldAmount(), snapshot.soldQuantity());
+        return averageSale == null ? null : money.percent(averageSale.subtract(close), averageSale);
+    }
+
+    private static BigDecimal average(BigDecimal amount, long quantity) {
+        if (quantity <= 0 || amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+        return amount.divide(BigDecimal.valueOf(quantity), MathContext.DECIMAL128);
     }
 
     private static BigDecimal nullToZero(BigDecimal value) {
@@ -119,35 +141,7 @@ public class PortfolioCalculator {
             BigDecimal settledCash,
             BigDecimal reservedCash,
             BigDecimal availableCash,
-            Map<Long, MutablePosition> positions
+            Map<Long, InstrumentHoldings> positions
     ) {
-    }
-
-    public static final class MutablePosition {
-        private int netQuantity;
-        private int reservedSellQuantity;
-        private BigDecimal netInvested = BigDecimal.ZERO.setScale(MoneyMath.SCALE, RoundingMode.HALF_UP);
-
-        private void buy(int size, BigDecimal notional) {
-            netQuantity += size;
-            netInvested = netInvested.add(notional);
-        }
-
-        private void sell(int size, BigDecimal notional) {
-            netQuantity -= size;
-            netInvested = netInvested.subtract(notional);
-        }
-
-        private void reserveSell(int size) {
-            reservedSellQuantity += size;
-        }
-
-        public int netQuantity() {
-            return netQuantity;
-        }
-
-        public BigDecimal netInvested() {
-            return netInvested;
-        }
     }
 }

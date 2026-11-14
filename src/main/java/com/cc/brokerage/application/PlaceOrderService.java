@@ -1,7 +1,8 @@
 package com.cc.brokerage.application;
 
-import com.cc.brokerage.domain.InstrumentNotFoundException;
-import com.cc.brokerage.domain.InvalidRequestException;
+import com.cc.brokerage.domain.DomainErrorCodes;
+import com.cc.brokerage.domain.DomainException;
+import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.InstrumentType;
 import com.cc.brokerage.domain.model.MarketPrice;
@@ -11,6 +12,8 @@ import com.cc.brokerage.domain.model.OrderSide;
 import com.cc.brokerage.domain.model.OrderStatus;
 import com.cc.brokerage.domain.model.OrderType;
 import com.cc.brokerage.domain.model.PlaceOrderCommand;
+import com.cc.brokerage.domain.model.PlaceOrderOutcome;
+import com.cc.brokerage.domain.model.RejectionReason;
 import com.cc.brokerage.domain.model.User;
 import com.cc.brokerage.domain.port.in.PlaceOrderUseCase;
 import com.cc.brokerage.domain.port.out.InstrumentRepository;
@@ -22,8 +25,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Service
 public class PlaceOrderService implements PlaceOrderUseCase {
@@ -33,7 +36,7 @@ public class PlaceOrderService implements PlaceOrderUseCase {
     private final MarketPriceRepository prices;
     private final OrderRepository orders;
     private final PortfolioCalculator calculator;
-    private final Clock clock;
+    private final MoneyMath money;
 
     public PlaceOrderService(
             UserRepository users,
@@ -41,76 +44,96 @@ public class PlaceOrderService implements PlaceOrderUseCase {
             MarketPriceRepository prices,
             OrderRepository orders,
             PortfolioCalculator calculator,
-            Clock clock
+            MoneyMath money
     ) {
         this.users = users;
         this.instruments = instruments;
         this.prices = prices;
         this.orders = orders;
         this.calculator = calculator;
-        this.clock = clock;
+        this.money = money;
     }
 
     @Override
     @Transactional
-    public Order place(PlaceOrderCommand command) {
-        validateShape(command);
-        User user = users.lockByAccountNumber(command.accountNumber());
-        Instrument instrument = instruments.findByTicker(command.ticker())
-                .orElseThrow(() -> new InstrumentNotFoundException(command.ticker()));
-        if (instrument.type() == InstrumentType.MONEDA
-                || command.side() == OrderSide.CASH_IN
-                || command.side() == OrderSide.CASH_OUT) {
-            throw new InvalidRequestException("No se registran ingresos ni egresos de pesos nuevos");
+    public PlaceOrderOutcome place(PlaceOrderCommand command) {
+        String accountNumber = InputText.account(command.accountNumber());
+        String ticker = InputText.ticker(command.ticker());
+        validate(command);
+        User user = users.lockByAccountNumber(accountNumber);
+        Instrument instrument = instruments.findByTicker(ticker)
+                .orElseThrow(() -> new DomainException(DomainErrorCodes.INSTRUMENT_NOT_FOUND));
+        if (instrument.type() == InstrumentType.MONEDA) {
+            throw new DomainException(DomainErrorCodes.CASH_MOVEMENT);
         }
 
         BigDecimal price = resolvePrice(command, instrument);
         int size = resolveSize(command, price);
-        OrderStatus status = decideStatus(command, user, instrument, size, price);
+        Decision decision = decideStatus(command, user, instrument, size, price);
         Order order = new Order(
                 null,
                 instrument.id(),
                 user.id(),
                 size,
-                MoneyMath.scaled(price),
+                money.scaled(price),
                 command.type(),
                 command.side(),
-                status,
-                LocalDateTime.now(clock)
+                decision.status(),
+                LocalDateTime.now()
         );
-        return orders.save(order);
+        BigDecimal amount = price == null ? null : money.notional(size, price);
+        return new PlaceOrderOutcome(orders.save(order), instrument.ticker(), amount, decision.reason());
     }
 
-    private void validateShape(PlaceOrderCommand command) {
+    /**
+     * Every rule about the shape of an order request lives here, so the HTTP adapter only has to read JSON.
+     */
+    private void validate(PlaceOrderCommand command) {
         if (command.side() != OrderSide.BUY && command.side() != OrderSide.SELL) {
-            throw new InvalidRequestException("El lado debe ser BUY o SELL");
+            throw new DomainException(DomainErrorCodes.INVALID_SIDE);
         }
-        if (command.type() == null) {
-            throw new InvalidRequestException("El tipo de orden es obligatorio");
+        if (command.type() != OrderType.MARKET && command.type() != OrderType.LIMIT) {
+            throw new DomainException(DomainErrorCodes.INVALID_TYPE);
         }
         boolean hasSize = command.size() != null;
         boolean hasAmount = command.amount() != null;
         if (hasSize == hasAmount) {
-            throw new InvalidRequestException("Debe indicarse exactamente una forma de cantidad: acciones o monto");
+            throw new DomainException(DomainErrorCodes.EXCLUSIVE_QUANTITY);
         }
-        if (hasSize && command.size() < 1) {
-            throw new InvalidRequestException("La cantidad debe ser un entero positivo");
+        if (hasSize && (command.size() < money.minShares() || command.size() > money.maxShares())) {
+            throw new DomainException(DomainErrorCodes.INVALID_SIZE, money.minShares(), money.maxShares());
         }
-        if (hasAmount && command.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidRequestException("El monto debe ser mayor que cero");
+        if (hasAmount) {
+            acceptMoney(command.amount(), DomainErrorCodes.AMOUNT_NOT_POSITIVE, DomainErrorCodes.AMOUNT_ABOVE_MAXIMUM);
         }
-        if (command.type() == OrderType.LIMIT && (command.price() == null || command.price().compareTo(BigDecimal.ZERO) <= 0)) {
-            throw new InvalidRequestException("El precio es obligatorio y debe ser mayor que cero");
+        if (command.type() == OrderType.MARKET && command.price() != null) {
+            // A client sending a price on a MARKET order most likely expects a cap; filling at the close would surprise it.
+            throw new DomainException(DomainErrorCodes.PRICE_NOT_ALLOWED);
+        }
+        if (command.type() == OrderType.LIMIT) {
+            if (command.price() == null) {
+                throw new DomainException(DomainErrorCodes.PRICE_NOT_POSITIVE);
+            }
+            acceptMoney(command.price(), DomainErrorCodes.PRICE_NOT_POSITIVE, DomainErrorCodes.PRICE_ABOVE_MAXIMUM);
+        }
+    }
+
+    private void acceptMoney(BigDecimal value, DomainErrorCodes notPositive, DomainErrorCodes aboveMaximum) {
+        BigDecimal rounded = money.round(value);
+        if (rounded.compareTo(money.minAmount()) <= 0) {
+            throw new DomainException(notPositive);
+        }
+        if (rounded.compareTo(money.maxAmount()) > 0) {
+            throw new DomainException(aboveMaximum);
         }
     }
 
     private BigDecimal resolvePrice(PlaceOrderCommand command, Instrument instrument) {
         if (command.type() == OrderType.LIMIT) {
-            return command.price();
+            return money.round(command.price());
         }
-        return prices.findLatestByInstrumentId(instrument.id())
-                .map(MarketPrice::close)
-                .orElse(null);
+        MarketPrice latest = prices.findLatestByInstrumentIds(Set.of(instrument.id())).get(instrument.id());
+        return latest == null ? null : latest.close();
     }
 
     private int resolveSize(PlaceOrderCommand command, BigDecimal price) {
@@ -120,24 +143,28 @@ public class PlaceOrderService implements PlaceOrderUseCase {
         if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
             return 0;
         }
-        return MoneyMath.sharesFromAmount(command.amount(), price);
+        return money.sharesFromAmount(money.round(command.amount()), price);
     }
 
-    private OrderStatus decideStatus(PlaceOrderCommand command, User user, Instrument instrument, int size, BigDecimal price) {
+    private Decision decideStatus(PlaceOrderCommand command, User user, Instrument instrument, int size, BigDecimal price) {
         if (command.type() == OrderType.MARKET && price == null) {
-            return OrderStatus.REJECTED;
+            return new Decision(OrderStatus.REJECTED, RejectionReason.NO_MARKET_PRICE);
         }
         if (size < 1) {
-            return OrderStatus.REJECTED;
+            return new Decision(OrderStatus.REJECTED, RejectionReason.ZERO_SHARES);
         }
-        var holdings = calculator.summarize(orders.findByUserId(user.id()));
-        BigDecimal cost = MoneyMath.notional(size, price);
+        var holdings = calculator.summarize(orders.summarizeHoldings(user.id()));
+        BigDecimal cost = money.notional(size, price);
         if (command.side() == OrderSide.BUY && cost.compareTo(holdings.availableCash()) > 0) {
-            return OrderStatus.REJECTED;
+            return new Decision(OrderStatus.REJECTED, RejectionReason.INSUFFICIENT_CASH);
         }
         if (command.side() == OrderSide.SELL && size > calculator.availableShares(holdings, instrument.id())) {
-            return OrderStatus.REJECTED;
+            return new Decision(OrderStatus.REJECTED, RejectionReason.INSUFFICIENT_SHARES);
         }
-        return command.type() == OrderType.MARKET ? OrderStatus.FILLED : OrderStatus.NEW;
+        OrderStatus status = command.type() == OrderType.MARKET ? OrderStatus.FILLED : OrderStatus.NEW;
+        return new Decision(status, null);
+    }
+
+    private record Decision(OrderStatus status, RejectionReason reason) {
     }
 }

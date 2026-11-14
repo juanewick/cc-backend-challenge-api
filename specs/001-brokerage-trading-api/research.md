@@ -1,65 +1,73 @@
-# Research: Portfolio, búsqueda y órdenes
+# Research: Portfolio, search and orders
 
-## Spring Boot 4.1 y Java 25
+## Spring Boot 4.1 and Java 25
 
-**Decision**: Java 25 y Spring Boot 4.1.2, con Maven y el parent `spring-boot-starter-parent`.
+**Decision**: Java 25 and Spring Boot 4.1.2, with Maven and the `spring-boot-starter-parent` parent.
 
-**Rationale**: El pedido fija Java 25 (LTS) y Spring Boot 4.1.x. La línea 4.1 publicada al 2026-11-12 es 4.1.2 (22 de octubre de 2026). Pide Java 17 como mínimo y es compatible con Java 25. El starter web de esta generación es `spring-boot-starter-webmvc`; el de pruebas de MVC es `spring-boot-starter-webmvc-test`.
+**Rationale**: The request fixes Java 25 (LTS) and Spring Boot 4.1.x. The 4.1 line published as of 2026-11-12 is 4.1.2 (October 22, 2026). It needs Java 17 at least and supports Java 25. The web starter of this generation is `spring-boot-starter-webmvc`; the MVC test one is `spring-boot-starter-webmvc-test`.
 
-**Alternatives considered**: Spring Boot 4.1.0 y 4.1.1 quedan atrás en parches. Spring Boot 4.2 todavía está en release candidate. Gradle también sirve; Maven es el default del parent y alcanza para un solo módulo.
+**Alternatives considered**: Spring Boot 4.1.0 and 4.1.1 are behind on patches. Spring Boot 4.2 is still a release candidate. Gradle also works; Maven is the parent's default and is enough for a single module.
 
-## JUnit que trae Spring Boot 4.1
+## The JUnit that Spring Boot 4.1 brings
 
-**Decision**: Usar JUnit Jupiter 6.0.3 y Mockito 5.23.0, las versiones que administra `spring-boot-starter-test` 4.1.2. Los tests de servicios usan `@ExtendWith(MockitoExtension.class)` y mocks de los puertos. Los de cálculo puro no necesitan mocks.
+**Decision**: Use JUnit Jupiter 6.0.3 and Mockito 5.23.0, the versions `spring-boot-starter-test` 4.1.2 manages. Service tests use `@ExtendWith(MockitoExtension.class)` and mocks of the ports. Pure calculation tests need no mocks.
 
-**Rationale**: El pedido nombra JUnit 5. Spring Boot 4.1 ya no gestiona Jupiter 5.x: el starter de test trae `junit-jupiter` 6.0.3, que es la línea siguiente de la misma API (`@Test`, `@BeforeEach`, aserciones y `MockitoExtension`). Fijar Jupiter 5 chocaría con el BOM y con el soporte de test de Boot 4.1.
+**Rationale**: The request names JUnit 5. Spring Boot 4.1 no longer manages Jupiter 5.x: the test starter brings `junit-jupiter` 6.0.3, the next line of the same API (`@Test`, `@BeforeEach`, assertions and `MockitoExtension`). Pinning Jupiter 5 would clash with the BOM and with Boot 4.1 test support.
 
-**Alternatives considered**: Bajar el proyecto a Spring Boot 3.5 para conservar el artefacto JUnit 5. Eso incumple Spring Boot 4.1.x.
+**Alternatives considered**: Moving the project down to Spring Boot 3.5 to keep the JUnit 5 artifact. That breaks the Spring Boot 4.1.x requirement.
 
-## Acceso a datos
+## Data access
 
-**Decision**: Spring Data JPA solo como adaptador de salida. El esquema no lo genera Hibernate (`ddl-auto: none`). El SQL entregado se carga tal cual. El cálculo de portfolio, reservas y cantidad de acciones vive en un servicio de dominio puro, no en consultas dispersas.
+**Decision**: Spring Data JPA only as an outbound adapter. Hibernate does not generate the schema (`ddl-auto: none`). The delivered SQL is loaded as is. Portfolio, reservation and share-count calculation lives in a pure domain service, not in scattered queries.
 
-**Rationale**: El pedido permite Spring Data o SQL directo. El esquema ya existe, es chico y hay que respetarlo. JPA mapea las cuatro tablas y el dominio sigue testeable sin base. Las columnas sin comillas de PostgreSQL quedan en minúsculas (`accountnumber`, `instrumentid`, `previousclose`); el mapeo usa esos nombres reales.
+**Rationale**: The request allows Spring Data or plain SQL. The schema already exists, is small and must be respected. JPA maps the four tables and the domain stays testable without a database. Unquoted PostgreSQL columns end up lower case (`accountnumber`, `instrumentid`, `previousclose`); the mapping uses those real names.
 
-**Alternatives considered**: `JdbcTemplate` o jOOQ para todo. Sirven, pero JPA cubre el CRUD de órdenes y usuarios con menos código, y el cálculo igual queda fuera del ORM. Un esquema generado por Hibernate cambiaría el modelo entregado.
+**Alternatives considered**: `JdbcTemplate` or jOOQ for everything. They work, but JPA covers order and user CRUD with less code, and the calculation stays outside the ORM anyway. A Hibernate-generated schema would change the delivered model.
 
-## PostgreSQL en Docker
+## PostgreSQL in Docker
 
-**Decision**: Imagen oficial fijada en `postgres:18.6`. El parche 18.7 salió el 2026-11-12, pero ese tag todavía no estaba en Docker Hub. No se usa `latest`.
+**Decision**: Official image pinned to `postgres:18.6`. Patch 18.7 came out on 2026-11-12, but that tag was not on Docker Hub yet. `latest` is not used.
 
-**Rationale**: El 2026-11-12 salió PostgreSQL 18.7, con los parches de seguridad de esa fecha. La imagen `latest` vista el mismo día todavía apuntaba a 18.6. El pedido pide la última estable parcheada, no un tag flotante.
+**Rationale**: PostgreSQL 18.7 came out on 2026-11-12, with that date's security patches. The `latest` image seen the same day still pointed to 18.6. The request asks for the latest patched stable version, not a floating tag.
 
-**Alternatives considered**: PostgreSQL 17.x está parcheado, pero no es la última estable. Dejar `postgres:18` también flota entre patches.
+**Alternatives considered**: PostgreSQL 17.x is patched, but it is not the latest stable. Leaving `postgres:18` also floats between patches.
 
-## Aplicación standalone
+## Standalone application
 
-**Decision**: `compose.yaml` levanta dos servicios: `postgres` y `app`. La app se construye con un Dockerfile de dos etapas (`eclipse-temurin:25-jdk` para compilar, `eclipse-temurin:25-jre` para correr). El SQL de referencia entra por `docker-entrypoint-initdb.d`. La app espera el healthcheck de Postgres y publica el puerto 8080.
+**Decision**: `compose.yaml` starts two services: `postgres` and `app`. The app is built with a two-stage Dockerfile (`eclipse-temurin:25-jdk` to build, `eclipse-temurin:25-jre` to run). The reference SQL comes in through `docker-entrypoint-initdb.d`. The app waits for the Postgres healthcheck and publishes port 8080.
 
-**Rationale**: El pedido pide una app Dockerizada que arranque sola, con la base y los datos, sin instalar Java ni PostgreSQL en el host.
+**Rationale**: The request asks for a Dockerized app that starts by itself, with the database and the data, without installing Java or PostgreSQL on the host.
 
-**Alternatives considered**: Solo la base en Docker y la app en el host. No cumple el arranque único. Una imagen única con Postgres y Java adentro mezcla dos procesos y empeora el ciclo de vida.
+**Alternatives considered**: Only the database in Docker and the app on the host. It does not meet the single start. A single image with Postgres and Java inside mixes two processes and worsens the lifecycle.
 
-## LocalStack y Testcontainers
+## Testcontainers
 
-**Decision**: Las clases `*IT.java` usan Testcontainers. El contenedor de PostgreSQL es la base real de los escenarios felices y de error. El mismo harness levanta LocalStack con el módulo Testcontainers y comprueba que responde; ninguna operación de negocio llama a AWS.
+**Decision**: The `*IT.java` classes use Testcontainers. The PostgreSQL container is the real database for happy and error scenarios.
 
-**Rationale**: El pedido nombra las dos herramientas. LocalStack emula AWS, y esta aplicación no tiene S3, colas ni ningún otro servicio de AWS. Usarlo como base sería incorrecto. Dejarlo fuera incumpliría el pedido escrito. Arrancarlo y verificarlo cumple el requisito sin inventar una dependencia de producto.
+**Rationale**: The scenarios run against the same engine as the product, with the reference data loaded. The application calls no AWS service, so the suite starts no AWS emulator.
 
-**Alternatives considered**: Omitir LocalStack. Guardar órdenes en S3 solo para tener algo que testear contra LocalStack.
+**Alternatives considered**: An in-memory database. It does not run the PostgreSQL queries the service relies on.
 
-## Identidad y contrato HTTP
+## Generated contract and Actuator
 
-**Decision**: La cuenta se identifica por `accountNumber` en la ruta. El activo, por `ticker`. La orden guardada, por su id. No hay autenticación ni Spring Security.
+**Decision**: springdoc-openapi 3.2.0, artifact `springdoc-openapi-starter-webmvc-ui`. The OpenAPI is served at `/v3/api-docs` and `/v3/api-docs.yaml`, with the UI at `/swagger-ui.html`. No copy stays in `specs`. Actuator exposes only `health` and `info` (`management.endpoints.web.exposure.include=health,info`). Info publishes `info.app.name` with the application name. Health shows no components.
 
-**Rationale**: Así quedó definido en la especificación. El ticker es lo que devuelve la búsqueda. El id de orden existe en el modelo y hace única la cancelación.
+**Rationale**: The springdoc matrix assigns 3.2.x to Spring Boot 4.1.x. 3.2.0 is built on Spring Boot 4.1.2, the same version as this service. 3.0.x is Spring Boot 4.0 and 2.x is Spring Boot 3. The generated document describes the controllers that actually answer. A hand-written YAML drifts. Health and info are enough to know whether the process and the database answer and whether the process is `brokerage-api`. The rest of Actuator (`env`, `beans`, `mappings`, `heapdump`) stays closed because there is no authentication.
 
-**Alternatives considered**: Identificar al usuario por el id numérico interno. Filtra peor el modelo público, porque el número de cuenta ya es el identificador de negocio.
+**Alternatives considered**: Keeping `specs/001-brokerage-trading-api/contracts/http-api.yaml` as the source and generating code from it at build time. It duplicates the contract. Exposing every Actuator endpoint with `include: "*"`. It publishes configuration and heap dumps on an API without authentication.
 
-## Concurrencia del disponible
+## Identity and HTTP contract
 
-**Decision**: Crear o cancelar una orden corre en una transacción que bloquea la fila del usuario antes de calcular el disponible.
+**Decision**: The account is identified by `accountNumber` in the path. The instrument, by `ticker`. The stored order, by its id. There is no authentication and no Spring Security.
 
-**Rationale**: Dos compras simultáneas no pueden usar dos veces el mismo efectivo. El volumen de referencia es de cuatro cuentas, así que un bloqueo por cuenta alcanza.
+**Rationale**: That is how the specification defined it. The ticker is what the search returns. The order id exists in the model and makes cancellation unique.
 
-**Alternatives considered**: Bloqueo optimista sin fila de usuario. Es más fácil de perder un caso de carrera en el test de integración.
+**Alternatives considered**: Identifying the user by the internal numeric id. It leaks the model more, since the account number is already the business identifier.
+
+## Concurrency of the available balance
+
+**Decision**: Placing or cancelling an order runs in a transaction that locks the user row before computing the available balance.
+
+**Rationale**: Two simultaneous buys must not use the same cash twice. The reference volume is four accounts, so one lock per account is enough.
+
+**Alternatives considered**: Optimistic locking without a user row. It makes it easier to miss a race case in the integration test.

@@ -1,10 +1,11 @@
 package com.cc.brokerage.domain.port.in;
 
 import com.cc.brokerage.domain.model.InstrumentQuote;
+import com.cc.brokerage.domain.model.PageQuery;
+import com.cc.brokerage.domain.model.PageResult;
 
-import java.util.List;
 
 public interface SearchInstrumentsUseCase {
 
-    List<InstrumentQuote> search(String query);
+    PageResult<InstrumentQuote> search(String query, PageQuery page);
 }

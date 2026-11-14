@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 public record Position(
         String ticker,
         String name,
-        int quantity,
+        long quantity,
         BigDecimal marketValue,
         BigDecimal totalReturnPercent,
         BigDecimal dailyReturnPercent

@@ -10,5 +10,5 @@ target
 .env
 .env.*
 postman
-README.txt
+README.md
 **/.DS_Store

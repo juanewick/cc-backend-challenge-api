@@ -1,8 +1,8 @@
 package com.cc.brokerage.domain.port.in;
 
-import com.cc.brokerage.domain.model.Order;
+import com.cc.brokerage.domain.model.ListedOrder;
 
 public interface CancelOrderUseCase {
 
-    Order cancel(String accountNumber, Long orderId);
+    ListedOrder cancel(String accountNumber, long orderId);
 }

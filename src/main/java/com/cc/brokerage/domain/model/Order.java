@@ -21,8 +21,4 @@ public record Order(
     public Order withStatus(OrderStatus newStatus) {
         return new Order(id, instrumentId, userId, size, price, type, side, newStatus, datetime);
     }
-
-    public BigDecimal notional() {
-        return MoneyMath.notional(size, price);
-    }
 }

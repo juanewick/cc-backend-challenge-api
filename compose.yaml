@@ -1,26 +1,10 @@
 services:
-  postgres:
-    image: postgres:18.6
-    environment:
-      POSTGRES_DB: brokerage
-      POSTGRES_USER: brokerage
-      POSTGRES_PASSWORD: brokerage
-    volumes:
-      - ./src/main/resources/db/database.sql:/docker-entrypoint-initdb.d/01-database.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U brokerage -d brokerage"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-
   app:
     build: .
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/brokerage
-      SPRING_DATASOURCE_USERNAME: brokerage
-      SPRING_DATASOURCE_PASSWORD: brokerage
-    depends_on:
-      postgres:
-        condition: service_healthy
+      # Versioned on purpose so the challenge runs with no setup. A real deployment reads these from a secret store.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://ep-damp-mud-bdbvfyea-pooler.c-8.us-east-2.aws.neon.tech/neondb?sslmode=require&channelBinding=require
+      SPRING_DATASOURCE_USERNAME: neondb_owner
+      SPRING_DATASOURCE_PASSWORD: npg_AdT5aj8oJVNh
