@@ -8,7 +8,7 @@ import com.cc.brokerage.adapter.in.web.api.PlaceOrderRequest;
 import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.ListedOrder;
 import com.cc.brokerage.domain.model.PageResult;
-import com.cc.brokerage.domain.model.PageSizeLimits;
+import com.cc.brokerage.domain.model.PageLimits;
 import com.cc.brokerage.domain.model.PlaceOrderOutcome;
 import com.cc.brokerage.domain.port.in.CancelOrderUseCase;
 import com.cc.brokerage.domain.port.in.GetOrderUseCase;
@@ -41,7 +41,7 @@ public class OrderController {
     private final ListOrdersUseCase listOrders;
     private final GetOrderUseCase getOrder;
     private final MoneyFormatter money;
-    private final PageSizeLimits pageSizes;
+    private final PageLimits pageLimits;
 
     public OrderController(
             PlaceOrderUseCase placeOrder,
@@ -49,14 +49,14 @@ public class OrderController {
             ListOrdersUseCase listOrders,
             GetOrderUseCase getOrder,
             MoneyFormatter money,
-            PageSizeLimits pageSizes
+            PageLimits pageLimits
     ) {
         this.placeOrder = placeOrder;
         this.cancelOrder = cancelOrder;
         this.listOrders = listOrders;
         this.getOrder = getOrder;
         this.money = money;
-        this.pageSizes = pageSizes;
+        this.pageLimits = pageLimits;
     }
 
     @GetMapping
@@ -70,12 +70,12 @@ public class OrderController {
             @PathVariable String accountNumber,
             @Parameter(description = "Only the orders in this status: NEW, FILLED, REJECTED or CANCELLED.")
             @RequestParam(required = false) String status,
-            @Parameter(description = "Page number, from 0. Defaults to 0.")
+            @Parameter(description = "Page number, from 0 to the configured deepest page. Defaults to 0.")
             @RequestParam(required = false) String page,
             @Parameter(description = "Orders per page, from 1 to the configured maximum (100 unless changed). Defaults to 20.")
             @RequestParam(required = false) String pageSize
     ) {
-        PageResult<ListedOrder> found = listOrders.list(accountNumber, InputText.orderStatus(status), InputText.page(page, pageSize, pageSizes.orderList()));
+        PageResult<ListedOrder> found = listOrders.list(accountNumber, InputText.orderStatus(status), InputText.page(page, pageSize, pageLimits.orderList()));
         return PageResponse.from(found, order -> toResponse(order, accountNumber));
     }
 

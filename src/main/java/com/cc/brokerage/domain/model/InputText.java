@@ -69,9 +69,11 @@ public final class InputText {
         throw new DomainException(DomainErrorCodes.INVALID_STATUS);
     }
 
-    public static PageQuery page(String page, String size, int maxSize) {
-        int number = page == null ? 0 : boundedInt(page, PageQuery.MAX_PAGE, DomainErrorCodes.INVALID_PAGE, 0);
-        int rows = size == null ? Math.min(PageQuery.DEFAULT_SIZE, maxSize) : boundedInt(size, maxSize, DomainErrorCodes.INVALID_PAGE_SIZE, 1);
+    public static PageQuery page(String page, String size, PageLimit limit) {
+        int number = page == null ? 0 : boundedInt(page, limit.maxPage(), DomainErrorCodes.INVALID_PAGE, 0);
+        int rows = size == null
+                ? Math.min(PageQuery.DEFAULT_SIZE, limit.maxSize())
+                : boundedInt(size, limit.maxSize(), DomainErrorCodes.INVALID_PAGE_SIZE, 1);
         return new PageQuery(number, rows);
     }
 

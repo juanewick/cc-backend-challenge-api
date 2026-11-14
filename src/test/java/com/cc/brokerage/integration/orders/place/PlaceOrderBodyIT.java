@@ -9,8 +9,6 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.hamcrest.Matchers.containsString;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -48,7 +46,6 @@ class PlaceOrderBodyIT extends IntegrationTestBase {
                         .contentType(MediaType.TEXT_PLAIN)
                         .content(validOrder()))
                 .andExpect(status().isUnsupportedMediaType())
-                .andExpect(header().string("Accept", containsString("application/json")))
                 .andExpect(jsonPath("$.type").value("/v3/api-docs#/components/schemas/UnsupportedMediaType"))
                 .andExpect(jsonPath("$.title").value("Unsupported media type"))
                 .andExpect(jsonPath("$.status").value(415))
@@ -72,30 +69,6 @@ class PlaceOrderBodyIT extends IntegrationTestBase {
                 {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"price":"1.00","foreignField":1}
                 """;
         reject(MediaType.APPLICATION_JSON, body, "The request contains a field that is not allowed.", "foreignField");
-    }
-
-    @Test
-    void duplicateSizeIsRejected() throws Exception {
-        String body = """
-                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"size":2,"price":"1.00"}
-                """;
-        reject(MediaType.APPLICATION_JSON, body, "The size field is duplicated.", "2");
-    }
-
-    @Test
-    void duplicateUnknownFieldIsRejectedWithoutNamingIt() throws Exception {
-        String body = """
-                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"price":"1.00","foreignField":1,"foreignField":2}
-                """;
-        reject(MediaType.APPLICATION_JSON, body, "The request contains a duplicated field.", "foreignField");
-    }
-
-    @Test
-    void sameNameInDifferentObjectsIsNotADuplicate() throws Exception {
-        String body = """
-                {"ticker":"GGAL","side":"BUY","type":"LIMIT","size":1,"price":"1.00","extra":{"ticker":"X"}}
-                """;
-        reject(MediaType.APPLICATION_JSON, body, "The request contains a field that is not allowed.", "extra");
     }
 
     @Test

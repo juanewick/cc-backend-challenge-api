@@ -3,6 +3,7 @@ package com.cc.brokerage.unit.domain.model;
 import com.cc.brokerage.domain.DomainErrorCodes;
 import com.cc.brokerage.domain.DomainException;
 import com.cc.brokerage.domain.model.InputText;
+import com.cc.brokerage.domain.model.PageLimit;
 import com.cc.brokerage.domain.model.PageQuery;
 import org.junit.jupiter.api.Test;
 
@@ -71,15 +72,18 @@ class InputTextTest {
     }
 
     @Test
-    void pageSizeIsBoundByTheMaximumGiven() {
-        assertThat(InputText.page(null, null, 100)).isEqualTo(new PageQuery(0, 20));
-        assertThat(InputText.page("2", "30", 30)).isEqualTo(new PageQuery(2, 30));
-        assertThat(InputText.page(null, null, 5)).isEqualTo(new PageQuery(0, 5));
+    void pageAndPageSizeAreBoundByTheLimitGiven() {
+        assertThat(InputText.page(null, null, new PageLimit(10, 100))).isEqualTo(new PageQuery(0, 20));
+        assertThat(InputText.page("10", "30", new PageLimit(10, 30))).isEqualTo(new PageQuery(10, 30));
+        assertThat(InputText.page(null, null, new PageLimit(10, 5))).isEqualTo(new PageQuery(0, 5));
 
-        assertThatThrownBy(() -> InputText.page(null, "31", 30))
+        assertThatThrownBy(() -> InputText.page("11", null, new PageLimit(10, 30)))
+                .isInstanceOf(DomainException.class)
+                .hasMessage("Page must be an integer from 0 to 10.");
+        assertThatThrownBy(() -> InputText.page(null, "31", new PageLimit(10, 30)))
                 .isInstanceOf(DomainException.class)
                 .hasMessage("Page size must be an integer from 1 to 30.");
-        assertThatThrownBy(() -> InputText.page(null, "0", 30))
+        assertThatThrownBy(() -> InputText.page(null, "0", new PageLimit(10, 30)))
                 .isInstanceOf(DomainException.class)
                 .hasMessage("Page size must be an integer from 1 to 30.");
     }

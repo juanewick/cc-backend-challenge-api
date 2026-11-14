@@ -162,6 +162,12 @@ class SearchInstrumentsIT extends IntegrationTestBase {
         mockMvc.perform(get(apiV1() + "/instruments").param("q", "banco").param("pageSize", "101"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BRK-026"));
+        mockMvc.perform(get(apiV1() + "/instruments").param("q", "banco").param("page", "50"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get(apiV1() + "/instruments").param("q", "banco").param("page", "51"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BRK-025"))
+                .andExpect(jsonPath("$.detail").value("Page must be an integer from 0 to 50."));
     }
 
     @Test

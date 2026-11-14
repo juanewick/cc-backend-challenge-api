@@ -50,5 +50,9 @@ brokerage:
     min-shares: ${BROKERAGE_MONEY_MIN_SHARES:1}
     max-shares: ${BROKERAGE_MONEY_MAX_SHARES:2147483647}
   paging:
-    instrument-search-max-size: ${BROKERAGE_INSTRUMENT_SEARCH_MAX_PAGE_SIZE:100}
-    order-list-max-size: ${BROKERAGE_ORDER_LIST_MAX_PAGE_SIZE:100}
+    instrument-search:
+      max-page: ${BROKERAGE_INSTRUMENT_SEARCH_MAX_PAGE:50}
+      max-size: ${BROKERAGE_INSTRUMENT_SEARCH_MAX_PAGE_SIZE:100}
+    order-list:
+      max-page: ${BROKERAGE_ORDER_LIST_MAX_PAGE:1000}
+      max-size: ${BROKERAGE_ORDER_LIST_MAX_PAGE_SIZE:100}

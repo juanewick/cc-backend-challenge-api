@@ -44,7 +44,7 @@ A `MARKET` order must not carry `price`: it answers `400` and `BRK-027`, and no 
 
 `GET /instruments?q=&page=&pageSize=`
 
-One page of matches sorted by ticker, as `{content, page, pageSize, totalElements, totalPages}`. `page` starts at 0 and `pageSize` goes from 1 to `BROKERAGE_INSTRUMENT_SEARCH_MAX_PAGE_SIZE` (100 unless set), 20 by default; an invalid value answers `400` with `BRK-025` or `BRK-026`. A blank `q` answers `BRK-011` even when the page parameters are also invalid. Without `MONEDA`. `PESOS` and `ARS` return no tradable share.
+One page of matches sorted by ticker, as `{content, page, pageSize, totalElements, totalPages}`. `page` goes from 0 to `BROKERAGE_INSTRUMENT_SEARCH_MAX_PAGE` (50 unless set) and `pageSize` from 1 to `BROKERAGE_INSTRUMENT_SEARCH_MAX_PAGE_SIZE` (100 unless set), 20 by default; an invalid value answers `400` with `BRK-025` or `BRK-026`. A blank `q` answers `BRK-011` even when the page parameters are also invalid. Without `MONEDA`. `PESOS` and `ARS` return no tradable share.
 
 `GET /instruments/{ticker}`
 
@@ -100,6 +100,6 @@ The `detail` is the English text. The code does not change if that wording is ad
 | Price that is not a number | `BRK-023` | Price is not a valid number. |
 | Price on a MARKET order | `BRK-027` | A MARKET order does not take a price; it fills at the latest close. |
 
-Outside that catalogue, an unreadable request uses `UNREADABLE` and "The request cannot be read.". A content type other than `application/json` answers `415` with `UNSUPPORTED_MEDIA_TYPE`, "The request body must be sent as application/json." and the `Accept` header. An extra field uses `UNKNOWN_FIELD`. A repeated field uses `DUPLICATE_FIELD`. A field with another type uses `INVALID_FIELD`. Those details are in English too.
+Outside that catalogue, an unreadable request uses `UNREADABLE` and "The request cannot be read.". A content type other than `application/json` answers `415` with `UNSUPPORTED_MEDIA_TYPE`, "The request body must be sent as application/json.". An extra field uses `UNKNOWN_FIELD`. A repeated field is not checked: the last value wins. A field with another type uses `INVALID_FIELD`. Those details are in English too.
 
 The contract generated at `/v3/api-docs` describes these operations, those errors, the two-decimal amounts and the percentage unit.

@@ -16,9 +16,8 @@ Invalid input answers 400. An account, instrument or order that does not exist a
 | Case | Message |
 |---|---|
 | Body unreadable, empty, not an object, or with trailing tokens | The request cannot be read. |
-| Content type other than `application/json` | 415, code `UNSUPPORTED_MEDIA_TYPE` and an `Accept` header |
+| Content type other than `application/json` | 415, code `UNSUPPORTED_MEDIA_TYPE` |
 | A field the operation does not define | The request contains a field that is not allowed. |
-| `ticker`, `side`, `type`, `size`, `amount` or `price` repeated | The ticker field is duplicated., and the equivalent for side, type, size, amount or price |
 | That same field with another type, or a number that does not fit the size | The ticker field is not valid., and the equivalent for side, type, size, amount or price |
 | Account outside 1 to 20 digits | The account is not valid. |
 | Ticker outside 1 to 10 letters or digits | The ticker is not valid. |

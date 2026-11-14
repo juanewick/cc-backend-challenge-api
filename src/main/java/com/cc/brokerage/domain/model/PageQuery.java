@@ -3,10 +3,9 @@ package com.cc.brokerage.domain.model;
 public record PageQuery(int page, int size) {
 
     public static final int DEFAULT_SIZE = 20;
-    public static final int MAX_PAGE = 100_000;
 
     public PageQuery {
-        if (page < 0 || page > MAX_PAGE) {
+        if (page < 0) {
             throw new IllegalArgumentException("Page out of range: " + page);
         }
         if (size < 1) {

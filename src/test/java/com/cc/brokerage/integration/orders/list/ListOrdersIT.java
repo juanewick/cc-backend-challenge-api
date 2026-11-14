@@ -96,5 +96,9 @@ class ListOrdersIT extends IntegrationTestBase {
         mockMvc.perform(get(apiV1() + "/accounts/10001/orders").param("pageSize", "0"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BRK-026"));
+        mockMvc.perform(get(apiV1() + "/accounts/10001/orders").param("page", "1001"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BRK-025"))
+                .andExpect(jsonPath("$.detail").value("Page must be an integer from 0 to 1000."));
     }
 }
