@@ -11,11 +11,15 @@ import com.cc.brokerage.domain.port.in.GetOrderUseCase;
 import com.cc.brokerage.domain.port.out.InstrumentRepository;
 import com.cc.brokerage.domain.port.out.OrderRepository;
 import com.cc.brokerage.domain.port.out.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class GetOrderService implements GetOrderUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(GetOrderService.class);
 
     private final UserRepository users;
     private final OrderRepository orders;
@@ -36,7 +40,11 @@ public class GetOrderService implements GetOrderUseCase {
                 .orElseThrow(() -> new DomainException(DomainErrorCodes.ORDER_NOT_FOUND));
         String ticker = instruments.findInstrumentById(order.instrumentId())
                 .map(Instrument::ticker)
-                .orElseThrow(() -> new DomainException(DomainErrorCodes.INSTRUMENT_NOT_FOUND));
+                .orElseThrow(() -> {
+                    log.warn("Order {} points to missing instrument {}", order.id(), order.instrumentId());
+                    return new DomainException(DomainErrorCodes.INSTRUMENT_NOT_FOUND);
+                });
+        log.debug("Order {} of user {} read ({}, {})", orderId, user.id(), ticker, order.status());
         return new ListedOrder(order, ticker);
     }
 }

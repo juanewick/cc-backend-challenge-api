@@ -1,5 +1,6 @@
 package com.cc.brokerage.adapter.in.web.api;
 
+import com.cc.brokerage.adapter.in.web.RequestLoggingFilter;
 import com.cc.brokerage.domain.DomainErrorCodes;
 import com.cc.brokerage.domain.DomainException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -42,7 +43,6 @@ public class ApiExceptionHandler {
     @ExceptionHandler(DomainException.class)
     ResponseEntity<ApiError> domain(DomainException exception) {
         DomainErrorCodes error = exception.error();
-        log.debug("Request rejected with {}: {}", error.code(), exception.getMessage());
         return problem(
                 statusOf(error),
                 error.code(),
@@ -58,7 +58,8 @@ public class ApiExceptionHandler {
             // Spring's own 4xx (405, 406, unknown path...): rethrowing hands it back to the default resolvers.
             throw exception;
         }
-        log.error("Unexpected failure on {} {}", request.getMethod(), request.getRequestURI(), exception);
+        // The route pattern, not the URI: the URI carries the account number.
+        log.error("Unexpected failure on {} {}", request.getMethod(), RequestLoggingFilter.routeOf(request), exception);
         return problem(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", INTERNAL, List.of());
     }
 
@@ -118,6 +119,10 @@ public class ApiExceptionHandler {
             String paramKey,
             List<ApiError.InvalidParam> params
     ) {
+        if (status.is4xxClientError()) {
+            // Every rejection passes through here, so none goes unlogged. The detail never carries the submitted value.
+            log.debug("Request rejected with {} {}: {}", status.value(), code, detail);
+        }
         return ResponseEntity.status(status)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(ApiError.of(status, code, detail, paramKey, params));

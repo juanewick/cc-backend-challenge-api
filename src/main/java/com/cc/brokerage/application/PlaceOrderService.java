@@ -21,6 +21,8 @@ import com.cc.brokerage.domain.port.out.MarketPriceRepository;
 import com.cc.brokerage.domain.port.out.OrderRepository;
 import com.cc.brokerage.domain.port.out.UserRepository;
 import com.cc.brokerage.domain.service.PortfolioCalculator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,8 @@ import java.util.Set;
 
 @Service
 public class PlaceOrderService implements PlaceOrderUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(PlaceOrderService.class);
 
     private final UserRepository users;
     private final InstrumentRepository instruments;
@@ -82,7 +86,15 @@ public class PlaceOrderService implements PlaceOrderUseCase {
                 LocalDateTime.now()
         );
         BigDecimal amount = price == null ? null : money.notional(size, price);
-        return new PlaceOrderOutcome(orders.save(order), instrument.ticker(), amount, decision.reason());
+        Order saved = orders.save(order);
+        if (decision.reason() == null) {
+            log.info("Order {} placed for user {}: {} {} {} x{} at {}, status {}",
+                    saved.id(), user.id(), command.side(), command.type(), instrument.ticker(), size, order.price(), saved.status());
+        } else {
+            log.info("Order {} of user {} rejected ({}): {} {} {} x{} at {}",
+                    saved.id(), user.id(), decision.reason(), command.side(), command.type(), instrument.ticker(), size, order.price());
+        }
+        return new PlaceOrderOutcome(saved, instrument.ticker(), amount, decision.reason());
     }
 
     /**

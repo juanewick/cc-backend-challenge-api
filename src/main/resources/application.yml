@@ -24,6 +24,11 @@ spring:
 server:
   port: 8080
 
+logging:
+  pattern:
+    # Request id set by RequestLoggingFilter; empty outside a request.
+    correlation: "[%X{requestId:-}] "
+
 management:
   endpoints:
     web:

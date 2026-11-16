@@ -11,6 +11,8 @@ import com.cc.brokerage.domain.port.in.SearchInstrumentsUseCase;
 import com.cc.brokerage.domain.port.out.InstrumentRepository;
 import com.cc.brokerage.domain.port.out.MarketPriceRepository;
 import com.cc.brokerage.domain.service.QuoteCalculator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,8 @@ import java.util.Map;
 
 @Service
 public class SearchInstrumentsService implements SearchInstrumentsUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(SearchInstrumentsService.class);
 
     private final InstrumentRepository instruments;
     private final MarketPriceRepository prices;
@@ -37,6 +41,7 @@ public class SearchInstrumentsService implements SearchInstrumentsUseCase {
         PageResult<Instrument> matches = instruments.search(text, InstrumentType.MONEDA, page);
         List<Long> ids = matches.content().stream().map(Instrument::id).toList();
         Map<Long, MarketPrice> latest = ids.isEmpty() ? Map.of() : prices.findLatestByInstrumentIds(ids);
+        log.debug("Instrument search: page {}, {} of {} returned", page.page(), ids.size(), matches.totalElements());
         return matches.map(instrument -> quotes.quote(instrument, latest.get(instrument.id())));
     }
 }

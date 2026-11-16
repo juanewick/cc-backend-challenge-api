@@ -6,10 +6,13 @@ import com.cc.brokerage.domain.model.InputText;
 import com.cc.brokerage.domain.model.Instrument;
 import com.cc.brokerage.domain.model.InstrumentQuote;
 import com.cc.brokerage.domain.model.InstrumentType;
+import com.cc.brokerage.domain.model.MarketPrice;
 import com.cc.brokerage.domain.port.in.GetInstrumentQuoteUseCase;
 import com.cc.brokerage.domain.port.out.InstrumentRepository;
 import com.cc.brokerage.domain.port.out.MarketPriceRepository;
 import com.cc.brokerage.domain.service.QuoteCalculator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +20,8 @@ import java.util.Set;
 
 @Service
 public class GetInstrumentQuoteService implements GetInstrumentQuoteUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(GetInstrumentQuoteService.class);
 
     private final InstrumentRepository instruments;
     private final MarketPriceRepository prices;
@@ -36,6 +41,11 @@ public class GetInstrumentQuoteService implements GetInstrumentQuoteUseCase {
         if (instrument.type() == InstrumentType.MONEDA) {
             throw new DomainException(DomainErrorCodes.INSTRUMENT_NOT_TRADABLE);
         }
-        return quotes.quote(instrument, prices.findLatestByInstrumentIds(Set.of(instrument.id())).get(instrument.id()));
+        MarketPrice latest = prices.findLatestByInstrumentIds(Set.of(instrument.id())).get(instrument.id());
+        if (latest == null) {
+            log.warn("Instrument {} ({}) has no market price", instrument.id(), instrument.ticker());
+        }
+        log.debug("Quote of {} read", instrument.ticker());
+        return quotes.quote(instrument, latest);
     }
 }
